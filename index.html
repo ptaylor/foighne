@@ -5,9 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Solitaire</title>
 <style>
+  :root {
+    --bg-color: #0a5c2a;
+    --card-bg: #ffffff;
+    --card-text-red: #d00;
+    --card-text-black: #111;
+    --card-border-color: #ccc;
+    --label-color: rgba(255,255,255,0.55);
+    --border-color: rgba(255,255,255,0.2);
+    --dashed-border: rgba(255,255,255,0.2);
+    --empty-placeholder-color: rgba(255,255,255,0.15);
+    --message-color: #ffd700;
+    --btn-bg: rgba(255,255,255,0.15);
+    --btn-hover: rgba(255,255,255,0.25);
+    --btn-active: rgba(255,255,255,0.35);
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #0a5c2a;
+    background: var(--bg-color);
     font-family: Arial, sans-serif;
     height: 100vh;
     user-select: none;
@@ -44,7 +59,7 @@
     min-width: 100px;
     min-height: 140px;
     border-radius: 8px;
-    border: 2px dashed rgba(255,255,255,0.2);
+    border: 2px dashed var(--dashed-border);
   }
   .pile.tableau-pile {
     flex: 1;
@@ -53,7 +68,7 @@
   .card {
     width: 100px;
     height: 140px;
-    background: #fff;
+    background: var(--card-bg);
     border-radius: 8px;
     position: absolute;
     cursor: pointer;
@@ -80,11 +95,11 @@
     transform: translate(-50%, -50%);
   }
   .card.face-up {
-    background: #fff;
-    border: 1px solid #ccc;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border-color);
   }
-  .card.red { color: #d00; }
-  .card.black { color: #111; }
+  .card.red { color: var(--card-text-red); }
+  .card.black { color: var(--card-text-black); }
   .card .rank-suit-top {
     display: flex;
     flex-direction: column;
@@ -117,18 +132,72 @@
   .waste-pile .card { cursor: pointer; }
   .pile-label {
     text-align: center;
-    color: rgba(255,255,255,0.4);
+    color: var(--label-color);
     font-size: 11px;
     margin-top: 4px;
     pointer-events: none;
   }
   #message {
-    color: #ffd700;
+    color: var(--message-color);
     text-align: center;
     font-size: 18px;
-    margin: 10px 0;
+    margin: 8px 0 4px;
     min-height: 28px;
     font-weight: bold;
+  }
+  #stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    color: var(--label-color);
+    font-size: 13px;
+    margin-bottom: 10px;
+    min-height: 20px;
+  }
+  #stats-bar b {
+    color: rgba(255,255,255,0.85);
+    font-weight: 600;
+  }
+  #stats-bar .sep {
+    color: var(--dashed-border);
+  }
+  
+  /* Card back patterns */
+  body[data-card-back="stripes"] .card.face-down {
+    background: repeating-linear-gradient(45deg, #1a3a8a 0px, #1a3a8a 8px, #2a5aca 8px, #2a5aca 16px);
+  }
+  body[data-card-back="stripes"] .card.face-down::after {
+    content: '◆';
+    font-size: 24px;
+  }
+  
+  body[data-card-back="dots"] .card.face-down {
+    background-color: #1a3a8a;
+    background-image: radial-gradient(circle at 20px 20px, #4a7aca 4px, transparent 4px);
+    background-size: 40px 40px;
+  }
+  body[data-card-back="dots"] .card.face-down::after {
+    content: '♠';
+    font-size: 28px;
+  }
+  
+  body[data-card-back="waves"] .card.face-down {
+    background: repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 10px),
+                repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 10px),
+                linear-gradient(135deg, #1a3a8a, #2a5aca);
+  }
+  body[data-card-back="waves"] .card.face-down::after {
+    content: '♥';
+    font-size: 30px;
+  }
+  
+  body[data-card-back="solid"] .card.face-down {
+    background: #1a3a8a;
+    border-color: #0d2460;
+  }
+  body[data-card-back="solid"] .card.face-down::after {
+    content: '✦';
+    font-size: 36px;
   }
   #win-overlay {
     display: none;
@@ -169,29 +238,144 @@
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    background: rgba(255,255,255,0.15);
+    background: var(--btn-bg);
     color: #fff;
     align-self: flex-start;
     margin-top: 8px;
     transition: background 0.15s;
   }
   .btn:hover {
-    background: rgba(255,255,255,0.25);
+    background: var(--btn-hover);
   }
   .btn:active {
-    background: rgba(255,255,255,0.35);
+    background: var(--btn-active);
+  }
+  .btn-icon {
+    padding: 10px 12px;
+    font-size: 18px;
+    line-height: 1;
   }
   .empty-placeholder {
     width: 100px;
     height: 140px;
     position: absolute;
     border-radius: 8px;
-    border: 2px dashed rgba(255,255,255,0.15);
+    border: 2px dashed var(--dashed-border);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255,255,255,0.15);
+    color: var(--empty-placeholder-color);
     font-size: 36px;
+  }
+  
+  /* Settings overlay */
+  #settings-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+  }
+  #settings-overlay.show {
+    display: flex;
+  }
+  .settings-panel {
+    background: #1e3a5f;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .settings-panel h2 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 24px;
+    color: #fff;
+  }
+  .setting-group {
+    margin-bottom: 24px;
+  }
+  .setting-group h3 {
+    font-size: 15px;
+    margin-bottom: 10px;
+    color: rgba(255,255,255,0.7);
+    font-weight: 600;
+  }
+  .tile-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .theme-tile, .back-tile {
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 8px 8px 6px;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid transparent;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+    width: 100px;
+  }
+  .theme-tile:hover, .back-tile:hover {
+    background: rgba(255,255,255,0.14);
+  }
+  .theme-tile.selected, .back-tile.selected {
+    border-color: #ffd700;
+    background: rgba(255,215,0,0.12);
+  }
+  .theme-tile .preview, .back-tile .preview {
+    width: 80px;
+    height: 56px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 5px;
+    overflow: hidden;
+  }
+  .theme-tile .mini-card {
+    width: 50px;
+    height: 36px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .back-tile .preview {
+    position: relative;
+  }
+  .back-tile .preview-symbol {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255,255,255,0.35);
+    font-size: 20px;
+  }
+  .tile-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+  }
+  .btn-settings-close {
+    display: block;
+    margin: 8px auto 0;
+    padding: 12px 44px;
+    font-size: 16px;
+    background: #ffd700;
+    color: #000;
+    font-weight: bold;
+  }
+  .btn-settings-close:hover {
+    background: #ffed4a;
   }
 </style>
 </head>
@@ -212,14 +396,40 @@
       <div class="pile foundation" data-suit="2"><div class="empty-placeholder">&#9830;</div></div>
       <div class="pile foundation" data-suit="3"><div class="empty-placeholder">&#9827;</div></div>
     </div>
-    <button class="btn" onclick="newGame()">New Game</button>
+    <div style="display:flex;gap:6px;align-self:flex-start;margin-top:8px">
+      <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
+      <button class="btn" onclick="newGame()">New Game</button>
+    </div>
   </div>
   <div id="message"></div>
+  <div id="stats-bar">
+    <span>Games: <b id="statGames">0</b></span>
+    <span class="sep">|</span>
+    <span>Won: <b id="statWon">0</b></span>
+    <span class="sep">|</span>
+    <span>Streak: <b id="statStreak">0</b></span>
+    <span class="sep">|</span>
+    <span>Best: <b id="statBest">0</b></span>
+  </div>
   <div class="tableau-row" id="tableau"></div>
 </div>
 <div id="win-overlay">
   <h1>&#127881; You Win! &#127881;</h1>
   <button onclick="newGame()">Play Again</button>
+</div>
+<div id="settings-overlay">
+  <div class="settings-panel">
+    <h2>Settings</h2>
+    <div class="setting-group">
+      <h3>Color Theme</h3>
+      <div class="tile-grid" id="theme-grid"></div>
+    </div>
+    <div class="setting-group">
+      <h3>Card Back</h3>
+      <div class="tile-grid" id="back-grid"></div>
+    </div>
+    <button class="btn btn-settings-close" onclick="closeSettings()">Done</button>
+  </div>
 </div>
 <script>
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -234,6 +444,161 @@ let draggedCards = null;
 let dragOffsetX = 0, dragOffsetY = 0;
 let dragStartEl = null;
 let isDragging = false;
+
+const SAVE_KEY = 'solitaire_save';
+const STATS_KEY = 'solitaire_stats';
+
+function saveGame() {
+  try {
+    const state = { stock, waste, tableau, foundations, selectedCards };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch (e) { /* quota or other error */ }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    stock = state.stock || [];
+    waste = state.waste || [];
+    tableau = state.tableau || [[], [], [], [], [], [], []];
+    foundations = state.foundations || [[], [], [], []];
+    selectedCards = state.selectedCards || null;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function clearSavedGame() {
+  localStorage.removeItem(SAVE_KEY);
+}
+
+function loadStats() {
+  try {
+    const raw = localStorage.getItem(STATS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { gamesPlayed: 0, gamesWon: 0, currentStreak: 0, bestStreak: 0 };
+}
+
+function saveStats(s) {
+  localStorage.setItem(STATS_KEY, JSON.stringify(s));
+}
+
+function updateStatsDisplay(s) {
+  document.getElementById('statGames').textContent = s.gamesPlayed;
+  document.getElementById('statWon').textContent = s.gamesWon;
+  document.getElementById('statStreak').textContent = s.currentStreak;
+  document.getElementById('statBest').textContent = s.bestStreak;
+}
+
+// Settings
+const SETTINGS_KEY = 'solitaire_settings';
+
+const THEMES = {
+  classic: { name: 'Classic Green', bg: '#0a5c2a', cardBg: '#ffffff', red: '#d00', black: '#111', cardBorder: '#ccc' },
+  azure:   { name: 'Azure Blue',   bg: '#2a6b9e', cardBg: '#ffeedd', red: '#d00', black: '#111', cardBorder: '#dcc' },
+  dark:    { name: 'Dark Mode',    bg: '#1a1a2e', cardBg: '#2d2d44', red: '#ff6b6b', black: '#ddd', cardBorder: '#444' },
+  forest:  { name: 'Forest',       bg: '#1b4332', cardBg: '#d4e9d6', red: '#b00', black: '#222', cardBorder: '#bbb' },
+};
+
+const CARD_BACKS = {
+  classic: { name: 'Classic', css: 'linear-gradient(135deg, #1a3a8a, #2a5aca)', border: '#1a3a8a', symbol: '✦', symbolSize: '36px' },
+  stripes: { name: 'Stripes', css: 'repeating-linear-gradient(45deg, #1a3a8a 0px, #1a3a8a 8px, #2a5aca 8px, #2a5aca 16px)', border: '#1a3a8a', symbol: '◆', symbolSize: '24px' },
+  dots:    { name: 'Dots',    css: '#1a3a8a', border: '#1a3a8a', symbol: '♠', symbolSize: '28px' },
+  waves:   { name: 'Waves',   css: 'repeating-linear-gradient(0deg, transparent 0px, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 8px), repeating-linear-gradient(90deg, transparent 0px, transparent 6px, rgba(255,255,255,0.08) 6px, rgba(255,255,255,0.08) 8px), linear-gradient(135deg, #1a3a8a, #2a5aca)', border: '#1a3a8a', symbol: '♥', symbolSize: '30px' },
+  solid:   { name: 'Solid',   css: '#1a3a8a', border: '#0d2460', symbol: '✦', symbolSize: '36px' },
+};
+
+const DEFAULT_SETTINGS = {
+  theme: 'classic',
+  cardBack: 'classic'
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch (e) {}
+  return { ...DEFAULT_SETTINGS };
+}
+
+function saveSettings(s) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
+function applySettings() {
+  const settings = loadSettings();
+  const theme = THEMES[settings.theme] || THEMES.classic;
+  const root = document.documentElement;
+  root.style.setProperty('--bg-color', theme.bg);
+  root.style.setProperty('--card-bg', theme.cardBg);
+  root.style.setProperty('--card-text-red', theme.red);
+  root.style.setProperty('--card-text-black', theme.black);
+  root.style.setProperty('--card-border-color', theme.cardBorder);
+  
+  // Card back pattern
+  document.body.dataset.cardBack = settings.cardBack;
+}
+
+function populateSettings() {
+  const themeGrid = document.getElementById('theme-grid');
+  const backGrid = document.getElementById('back-grid');
+  const settings = loadSettings();
+  
+  themeGrid.innerHTML = '';
+  Object.entries(THEMES).forEach(([id, t]) => {
+    const tile = document.createElement('div');
+    tile.className = 'theme-tile' + (id === settings.theme ? ' selected' : '');
+    tile.dataset.theme = id;
+    tile.onclick = () => selectTheme(id);
+    tile.innerHTML = `<div class="preview" style="background:${t.bg}"><div class="mini-card" style="background:${t.cardBg};color:${t.red}">A♥</div></div><div class="tile-label">${t.name}</div>`;
+    themeGrid.appendChild(tile);
+  });
+  
+  backGrid.innerHTML = '';
+  Object.entries(CARD_BACKS).forEach(([id, b]) => {
+    const tile = document.createElement('div');
+    tile.className = 'back-tile' + (id === settings.cardBack ? ' selected' : '');
+    tile.dataset.back = id;
+    tile.onclick = () => selectCardBack(id);
+    const previewStyle = `background:${b.css};border:2px solid ${b.border || '#1a3a8a'}`;
+    tile.innerHTML = `<div class="preview" style="${previewStyle}"><span class="preview-symbol">${b.symbol}</span></div><div class="tile-label">${b.name}</div>`;
+    backGrid.appendChild(tile);
+  });
+}
+
+function openSettings() {
+  populateSettings();
+  document.getElementById('settings-overlay').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('show');
+}
+
+function selectTheme(id) {
+  const settings = loadSettings();
+  settings.theme = id;
+  saveSettings(settings);
+  applySettings();
+  // Update tile visuals
+  document.querySelectorAll('.theme-tile').forEach(el => {
+    el.classList.toggle('selected', el.dataset.theme === id);
+  });
+}
+
+function selectCardBack(id) {
+  const settings = loadSettings();
+  settings.cardBack = id;
+  saveSettings(settings);
+  applySettings();
+  document.querySelectorAll('.back-tile').forEach(el => {
+    el.classList.toggle('selected', el.dataset.back === id);
+  });
+}
 
 function createDeck() {
   const deck = [];
@@ -253,7 +618,7 @@ function shuffle(arr) {
   return arr;
 }
 
-function newGame() {
+function dealBoard() {
   document.getElementById('win-overlay').classList.remove('show');
   document.getElementById('message').textContent = '';
   stock = shuffle(createDeck());
@@ -291,8 +656,19 @@ function newGame() {
   } else {
     console.log('Deck validated: 52 unique cards');
   }
+}
+
+function newGame() {
+  const stats = loadStats();
+  stats.gamesPlayed++;
+  stats.currentStreak = 0;
+  saveStats(stats);
+  updateStatsDisplay(stats);
   
+  clearSavedGame();
+  dealBoard();
   render();
+  saveGame();
 }
 
 function suitSymbol(s) {
@@ -676,6 +1052,10 @@ function createCardElement(card, index) {
 }
 
 function render() {
+  if (foundations.every(f => f.length === 13)) {
+    // Game already won — keep overlay up during re-renders
+    document.getElementById('win-overlay').classList.add('show');
+  }
   // Don't clear selectedCards here - preserve selection for highlight
   
   // Stock
@@ -754,6 +1134,7 @@ function render() {
   }
   
   // Style drag-over piles
+  saveGame();
 }
 
 function showMessage(msg) {
@@ -767,6 +1148,17 @@ function checkWin() {
   for (let f = 0; f < 4; f++) {
     if (foundations[f].length !== 13) return;
   }
+  
+  const stats = loadStats();
+  stats.gamesWon++;
+  stats.currentStreak++;
+  if (stats.currentStreak > stats.bestStreak) {
+    stats.bestStreak = stats.currentStreak;
+  }
+  saveStats(stats);
+  updateStatsDisplay(stats);
+  
+  clearSavedGame();
   document.getElementById('win-overlay').classList.add('show');
 }
 
@@ -826,16 +1218,35 @@ document.getElementById('stock').addEventListener('click', (e) => {
   drawStock();
 });
 
-// Escape to deselect
+// Escape to deselect or close settings
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    selectedCards = null;
-    render();
+    if (document.getElementById('settings-overlay').classList.contains('show')) {
+      closeSettings();
+    } else {
+      selectedCards = null;
+      render();
+    }
   }
 });
 
-// Start game
-newGame();
+// Click outside settings panel to close
+document.getElementById('settings-overlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeSettings();
+});
+
+// Start game — restore saved state or deal fresh
+applySettings();
+const savedStats = loadStats();
+updateStatsDisplay(savedStats);
+if (!loadGame()) {
+  dealBoard();
+}
+render();
+// If loaded a won game, ensure overlay shows (don't count stats again)
+if (foundations.every(f => f.length === 13)) {
+  document.getElementById('win-overlay').classList.add('show');
+}
 </script>
 </body>
 </html>
