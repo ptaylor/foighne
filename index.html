@@ -6,11 +6,11 @@
 <title>Solitaire</title>
 <style>
   :root {
-    --bg-color: #0a5c2a;
-    --card-bg: #ffffff;
+    --bg-color: #2a6b9e;
+    --card-bg: #ffeedd;
     --card-text-red: #d00;
     --card-text-black: #111;
-    --card-border-color: #ccc;
+    --card-border-color: #dcc;
     --label-color: rgba(255,255,255,0.55);
     --border-color: rgba(255,255,255,0.2);
     --dashed-border: rgba(255,255,255,0.2);
@@ -450,6 +450,12 @@ const STATS_KEY = 'solitaire_stats';
 
 function saveGame() {
   try {
+    // Validate before saving to prevent persisting corrupted state
+    const result = validateGameState();
+    if (!result.valid) {
+      console.warn('Refusing to save corrupted state');
+      return;
+    }
     const state = { stock, waste, tableau, foundations, selectedCards };
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   } catch (e) { /* quota or other error */ }
@@ -513,7 +519,7 @@ const CARD_BACKS = {
 };
 
 const DEFAULT_SETTINGS = {
-  theme: 'classic',
+  theme: 'azure',
   cardBack: 'classic'
 };
 
@@ -655,7 +661,73 @@ function dealBoard() {
     }
   } else {
     console.log('Deck validated: 52 unique cards');
-  }
+}
+
+// Validate ALL cards in the game state and auto-fix duplicates
+function validateGameState() {
+    const allCards = [];
+    const locationMap = [];
+  
+    function collect(cards, loc) {
+      for (const c of cards) { allCards.push(c); locationMap.push(loc); }
+    }
+  
+    collect(stock, 'stock');
+    collect(waste, 'waste');
+    for (let t = 0; t < 7; t++) collect(tableau[t], 'tableau-' + t);
+    for (let f = 0; f < 4; f++) collect(foundations[f], 'foundation-' + f);
+  
+    const ids = allCards.map(c => cardId(c));
+    const uniqueIds = new Set(ids);
+  
+    if (ids.length === uniqueIds.length) {
+      return { valid: true };
+    }
+  
+    // Report duplicates
+    const seen = new Map();
+    const dups = [];
+    for (let i = 0; i < ids.length; i++) {
+      if (seen.has(ids[i])) {
+        dups.push({ id: ids[i], a: seen.get(ids[i]), b: i, locA: locationMap[seen.get(ids[i])], locB: locationMap[i] });
+      } else {
+        seen.set(ids[i], i);
+      }
+    }
+    console.error('DUPLICATE CARDS:', dups);
+    dups.forEach(d => console.error('  ' + d.id + ' at ' + d.locA + ' and ' + d.locB));
+    return { valid: false, duplicates: dups };
+}
+
+function ensureValidState() {
+    const result = validateGameState();
+    if (result.valid) return true;
+  
+    console.warn('Corrupted state! Forcing fresh deal.');
+    showMessage('Game corrupted. Starting fresh!');
+    clearSavedGame();
+  
+    // Deal fresh cards
+    stock = shuffle(createDeck());
+    waste = [];
+    tableau = [[], [], [], [], [], [], []];
+    foundations = [[], [], [], []];
+    selectedCards = null;
+  
+    let idx = 0;
+    for (let i = 0; i < 7; i++) {
+      for (let j = 0; j <= i; j++) {
+        const card = stock[idx++];
+        card.faceUp = (j === i);
+        tableau[i].push(card);
+      }
+    }
+  
+    if (!validateGameState().valid) {
+      console.error('CRITICAL: Fresh deal also has duplicates!');
+    }
+    return false;
+}
 }
 
 function newGame() {
@@ -1241,6 +1313,9 @@ const savedStats = loadStats();
 updateStatsDisplay(savedStats);
 if (!loadGame()) {
   dealBoard();
+} else {
+  // Validate the loaded state; auto-fix if corrupted
+  ensureValidState();
 }
 render();
 // If loaded a won game, ensure overlay shows (don't count stats again)
