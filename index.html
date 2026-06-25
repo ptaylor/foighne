@@ -272,6 +272,26 @@ function newGame() {
     }
   }
   // Remaining cards stay in stock (face down)
+  
+  // Validate no duplicates after deal
+  const allCards = [];
+  for (const pile of tableau) {
+    allCards.push(...pile);
+  }
+  allCards.push(...stock);
+  const ids = allCards.map(c => rankStr(c.rank) + suitSymbol(c.suit));
+  const uniqueIds = new Set(ids);
+  if (ids.length !== uniqueIds.length) {
+    console.error('DUPLICATE CARDS DETECTED!');
+    const counts = {};
+    ids.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+    for (const [id, count] of Object.entries(counts)) {
+      if (count > 1) console.error('  ' + id + ' appears ' + count + ' times');
+    }
+  } else {
+    console.log('Deck validated: 52 unique cards');
+  }
+  
   render();
 }
 
