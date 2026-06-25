@@ -28,7 +28,7 @@
     justify-content: space-between;
     margin-bottom: 30px;
     gap: 10px;
-    min-height: 130px;
+    min-height: 150px;
   }
   .top-section {
     display: flex;
@@ -41,8 +41,8 @@
   }
   .pile {
     position: relative;
-    min-width: 90px;
-    min-height: 120px;
+    min-width: 100px;
+    min-height: 140px;
     border-radius: 8px;
     border: 2px dashed rgba(255,255,255,0.2);
   }
@@ -51,18 +51,19 @@
     min-width: 0;
   }
   .card {
-    width: 90px;
-    height: 120px;
+    width: 100px;
+    height: 140px;
     background: #fff;
     border-radius: 8px;
     position: absolute;
     cursor: pointer;
     box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
     transition: box-shadow 0.15s;
-    font-size: 14px;
+    font-size: 18px;
+    font-weight: 600;
     display: flex;
     flex-direction: column;
-    padding: 6px;
+    padding: 7px;
   }
   .card.face-down {
     background: linear-gradient(135deg, #1a3a8a, #2a5aca);
@@ -72,7 +73,7 @@
   .card.face-down::after {
     content: '✦';
     color: rgba(255,255,255,0.3);
-    font-size: 30px;
+    font-size: 36px;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -99,7 +100,7 @@
     transform: rotate(180deg);
   }
   .card .center-suit {
-    font-size: 32px;
+    font-size: 42px;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -162,8 +163,8 @@
     background: #ffed4a;
   }
   .empty-placeholder {
-    width: 90px;
-    height: 120px;
+    width: 100px;
+    height: 140px;
     position: absolute;
     border-radius: 8px;
     border: 2px dashed rgba(255,255,255,0.15);
@@ -171,7 +172,7 @@
     align-items: center;
     justify-content: center;
     color: rgba(255,255,255,0.15);
-    font-size: 30px;
+    font-size: 36px;
   }
 </style>
 </head>
@@ -456,13 +457,13 @@ document.addEventListener('mousedown', (e) => {
   `;
   
   const cardsToDrag = pile.slice(cardIdx);
-  const ghostHeight = 120 + (cardsToDrag.length - 1) * 25;
+  const ghostHeight = 140 + (cardsToDrag.length - 1) * 28;
   ghost.style.height = ghostHeight + 'px';
   
   cardsToDrag.forEach((c, i) => {
     const mini = createCardElement(c, cardIdx + i);
     mini.style.position = 'absolute';
-    mini.style.top = (i * 25) + 'px';
+    mini.style.top = (i * 28) + 'px';
     mini.style.left = '0';
     mini.style.pointerEvents = 'none';
     ghost.appendChild(mini);
@@ -691,7 +692,7 @@ function render() {
     } else {
       tableau[t].forEach((card, ci) => {
         const cardEl = createCardElement(card, ci);
-        cardEl.style.top = (ci * 25) + 'px';
+        cardEl.style.top = (ci * 28) + 'px';
         cardEl.style.zIndex = ci;
         if (selectedCards && selectedCards.pile === 'tableau' && 
             selectedCards.index === t && ci >= selectedCards.cardIndex) {
@@ -700,7 +701,7 @@ function render() {
         pileEl.appendChild(cardEl);
       });
       // Set min-height based on cards
-      const h = 120 + (tableau[t].length - 1) * 25;
+      const h = 140 + (tableau[t].length - 1) * 28;
       pileEl.style.minHeight = h + 'px';
     }
     
