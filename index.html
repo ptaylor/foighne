@@ -417,7 +417,8 @@ document.addEventListener('mousedown', (e) => {
   const pile = getPile(pileType, pileIdx);
   const card = pile ? pile[cardIdx] : null;
   
-  if (!card || !card.faceUp) return;
+  if (!card) return;
+  if (!card.faceUp) return;
   if (pileType === 'stock') return; // Stock uses click
   
   // Validate drag: must be contiguous face-up from cardIdx
@@ -772,6 +773,11 @@ document.addEventListener('click', (e) => {
       showMessage('Invalid move');
     }
   }
+});
+
+// Click on stock to draw/recycle
+document.getElementById('stock').addEventListener('click', (e) => {
+  drawStock();
 });
 
 // Escape to deselect
