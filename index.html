@@ -162,6 +162,25 @@
   #win-overlay button:hover {
     background: #ffed4a;
   }
+  .btn {
+    padding: 10px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    align-self: flex-start;
+    margin-top: 8px;
+    transition: background 0.15s;
+  }
+  .btn:hover {
+    background: rgba(255,255,255,0.25);
+  }
+  .btn:active {
+    background: rgba(255,255,255,0.35);
+  }
   .empty-placeholder {
     width: 100px;
     height: 140px;
@@ -193,6 +212,7 @@
       <div class="pile foundation" data-suit="2"><div class="empty-placeholder">&#9830;</div></div>
       <div class="pile foundation" data-suit="3"><div class="empty-placeholder">&#9827;</div></div>
     </div>
+    <button class="btn" onclick="newGame()">New Game</button>
   </div>
   <div id="message"></div>
   <div class="tableau-row" id="tableau"></div>
