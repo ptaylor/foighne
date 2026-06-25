@@ -445,34 +445,39 @@ document.addEventListener('mousedown', (e) => {
     cards: pile.slice(cardIdx)
   };
   
-  // Create drag ghost
-  const ghost = document.createElement('div');
-  ghost.className = 'drag-ghost';
-  ghost.style.cssText = `
-    position: fixed;
-    pointer-events: none;
-    z-index: 1000;
-    opacity: 0.85;
-    transform: rotate(3deg);
-  `;
-  
-  const cardsToDrag = pile.slice(cardIdx);
-  const ghostHeight = 140 + (cardsToDrag.length - 1) * 28;
-  ghost.style.height = ghostHeight + 'px';
-  
-  cardsToDrag.forEach((c, i) => {
-    const mini = createCardElement(c, cardIdx + i);
-    mini.style.position = 'absolute';
-    mini.style.top = (i * 28) + 'px';
-    mini.style.left = '0';
-    mini.style.pointerEvents = 'none';
-    ghost.appendChild(mini);
-  });
-  
-  document.body.appendChild(ghost);
+  let ghost = null;
   
   const moveHandler = (ev) => {
-    isDragging = true;
+    if (!isDragging) {
+      isDragging = true;
+      // Create drag ghost on first real mouse movement
+      ghost = document.createElement('div');
+      ghost.className = 'drag-ghost';
+      ghost.style.cssText = `
+        position: fixed;
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0.85;
+        transform: rotate(3deg);
+        left: ${ev.clientX - dragOffsetX}px;
+        top: ${ev.clientY - dragOffsetY}px;
+      `;
+      
+      const cardsToDrag = pile.slice(cardIdx);
+      const ghostHeight = 140 + (cardsToDrag.length - 1) * 28;
+      ghost.style.height = ghostHeight + 'px';
+      
+      cardsToDrag.forEach((c, i) => {
+        const mini = createCardElement(c, cardIdx + i);
+        mini.style.position = 'absolute';
+        mini.style.top = (i * 28) + 'px';
+        mini.style.left = '0';
+        mini.style.pointerEvents = 'none';
+        ghost.appendChild(mini);
+      });
+      
+      document.body.appendChild(ghost);
+    }
     ghost.style.left = (ev.clientX - dragOffsetX) + 'px';
     ghost.style.top = (ev.clientY - dragOffsetY) + 'px';
     
@@ -492,7 +497,7 @@ document.addEventListener('mousedown', (e) => {
   const upHandler = (ev) => {
     document.removeEventListener('mousemove', moveHandler);
     document.removeEventListener('mouseup', upHandler);
-    ghost.remove();
+    if (ghost) ghost.remove();
     
     document.querySelectorAll('.pile').forEach(el => el.classList.remove('drag-over'));
     
