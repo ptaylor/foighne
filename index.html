@@ -753,8 +753,7 @@ function ensureValidState() {
     const result = validateGameState();
     if (result.valid) return true;
   
-    console.warn('Corrupted state! Forcing fresh deal.');
-    showMessage('Game corrupted. Starting fresh!');
+    // Silently fix corrupted state
     clearSavedGame();
   
     // Deal fresh cards
@@ -1001,13 +1000,13 @@ document.addEventListener('mousedown', (e) => {
       `;
       
       const cardsToDrag = pile.slice(cardIdx);
-      const ghostHeight = 140 + (cardsToDrag.length - 1) * 28;
+      const ghostHeight = 140 + (cardsToDrag.length - 1) * 36;
       ghost.style.height = ghostHeight + 'px';
       
       cardsToDrag.forEach((c, i) => {
         const mini = createCardElement(c, cardIdx + i);
         mini.style.position = 'absolute';
-        mini.style.top = (i * 28) + 'px';
+        mini.style.top = (i * 36) + 'px';
         mini.style.left = '0';
         mini.style.pointerEvents = 'none';
         ghost.appendChild(mini);
@@ -1306,7 +1305,7 @@ function render() {
     } else {
       tableau[t].forEach((card, ci) => {
         const cardEl = createCardElement(card, ci);
-        cardEl.style.top = (ci * 28) + 'px';
+        cardEl.style.top = (ci * 36) + 'px';
         cardEl.style.zIndex = ci;
         if (selectedCards && selectedCards.pile === 'tableau' && 
             selectedCards.index === t && ci >= selectedCards.cardIndex) {
@@ -1315,7 +1314,7 @@ function render() {
         pileEl.appendChild(cardEl);
       });
       // Set min-height based on cards
-      const h = 140 + (tableau[t].length - 1) * 28;
+      const h = 140 + (tableau[t].length - 1) * 36;
       pileEl.style.minHeight = h + 'px';
     }
     
