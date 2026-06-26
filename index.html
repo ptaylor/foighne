@@ -6,11 +6,11 @@
 <title>Solitaire</title>
 <style>
   :root {
-    --bg-color: #2a6b9e;
-    --card-bg: #ffeedd;
-    --card-text-red: #d00;
-    --card-text-black: #111;
-    --card-border-color: #dcc;
+    --bg-color: #0d4f7c;
+    --card-bg: #f7f2e8;
+    --card-text-red: #c0392b;
+    --card-text-black: #1a1a2e;
+    --card-border-color: #d4c8b8;
     --label-color: rgba(255,255,255,0.55);
     --border-color: rgba(255,255,255,0.2);
     --dashed-border: rgba(255,255,255,0.2);
@@ -547,10 +547,10 @@ function updateStatsDisplay(s) {
 const SETTINGS_KEY = 'solitaire_settings';
 
 const THEMES = {
-  classic: { name: 'Classic Green', bg: '#0a5c2a', cardBg: '#ffffff', red: '#d00', black: '#111', cardBorder: '#ccc' },
-  azure:   { name: 'Azure Blue',   bg: '#2a6b9e', cardBg: '#ffeedd', red: '#d00', black: '#111', cardBorder: '#dcc' },
-  dark:    { name: 'Dark Mode',    bg: '#1a1a2e', cardBg: '#2d2d44', red: '#ff6b6b', black: '#ddd', cardBorder: '#444' },
-  forest:  { name: 'Forest',       bg: '#1b4332', cardBg: '#d4e9d6', red: '#b00', black: '#222', cardBorder: '#bbb' },
+  azure:   { name: 'Azure',        bg: '#0d4f7c', cardBg: '#f7f2e8', red: '#c0392b', black: '#1a1a2e', cardBorder: '#d4c8b8' },
+  classic: { name: 'Classic Green', bg: '#0d5c28', cardBg: '#fafaf7', red: '#b71c1c', black: '#1b1b1b', cardBorder: '#c8c8c0' },
+  dark:    { name: 'Midnight',      bg: '#0f0f1a', cardBg: '#1e1e30', red: '#ff6b6b', black: '#d4d4e0', cardBorder: '#2a2a40' },
+  forest:  { name: 'Cedar',         bg: '#1e3328', cardBg: '#f0ece4', red: '#a33030', black: '#1c1c1c', cardBorder: '#c4bfb4' },
 };
 
 const CARD_BACKS = {
@@ -564,7 +564,7 @@ const CARD_BACKS = {
 const DEFAULT_SETTINGS = {
   theme: 'azure',
   cardBack: 'prism',
-  faceStyle: 'cool'
+  faceStyle: 'funny'
 };
 
 function loadSettings() {
