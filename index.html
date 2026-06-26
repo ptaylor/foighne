@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solitaire</title>
+<title>Foighne</title>
 <style>
   :root {
     --bg-color: #0d4f7c;
@@ -453,10 +453,21 @@
     transform: scale(1.05);
     box-shadow: 0 6px 24px rgba(255,215,0,0.4);
   }
+  #game-title {
+    text-align: center;
+    color: rgba(255,255,255,0.18);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    font-style: italic;
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
 <div id="game">
+  <div id="game-title">foighne</div>
   <div class="top-row">
     <div class="top-section">
       <div class="pile stock-pile" id="stock">
