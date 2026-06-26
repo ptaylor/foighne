@@ -120,6 +120,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    line-height: 1;
+  }
+  .card .center-suit svg {
+    display: block;
   }
   .card.selected {
     box-shadow: 0 0 0 3px #ff0, 0 0 12px rgba(255,255,0,0.6);
@@ -1143,6 +1147,73 @@ function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
   }
 }
 
+function faceCardSVG(rank, suitColor) {
+  const fill = suitColor === 'red' ? '#c22' : '#222';
+  const light = suitColor === 'red' ? '#e55' : '#444';
+  const accent = suitColor === 'red' ? '#fdd' : '#ddd';
+  
+  // King: profile bust with crown and beard
+  if (rank === 12) {
+    return `<svg viewBox="0 0 60 72" width="54" height="65">
+      <defs><clipPath id="kclip"><circle cx="30" cy="63" r="48"/></clipPath></defs>
+      <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
+      <!-- crown -->
+      <path d="M2 32 L10 20 L18 28 L30 12 L42 28 L50 20 L58 32 L2 32Z" fill="${fill}"/>
+      <circle cx="30" cy="12" r="3" fill="${accent}"/>
+      <circle cx="18" cy="25" r="2" fill="${accent}"/>
+      <circle cx="42" cy="25" r="2" fill="${accent}"/>
+      <!-- head -->
+      <ellipse cx="30" cy="42" rx="18" ry="20" fill="${fill}"/>
+      <!-- hair -->
+      <path d="M12 32 Q12 20 30 20 Q48 20 48 32" fill="${fill}"/>
+      <!-- beard -->
+      <path d="M18 52 Q30 68 42 52" fill="${fill}"/>
+      <!-- eye -->
+      <ellipse cx="22" cy="40" rx="3" ry="4" fill="${accent}"/>
+    </svg>`;
+  }
+  // Queen: profile bust with tiara and flowing hair
+  if (rank === 11) {
+    return `<svg viewBox="0 0 60 72" width="54" height="65">
+      <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
+      <!-- tiara -->
+      <path d="M6 30 L14 18 L22 26 L30 10 L38 26 L46 18 L54 30 L6 30Z" fill="${fill}"/>
+      <circle cx="30" cy="10" r="2.5" fill="${accent}"/>
+      <!-- hair -->
+      <path d="M10 32 Q10 22 20 24 Q24 18 30 26 Q36 18 40 24 Q50 22 50 32 L50 58 Q42 62 30 60 Q18 62 10 58Z" fill="${fill}"/>
+      <!-- face -->
+      <ellipse cx="30" cy="38" rx="16" ry="18" fill="${accent}"/>
+      <!-- eyes -->
+      <ellipse cx="24" cy="36" rx="2.5" ry="3" fill="${fill}"/>
+      <ellipse cx="36" cy="36" rx="2.5" ry="3" fill="${fill}"/>
+      <!-- mouth -->
+      <path d="M27 44 Q30 47 33 44" fill="none" stroke="${fill}" stroke-width="1.2"/>
+      <!-- necklace -->
+      <path d="M18 50 Q30 56 42 50" fill="none" stroke="${light}" stroke-width="1.5"/>
+      <circle cx="30" cy="54" r="2" fill="${accent}"/>
+    </svg>`;
+  }
+  // Jack: youthful bust with cap
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
+    <!-- cap -->
+    <path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="${fill}"/>
+    <circle cx="30" cy="24" r="3" fill="${accent}"/>
+    <!-- hair -->
+    <path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="${fill}"/>
+    <path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="${fill}"/>
+    <!-- face -->
+    <ellipse cx="30" cy="42" rx="16" ry="18" fill="${accent}"/>
+    <!-- eyes -->
+    <ellipse cx="24" cy="40" rx="2.5" ry="3" fill="${fill}"/>
+    <ellipse cx="36" cy="40" rx="2.5" ry="3" fill="${fill}"/>
+    <!-- mouth -->
+    <path d="M27 48 Q30 44 33 48" fill="none" stroke="${fill}" stroke-width="1.2"/>
+    <!-- collar -->
+    <path d="M16 54 L30 62 L44 54" fill="none" stroke="${fill}" stroke-width="2"/>
+  </svg>`;
+}
+
 function createCardElement(card, index) {
   const div = document.createElement('div');
   div.className = 'card';
@@ -1158,10 +1229,11 @@ function createCardElement(card, index) {
   
   const rank = RANKS[card.rank];
   const suit = SUITS[card.suit];
+  const isFace = card.rank >= 10; // J, Q, K
   
   div.innerHTML = `
     <div class="rank-suit-top">${rank}${suit}</div>
-    <div class="center-suit">${suit}</div>
+    <div class="center-suit">${isFace ? faceCardSVG(card.rank, cardColor(card.suit)) : suit}</div>
     <div class="rank-suit-bottom">${rank}${suit}</div>
   `;
   
