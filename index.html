@@ -84,7 +84,6 @@
   .card.face-up:hover {
     transform: translateY(-3px);
     box-shadow: 2px 4px 12px rgba(0,0,0,0.35);
-    z-index: 100 !important;
   }
   .card.face-down {
     background: linear-gradient(135deg, #1a3a8a, #2a5aca);
@@ -139,12 +138,12 @@
     50% { box-shadow: 0 0 0 4px #ffd700, 0 0 28px rgba(255,215,0,0.7); }
   }
   .pile.drag-over .card:last-child {
-    box-shadow: 0 0 0 3px #4f0, 0 0 16px rgba(0,255,0,0.5);
-    animation: pulse-green 1s ease-in-out infinite;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.3);
+    animation: pulse-white 1s ease-in-out infinite;
   }
-  @keyframes pulse-green {
-    0%, 100% { box-shadow: 0 0 0 3px #4f0, 0 0 16px rgba(0,255,0,0.5); }
-    50% { box-shadow: 0 0 0 5px #4f0, 0 0 26px rgba(0,255,0,0.7); }
+  @keyframes pulse-white {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.3); }
+    50% { box-shadow: 0 0 0 5px rgba(255,255,255,1), 0 0 30px rgba(255,255,255,0.5); }
   }
   .stock-pile .card { cursor: pointer; }
   .stock-pile .card.face-down {
@@ -1572,6 +1571,9 @@ function render() {
   
   // Style drag-over piles
   saveGame();
+  
+  // Check for stalemate
+  checkStalemate();
 }
 
 function showMessage(msg) {
@@ -1579,6 +1581,60 @@ function showMessage(msg) {
   setTimeout(() => {
     document.getElementById('message').textContent = '';
   }, 1500);
+}
+
+function hasAnyValidMove() {
+  // Check waste → foundation or tableau
+  if (waste.length > 0) {
+    const w = waste[waste.length - 1];
+    for (let f = 0; f < 4; f++) {
+      if (canPlaceOnFoundation(w, foundations[f])) return true;
+    }
+    for (let t = 0; t < 7; t++) {
+      if (canPlaceOnTableau(w, tableau[t])) return true;
+    }
+  }
+  // Check stock has cards or waste can recycle
+  if (stock.length > 0) return true;
+  if (waste.length > 0) return true; // can recycle
+  
+  // Check tableau → foundation or tableau → tableau
+  for (let t = 0; t < 7; t++) {
+    const pile = tableau[t];
+    for (let ci = 0; ci < pile.length; ci++) {
+      if (!pile[ci].faceUp) continue;
+      // Only top card goes to foundation
+      if (ci === pile.length - 1) {
+        for (let f = 0; f < 4; f++) {
+          if (canPlaceOnFoundation(pile[ci], foundations[f])) return true;
+        }
+      }
+      // Any face-up card (with all cards above it) can move to another tableau
+      // Check if all cards from ci onward are face-up
+      let allUp = true;
+      for (let k = ci; k < pile.length; k++) {
+        if (!pile[k].faceUp) { allUp = false; break; }
+      }
+      if (!allUp) continue;
+      for (let dt = 0; dt < 7; dt++) {
+        if (dt === t) continue;
+        if (canPlaceOnTableau(pile[ci], tableau[dt])) return true;
+        // King on empty
+        if (tableau[dt].length === 0 && pile[ci].rank === 12) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function checkStalemate() {
+  // Don't show stalemate if already won
+  if (foundations.every(f => f.length === 13)) return;
+  
+  if (!hasAnyValidMove()) {
+    document.getElementById('message').innerHTML = 
+      '😔 No moves left — this deal is unwinnable. <button class="btn" onclick="newGame()" style="margin:0 0 0 10px;padding:6px 16px;font-size:13px">New Deal</button>';
+  }
 }
 
 function checkWin() {
