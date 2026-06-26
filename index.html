@@ -74,8 +74,9 @@
     cursor: pointer;
     box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
     transition: box-shadow 0.15s;
-    font-size: 18px;
-    font-weight: 600;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 24px;
+    font-weight: 700;
     display: flex;
     flex-direction: column;
     padding: 7px;
@@ -107,15 +108,14 @@
     line-height: 1;
   }
   .card .rank-suit-bottom {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    margin-top: auto;
+    position: absolute;
+    bottom: 7px;
+    right: 7px;
     line-height: 1;
     transform: rotate(180deg);
   }
   .card .center-suit {
-    font-size: 42px;
+    font-size: 48px;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -255,6 +255,10 @@
     font-size: 18px;
     line-height: 1;
   }
+  .btn-debug.active {
+    background: rgba(255,215,0,0.4);
+    box-shadow: 0 0 8px rgba(255,215,0,0.3);
+  }
   .empty-placeholder {
     width: 100px;
     height: 140px;
@@ -390,6 +394,7 @@
         <div class="empty-placeholder"></div>
       </div>
     </div>
+    <div id="debug-deck-container" style="align-self:flex-start"></div>
     <div class="top-section" id="foundations">
       <div class="pile foundation" data-suit="0"><div class="empty-placeholder">&#9824;</div></div>
       <div class="pile foundation" data-suit="1"><div class="empty-placeholder">&#9829;</div></div>
@@ -399,6 +404,7 @@
     <div style="display:flex;gap:6px;align-self:flex-start;margin-top:8px">
       <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
       <button class="btn" onclick="newGame()">New Game</button>
+      <button class="btn btn-icon btn-debug" id="debug-btn" onclick="toggleDebug()" title="Debug: show stock deck">&#128295;</button>
     </div>
   </div>
   <div id="message"></div>
@@ -633,34 +639,74 @@ function dealBoard() {
   foundations = [[], [], [], []];
   selectedCards = null;
   
-  // Deal tableau
-  let idx = 0;
+  // Deal tableau by popping from end (top of deck)
   for (let i = 0; i < 7; i++) {
     for (let j = 0; j <= i; j++) {
-      const card = stock[idx++];
+      const card = stock.pop();
       card.faceUp = (j === i);
       tableau[i].push(card);
     }
   }
-  // Remaining cards stay in stock (face down)
+  // Reverse so the top of the stock (next draw) is at the end
+  stock.reverse();
   
-  // Validate no duplicates after deal
-  const allCards = [];
-  for (const pile of tableau) {
-    allCards.push(...pile);
+  // Validate and auto-fix duplicates
+  ensureValidState();
+}
+
+// ---- DEBUG MODE ----
+let debugMode = false;
+
+function toggleDebug() {
+  debugMode = !debugMode;
+  const btn = document.getElementById('debug-btn');
+  if (btn) btn.classList.toggle('active', debugMode);
+  render();
+}
+
+function renderDebugDeck(container) {
+  if (!debugMode) return;
+  
+  const debugEl = document.createElement('div');
+  debugEl.id = 'debug-deck';
+  debugEl.style.cssText = 'margin-top: 10px; max-width: 230px; background: rgba(0,0,0,0.5); border-radius: 8px; padding: 8px; max-height: 400px; overflow-y: auto;';
+  
+  const title = document.createElement('div');
+  title.style.cssText = 'color: #ffd700; font-size: 11px; font-weight: bold; margin-bottom: 6px; text-align: center;';
+  title.textContent = 'STOCK DECK (' + stock.length + ' cards)';
+  debugEl.appendChild(title);
+  
+  // Show duplicates count
+  const ids = stock.map(c => cardId(c));
+  const unique = new Set(ids);
+  if (ids.length !== unique.size) {
+    const dupNote = document.createElement('div');
+    dupNote.style.cssText = 'color: #ff4444; font-size: 10px; text-align: center; margin-bottom: 4px;';
+    dupNote.textContent = '⚠ ' + (ids.length - unique.size) + ' DUPLICATES!';
+    debugEl.appendChild(dupNote);
   }
-  allCards.push(...stock);
-  const ids = allCards.map(c => rankStr(c.rank) + suitSymbol(c.suit));
-  const uniqueIds = new Set(ids);
-  if (ids.length !== uniqueIds.length) {
-    console.error('DUPLICATE CARDS DETECTED!');
-    const counts = {};
-    ids.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
-    for (const [id, count] of Object.entries(counts)) {
-      if (count > 1) console.error('  ' + id + ' appears ' + count + ' times');
-    }
-  } else {
-    console.log('Deck validated: 52 unique cards');
+  
+  // Show ALL stock cards face-up (top-to-bottom, top of deck first)
+  for (let i = stock.length - 1; i >= 0; i--) {
+    const c = stock[i];
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:4px; padding:2px 4px; border-radius:3px; font-size:12px; font-weight:bold;';
+    row.style.color = cardColor(c.suit) === 'red' ? '#ff6b6b' : '#eee';
+    row.style.background = (i === 0) ? 'rgba(255,255,255,0.08)' : 'transparent';
+    
+    const idxLabel = document.createElement('span');
+    idxLabel.style.cssText = 'color:rgba(255,255,255,0.4); width:20px; text-align:right; font-size:10px;';
+    idxLabel.textContent = i + ':';
+    row.appendChild(idxLabel);
+    
+    const label = document.createElement('span');
+    label.textContent = rankStr(c.rank) + suitSymbol(c.suit);
+    row.appendChild(label);
+    
+    debugEl.appendChild(row);
+  }
+  
+  container.appendChild(debugEl);
 }
 
 // Validate ALL cards in the game state and auto-fix duplicates
@@ -714,20 +760,19 @@ function ensureValidState() {
     foundations = [[], [], [], []];
     selectedCards = null;
   
-    let idx = 0;
     for (let i = 0; i < 7; i++) {
       for (let j = 0; j <= i; j++) {
-        const card = stock[idx++];
+        const card = stock.pop();
         card.faceUp = (j === i);
         tableau[i].push(card);
       }
     }
+    stock.reverse();
   
     if (!validateGameState().valid) {
       console.error('CRITICAL: Fresh deal also has duplicates!');
     }
     return false;
-}
 }
 
 function newGame() {
@@ -1205,6 +1250,13 @@ function render() {
     tableauEl.appendChild(pileEl);
   }
   
+  // Debug deck display
+  const debugContainer = document.getElementById('debug-deck-container');
+  debugContainer.innerHTML = '';
+  if (debugMode) {
+    renderDebugDeck(debugContainer);
+  }
+  
   // Style drag-over piles
   saveGame();
 }
@@ -1325,3 +1377,4 @@ if (foundations.every(f => f.length === 13)) {
 </script>
 </body>
 </html>
+
