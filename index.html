@@ -263,6 +263,23 @@
     background: rgba(255,215,0,0.4);
     box-shadow: 0 0 8px rgba(255,215,0,0.3);
   }
+  #debug-btn {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    z-index: 999;
+    opacity: 0;
+  }
+  #debug-btn.active {
+    opacity: 0;
+    background: transparent;
+  }
   .empty-placeholder {
     width: 100px;
     height: 140px;
@@ -408,9 +425,9 @@
     <div style="display:flex;gap:6px;align-self:flex-start;margin-top:8px">
       <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
       <button class="btn" onclick="newGame()">New Game</button>
-      <button class="btn btn-icon btn-debug" id="debug-btn" onclick="toggleDebug()" title="Debug: show stock deck">&#128295;</button>
     </div>
   </div>
+  <button id="debug-btn" onclick="toggleDebug()" title="Debug"></button>
   <div id="message"></div>
   <div id="stats-bar">
     <span>Games: <b id="statGames">0</b></span>
@@ -437,6 +454,10 @@
     <div class="setting-group">
       <h3>Card Back</h3>
       <div class="tile-grid" id="back-grid"></div>
+    </div>
+    <div class="setting-group">
+      <h3>Face Card Style</h3>
+      <div class="tile-grid" id="face-grid"></div>
     </div>
     <button class="btn btn-settings-close" onclick="closeSettings()">Done</button>
   </div>
@@ -530,7 +551,8 @@ const CARD_BACKS = {
 
 const DEFAULT_SETTINGS = {
   theme: 'azure',
-  cardBack: 'classic'
+  cardBack: 'classic',
+  faceStyle: 'cool'
 };
 
 function loadSettings() {
@@ -562,6 +584,7 @@ function applySettings() {
 function populateSettings() {
   const themeGrid = document.getElementById('theme-grid');
   const backGrid = document.getElementById('back-grid');
+  const faceGrid = document.getElementById('face-grid');
   const settings = loadSettings();
   
   themeGrid.innerHTML = '';
@@ -584,6 +607,50 @@ function populateSettings() {
     tile.innerHTML = `<div class="preview" style="${previewStyle}"><span class="preview-symbol">${b.symbol}</span></div><div class="tile-label">${b.name}</div>`;
     backGrid.appendChild(tile);
   });
+  
+  faceGrid.innerHTML = '';
+  ['cool','funky','cute','funny','stupid'].forEach(id => {
+    const tile = document.createElement('div');
+    tile.className = 'back-tile' + (id === settings.faceStyle ? ' selected' : '');
+    tile.dataset.face = id;
+    tile.onclick = () => selectFaceStyle(id);
+    const svg = facePreviewSVG(id);
+    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;overflow:hidden">${svg}</div><div class="tile-label" style="text-transform:capitalize">${id}</div>`;
+    faceGrid.appendChild(tile);
+  });
+}
+
+function facePreviewSVG(style) {
+  // Mini King preview using neutral dark tones, 40x48 viewBox
+  const f = '#334', l = '#556', a = '#ccd';
+  const svg = (s) => `<svg viewBox="0 0 40 48" width="36" height="43">${s}</svg>`;
+  switch (style) {
+    case 'funky': return svg(`<rect x="1" y="1" width="38" height="46" rx="4" fill="none" stroke="${f}" stroke-width="1.5" stroke-dasharray="4 2"/>
+      <polygon points="20,5 8,20 14,18 5,22 12,23 20,37 28,23 35,22 26,18 32,20" fill="${f}" opacity="0.8"/>
+      <ellipse cx="20" cy="28" rx="14" ry="11" fill="${f}"/><ellipse cx="15" cy="26" rx="3.5" ry="5" fill="${a}"/><ellipse cx="25" cy="26" rx="3.5" ry="5" fill="${a}"/>
+      <circle cx="15" cy="25" r="2" fill="#f0f"/><circle cx="25" cy="25" r="2" fill="#f0f"/>
+      <path d="M15 34 Q20 40 25 34" fill="none" stroke="#f0f" stroke-width="2"/>`);
+    case 'cute': return svg(`<circle cx="20" cy="27" r="16" fill="${f}"/>
+      <path d="M6 22 L11 12 L17 20 L20 8 L23 20 L29 12 L34 22 L6 22Z" fill="${f}"/>
+      <circle cx="20" cy="8" r="2.5" fill="${a}"/><circle cx="14" cy="26" r="3.5" fill="${a}"/><circle cx="26" cy="26" r="3.5" fill="${a}"/>
+      <circle cx="15" cy="25" r="2" fill="${f}"/><circle cx="25" cy="25" r="2" fill="${f}"/><circle cx="14.5" cy="24.5" r="1" fill="#fff"/><circle cx="24.5" cy="24.5" r="1" fill="#fff"/>
+      <ellipse cx="15" cy="29" rx="3" ry="2" fill="rgba(255,150,150,0.4)"/><ellipse cx="25" cy="29" rx="3" ry="2" fill="rgba(255,150,150,0.4)"/>
+      <path d="M18 32 Q20 35 22 32" fill="none" stroke="${f}" stroke-width="1"/>`);
+    case 'funny': return svg(`<ellipse cx="20" cy="26" rx="15" ry="13" fill="${f}"/>
+      <path d="M0 21 L7 12 L13 18 L20 6 L27 18 L33 12 L40 21 Z" fill="${f}"/>
+      <circle cx="14" cy="24" r="5.5" fill="#fff"/><circle cx="26" cy="24" r="5.5" fill="#fff"/>
+      <circle cx="14" cy="26" r="2.5" fill="${f}"/><circle cx="26" cy="25" r="2.5" fill="${f}"/>
+      <ellipse cx="20" cy="32" rx="5" ry="3.5" fill="${f}"/><ellipse cx="20" cy="31" rx="4" ry="2" fill="${a}"/>`);
+    case 'stupid': return svg(`<ellipse cx="20" cy="28" rx="16" ry="13" fill="${f}"/>
+      <path d="M3 22 L8 15 L15 20 L20 12 L25 20 L32 15 L37 22 Z" fill="${f}"/>
+      <circle cx="11" cy="24" r="4.5" fill="#fff"/><circle cx="29" cy="24" r="4.5" fill="#fff"/>
+      <circle cx="12" cy="24" r="2" fill="${f}"/><circle cx="28" cy="24" r="2" fill="${f}"/>
+      <circle cx="14" cy="32" r="2.5" fill="${a}"/><path d="M17 32 Q20 28 23 32" fill="none" stroke="${f}" stroke-width="1.5"/>`);
+    default: return svg(`<ellipse cx="20" cy="28" rx="12" ry="13" fill="${f}"/>
+      <path d="M2 21 L7 14 L13 18 L20 8 L27 18 L33 14 L38 21 L2 21Z" fill="${f}"/>
+      <circle cx="20" cy="8" r="2" fill="${a}"/><circle cx="12" cy="17" r="1.5" fill="${a}"/><circle cx="28" cy="17" r="1.5" fill="${a}"/>
+      <path d="M12 32 Q20 43 28 32" fill="${f}"/><ellipse cx="15" cy="26" rx="2" ry="3" fill="${a}"/>`);
+  }
 }
 
 function openSettings() {
@@ -613,6 +680,16 @@ function selectCardBack(id) {
   applySettings();
   document.querySelectorAll('.back-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.back === id);
+  });
+}
+
+function selectFaceStyle(id) {
+  const settings = loadSettings();
+  settings.faceStyle = id;
+  saveSettings(settings);
+  render();
+  document.querySelectorAll('#face-grid .back-tile').forEach(el => {
+    el.classList.toggle('selected', el.dataset.face === id);
   });
 }
 
@@ -1146,70 +1223,182 @@ function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
   }
 }
 
-function faceCardSVG(rank, suitColor) {
+function faceCardSVG(rank, suitColor, style) {
   const fill = suitColor === 'red' ? '#c22' : '#222';
   const light = suitColor === 'red' ? '#e55' : '#444';
   const accent = suitColor === 'red' ? '#fdd' : '#ddd';
   
-  // King: profile bust with crown and beard
-  if (rank === 12) {
-    return `<svg viewBox="0 0 60 72" width="54" height="65">
-      <defs><clipPath id="kclip"><circle cx="30" cy="63" r="48"/></clipPath></defs>
-      <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
-      <!-- crown -->
-      <path d="M2 32 L10 20 L18 28 L30 12 L42 28 L50 20 L58 32 L2 32Z" fill="${fill}"/>
-      <circle cx="30" cy="12" r="3" fill="${accent}"/>
-      <circle cx="18" cy="25" r="2" fill="${accent}"/>
-      <circle cx="42" cy="25" r="2" fill="${accent}"/>
-      <!-- head -->
-      <ellipse cx="30" cy="42" rx="18" ry="20" fill="${fill}"/>
-      <!-- hair -->
-      <path d="M12 32 Q12 20 30 20 Q48 20 48 32" fill="${fill}"/>
-      <!-- beard -->
-      <path d="M18 52 Q30 68 42 52" fill="${fill}"/>
-      <!-- eye -->
-      <ellipse cx="22" cy="40" rx="3" ry="4" fill="${accent}"/>
-    </svg>`;
+  switch (style) {
+    case 'funky': return faceFunky(rank, fill, light, accent, suitColor);
+    case 'cute':  return faceCute(rank, fill, light, accent);
+    case 'funny': return faceFunny(rank, fill, light, accent);
+    case 'stupid':return faceStupid(rank, fill, light, accent);
+    default:      return faceCool(rank, fill, light, accent);
   }
-  // Queen: profile bust with tiara and flowing hair
-  if (rank === 11) {
-    return `<svg viewBox="0 0 60 72" width="54" height="65">
-      <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
-      <!-- tiara -->
-      <path d="M6 30 L14 18 L22 26 L30 10 L38 26 L46 18 L54 30 L6 30Z" fill="${fill}"/>
-      <circle cx="30" cy="10" r="2.5" fill="${accent}"/>
-      <!-- hair -->
-      <path d="M10 32 Q10 22 20 24 Q24 18 30 26 Q36 18 40 24 Q50 22 50 32 L50 58 Q42 62 30 60 Q18 62 10 58Z" fill="${fill}"/>
-      <!-- face -->
-      <ellipse cx="30" cy="38" rx="16" ry="18" fill="${accent}"/>
-      <!-- eyes -->
-      <ellipse cx="24" cy="36" rx="2.5" ry="3" fill="${fill}"/>
-      <ellipse cx="36" cy="36" rx="2.5" ry="3" fill="${fill}"/>
-      <!-- mouth -->
-      <path d="M27 44 Q30 47 33 44" fill="none" stroke="${fill}" stroke-width="1.2"/>
-      <!-- necklace -->
-      <path d="M18 50 Q30 56 42 50" fill="none" stroke="${light}" stroke-width="1.5"/>
-      <circle cx="30" cy="54" r="2" fill="${accent}"/>
-    </svg>`;
-  }
-  // Jack: youthful bust with cap
+}
+
+function faceCool(rank, fill, light, accent) {
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
+    <path d="M2 32 L10 20 L18 28 L30 12 L42 28 L50 20 L58 32 L2 32Z" fill="${fill}"/>
+    <circle cx="30" cy="12" r="3" fill="${accent}"/><circle cx="18" cy="25" r="2" fill="${accent}"/><circle cx="42" cy="25" r="2" fill="${accent}"/>
+    <ellipse cx="30" cy="42" rx="18" ry="20" fill="${fill}"/>
+    <path d="M12 32 Q12 20 30 20 Q48 20 48 32" fill="${fill}"/>
+    <path d="M18 52 Q30 68 42 52" fill="${fill}"/>
+    <ellipse cx="22" cy="40" rx="3" ry="4" fill="${accent}"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
+    <path d="M6 30 L14 18 L22 26 L30 10 L38 26 L46 18 L54 30 L6 30Z" fill="${fill}"/>
+    <circle cx="30" cy="10" r="2.5" fill="${accent}"/>
+    <path d="M10 32 Q10 22 20 24 Q24 18 30 26 Q36 18 40 24 Q50 22 50 32 L50 58 Q42 62 30 60 Q18 62 10 58Z" fill="${fill}"/>
+    <ellipse cx="30" cy="38" rx="16" ry="18" fill="${accent}"/>
+    <ellipse cx="24" cy="36" rx="2.5" ry="3" fill="${fill}"/><ellipse cx="36" cy="36" rx="2.5" ry="3" fill="${fill}"/>
+    <path d="M27 44 Q30 47 33 44" fill="none" stroke="${fill}" stroke-width="1.2"/>
+    <path d="M18 50 Q30 56 42 50" fill="none" stroke="${light}" stroke-width="1.5"/>
+    <circle cx="30" cy="54" r="2" fill="${accent}"/>
+  </svg>`;
   return `<svg viewBox="0 0 60 72" width="54" height="65">
     <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
-    <!-- cap -->
     <path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="${fill}"/>
     <circle cx="30" cy="24" r="3" fill="${accent}"/>
-    <!-- hair -->
-    <path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="${fill}"/>
-    <path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="${fill}"/>
-    <!-- face -->
+    <path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="${fill}"/><path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="${fill}"/>
     <ellipse cx="30" cy="42" rx="16" ry="18" fill="${accent}"/>
-    <!-- eyes -->
-    <ellipse cx="24" cy="40" rx="2.5" ry="3" fill="${fill}"/>
-    <ellipse cx="36" cy="40" rx="2.5" ry="3" fill="${fill}"/>
-    <!-- mouth -->
+    <ellipse cx="24" cy="40" rx="2.5" ry="3" fill="${fill}"/><ellipse cx="36" cy="40" rx="2.5" ry="3" fill="${fill}"/>
     <path d="M27 48 Q30 44 33 48" fill="none" stroke="${fill}" stroke-width="1.2"/>
-    <!-- collar -->
     <path d="M16 54 L30 62 L44 54" fill="none" stroke="${fill}" stroke-width="2"/>
+  </svg>`;
+}
+
+function faceFunky(rank, fill, light, accent, suitColor) {
+  const f2 = suitColor === 'red' ? '#f0f' : '#0ff'; // neon accent
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <rect x="2" y="2" width="56" height="68" rx="6" fill="none" stroke="${fill}" stroke-width="2" stroke-dasharray="6 3"/>
+    <polygon points="30,8 12,30 20,28 8,32 18,33 30,55 42,33 52,32 40,28 48,30" fill="${fill}" opacity="0.8"/>
+    <ellipse cx="30" cy="40" rx="20" ry="16" fill="${fill}"/>
+    <ellipse cx="22" cy="38" rx="5" ry="7" fill="${accent}"/><ellipse cx="38" cy="38" rx="5" ry="7" fill="${accent}"/>
+    <circle cx="22" cy="37" r="3" fill="${f2}"/><circle cx="38" cy="37" r="3" fill="${f2}"/>
+    <path d="M22 50 Q30 58 38 50" fill="none" stroke="${f2}" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M12 56 L22 52 L30 58 L38 52 L48 56" fill="none" stroke="${light}" stroke-width="1.5"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <rect x="2" y="2" width="56" height="68" rx="6" fill="none" stroke="${fill}" stroke-width="2" stroke-dasharray="6 3"/>
+    <polygon points="30,6 10,26 22,24 6,28 20,30 30,52 40,30 54,28 38,24 50,26" fill="${fill}" opacity="0.8"/>
+    <ellipse cx="30" cy="38" rx="18" ry="16" fill="${accent}"/>
+    <ellipse cx="23" cy="36" rx="5" ry="6" fill="${f2}"/><ellipse cx="37" cy="36" rx="5" ry="6" fill="${f2}"/>
+    <circle cx="23" cy="35" r="2" fill="${fill}"/><circle cx="37" cy="35" r="2" fill="${fill}"/>
+    <path d="M25 46 Q30 50 35 46" fill="none" stroke="${fill}" stroke-width="1.5"/>
+    <circle cx="22" cy="52" r="3" fill="${f2}"/><circle cx="30" cy="55" r="3" fill="${f2}"/><circle cx="38" cy="52" r="3" fill="${f2}"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <rect x="2" y="2" width="56" height="68" rx="6" fill="none" stroke="${fill}" stroke-width="2" stroke-dasharray="6 3"/>
+    <ellipse cx="30" cy="38" rx="19" ry="18" fill="${accent}"/>
+    <ellipse cx="22" cy="34" rx="6" ry="8" fill="${f2}"/><ellipse cx="38" cy="34" rx="6" ry="8" fill="${f2}"/>
+    <circle cx="22" cy="33" r="3" fill="${fill}"/><circle cx="38" cy="33" r="3" fill="${fill}"/>
+    <polygon points="30,18 22,28 30,26 38,28" fill="${fill}"/>
+    <path d="M18 48 Q30 56 42 48" fill="none" stroke="${f2}" stroke-width="3" stroke-linecap="round"/>
+    <path d="M10 58 L18 54 L30 60 L42 54 L50 58" fill="none" stroke="${light}" stroke-width="1.5"/>
+  </svg>`;
+}
+
+function faceCute(rank, fill, light, accent) {
+  const blush = 'rgba(255,150,150,0.5)';
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <circle cx="30" cy="40" r="24" fill="${fill}"/>
+    <path d="M8 32 L16 18 L24 28 L30 12 L36 28 L44 18 L52 32 L8 32Z" fill="${fill}"/>
+    <circle cx="30" cy="12" r="4" fill="${accent}"/><circle cx="18" cy="23" r="2.5" fill="${accent}"/><circle cx="42" cy="23" r="2.5" fill="${accent}"/>
+    <circle cx="22" cy="38" r="5" fill="${accent}"/><circle cx="38" cy="38" r="5" fill="${accent}"/>
+    <circle cx="22" cy="37" r="3" fill="${fill}"/><circle cx="38" cy="37" r="3" fill="${fill}"/>
+    <circle cx="21" cy="36" r="1.5" fill="#fff"/><circle cx="37" cy="36" r="1.5" fill="#fff"/>
+    <ellipse cx="22" cy="42" rx="5" ry="3" fill="${blush}"/><ellipse cx="38" cy="42" rx="5" ry="3" fill="${blush}"/>
+    <path d="M27 47 Q30 51 33 47" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M14 54 Q30 64 46 54" fill="none" stroke="${light}" stroke-width="2"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="42" rx="22" ry="22" fill="${fill}"/>
+    <path d="M10 34 L18 22 L26 30 L30 14 L34 30 L42 22 L50 34 L10 34Z" fill="${fill}"/>
+    <circle cx="30" cy="14" r="3.5" fill="${accent}"/>
+    <circle cx="22" cy="40" r="4" fill="${accent}"/><circle cx="38" cy="40" r="4" fill="${accent}"/>
+    <circle cx="22" cy="39" r="2.5" fill="${fill}"/><circle cx="38" cy="39" r="2.5" fill="${fill}"/>
+    <circle cx="21" cy="38" r="1.2" fill="#fff"/><circle cx="37" cy="38" r="1.2" fill="#fff"/>
+    <ellipse cx="22" cy="44" rx="4.5" ry="2.5" fill="${blush}"/><ellipse cx="38" cy="44" rx="4.5" ry="2.5" fill="${blush}"/>
+    <path d="M27 48 Q30 44 33 48" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M16 56 Q30 64 44 56" fill="none" stroke="${light}" stroke-width="2"/>
+    <circle cx="30" cy="60" r="2.5" fill="${accent}"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="44" rx="22" ry="22" fill="${fill}"/>
+    <path d="M10 34 L18 20 L30 26 L42 20 L50 34 Q40 28 30 28 Q20 28 10 34Z" fill="${fill}"/>
+    <circle cx="30" cy="22" r="3" fill="${accent}"/>
+    <circle cx="21" cy="42" r="5" fill="${accent}"/><circle cx="39" cy="42" r="5" fill="${accent}"/>
+    <circle cx="21" cy="41" r="3" fill="${fill}"/><circle cx="39" cy="41" r="3" fill="${fill}"/>
+    <circle cx="20" cy="40" r="1.5" fill="#fff"/><circle cx="38" cy="40" r="1.5" fill="#fff"/>
+    <ellipse cx="21" cy="47" rx="5" ry="3" fill="${blush}"/><ellipse cx="39" cy="47" rx="5" ry="3" fill="${blush}"/>
+    <path d="M27 50 Q30 47 33 50" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M16 58 L30 64 L44 58" fill="none" stroke="${light}" stroke-width="2"/>
+  </svg>`;
+}
+
+function faceFunny(rank, fill, light, accent) {
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="38" rx="22" ry="20" fill="${fill}"/>
+    <path d="M0 30 L10 16 L20 26 L30 8 L40 26 L50 16 L60 30 Z" fill="${fill}"/>
+    <circle cx="30" cy="8" r="4" fill="${accent}"/>
+    <circle cx="20" cy="36" r="8" fill="#fff"/><circle cx="40" cy="36" r="8" fill="#fff"/>
+    <circle cx="20" cy="38" r="3" fill="${fill}"/><circle cx="40" cy="38" r="3" fill="${fill}"/>
+    <ellipse cx="30" cy="48" rx="8" ry="5" fill="${fill}"/>
+    <ellipse cx="30" cy="46" rx="6" ry="3" fill="${accent}"/>
+    <path d="M12 54 Q30 68 48 54" fill="none" stroke="${light}" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="10" cy="36" r="3" fill="${accent}"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="40" rx="22" ry="20" fill="${fill}"/>
+    <path d="M2 28 L12 14 L22 24 L30 6 L38 24 L48 14 L58 28 Z" fill="${fill}"/>
+    <circle cx="30" cy="6" r="4" fill="${accent}"/>
+    <circle cx="19" cy="38" r="9" fill="#fff"/><circle cx="41" cy="38" r="9" fill="#fff"/>
+    <circle cx="19" cy="40" r="3.5" fill="${fill}"/><circle cx="41" cy="37" r="3.5" fill="${fill}"/>
+    <path d="M24 50 Q30 56 36 50" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M12 56 Q30 66 48 56" fill="none" stroke="${accent}" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="42" rx="22" ry="20" fill="${fill}"/>
+    <path d="M6 30 L16 16 L26 26 L30 10 L34 26 L44 16 L54 30 Z" fill="${fill}"/>
+    <circle cx="30" cy="10" r="3.5" fill="${accent}"/>
+    <circle cx="20" cy="40" r="9" fill="#fff"/><circle cx="40" cy="40" r="9" fill="#fff"/>
+    <circle cx="22" cy="42" r="4" fill="${fill}"/><circle cx="38" cy="43" r="4" fill="${fill}"/>
+    <ellipse cx="30" cy="52" rx="7" ry="4" fill="${fill}"/>
+    <path d="M26 52 Q30 56 34 52" fill="${accent}"/>
+  </svg>`;
+}
+
+function faceStupid(rank, fill, light, accent) {
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="42" rx="24" ry="20" fill="${fill}"/>
+    <path d="M4 30 L12 18 L22 28 L30 14 L38 28 L48 18 L56 30 Z" fill="${fill}"/>
+    <circle cx="14" cy="36" r="6" fill="#fff"/><circle cx="46" cy="36" r="6" fill="#fff"/>
+    <circle cx="16" cy="36" r="2.5" fill="${fill}"/><circle cx="44" cy="36" r="2.5" fill="${fill}"/>
+    <circle cx="20" cy="48" r="4" fill="${accent}"/>
+    <path d="M24 52 Q30 46 36 52" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M10 58 L20 54 L30 62 L40 54 L50 58" fill="none" stroke="${light}" stroke-width="2"/>
+    <ellipse cx="30" cy="64" rx="5" ry="3" fill="${accent}"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="44" rx="24" ry="20" fill="${fill}"/>
+    <path d="M6 32 L14 20 L24 30 L30 16 L36 30 L46 20 L54 32 Z" fill="${fill}"/>
+    <circle cx="16" cy="40" r="7" fill="#fff"/><circle cx="44" cy="40" r="7" fill="#fff"/>
+    <circle cx="17" cy="39" r="3" fill="${fill}"/><circle cx="43" cy="41" r="3" fill="${fill}"/>
+    <ellipse cx="30" cy="52" rx="5" ry="3" fill="${accent}"/>
+    <path d="M26 52 Q30 48 34 52" stroke="${fill}" stroke-width="1.5" fill="none"/>
+    <circle cx="22" cy="56" r="2.5" fill="${accent}"/><circle cx="30" cy="58" r="2.5" fill="${accent}"/><circle cx="38" cy="56" r="2.5" fill="${accent}"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="44" rx="23" ry="20" fill="${fill}"/>
+    <path d="M8 32 L16 20 L28 28 L30 18 L32 28 L44 20 L52 32 Z" fill="${fill}"/>
+    <circle cx="16" cy="40" r="7" fill="#fff"/><circle cx="44" cy="40" r="7" fill="#fff"/>
+    <circle cx="18" cy="40" r="3" fill="${fill}"/><circle cx="42" cy="40" r="3" fill="${fill}"/>
+    <ellipse cx="30" cy="52" rx="6" ry="4" fill="${accent}"/>
+    <path d="M22 54 Q30 50 38 54" stroke="${fill}" stroke-width="2" fill="none"/>
+    <path d="M12 60 L20 56 L30 64 L40 56 L48 60" fill="none" stroke="${light}" stroke-width="2"/>
   </svg>`;
 }
 
@@ -1228,11 +1417,12 @@ function createCardElement(card, index) {
   
   const rank = RANKS[card.rank];
   const suit = SUITS[card.suit];
-  const isFace = card.rank >= 10; // J, Q, K
+  const isFace = card.rank >= 10;
+  const style = loadSettings().faceStyle || 'cool';
   
   div.innerHTML = `
     <div class="rank-suit-top">${rank}${suit}</div>
-    <div class="center-suit">${isFace ? faceCardSVG(card.rank, cardColor(card.suit)) : suit}</div>
+    <div class="center-suit">${isFace ? faceCardSVG(card.rank, cardColor(card.suit), style) : suit}</div>
     <div class="rank-suit-bottom">${rank}${suit}</div>
   `;
   
