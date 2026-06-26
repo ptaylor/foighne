@@ -73,13 +73,18 @@
     position: absolute;
     cursor: pointer;
     box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-    transition: box-shadow 0.15s;
+    transition: box-shadow 0.2s, transform 0.2s, top 0.2s ease, left 0.2s ease;
     font-family: Georgia, 'Times New Roman', serif;
     font-size: 24px;
     font-weight: 700;
     display: flex;
     flex-direction: column;
     padding: 7px;
+  }
+  .card.face-up:hover {
+    transform: translateY(-3px);
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.35);
+    z-index: 100 !important;
   }
   .card.face-down {
     background: linear-gradient(135deg, #1a3a8a, #2a5aca);
@@ -126,12 +131,29 @@
     display: block;
   }
   .card.selected {
-    box-shadow: 0 0 0 3px #ff0, 0 0 12px rgba(255,255,0,0.6);
+    box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5);
+    animation: pulse-gold 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5); }
+    50% { box-shadow: 0 0 0 4px #ffd700, 0 0 28px rgba(255,215,0,0.7); }
   }
   .pile.drag-over .card:last-child {
-    box-shadow: 0 0 0 3px #0f0, 0 0 16px rgba(0,255,0,0.5);
+    box-shadow: 0 0 0 3px #4f0, 0 0 16px rgba(0,255,0,0.5);
+    animation: pulse-green 1s ease-in-out infinite;
+  }
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 3px #4f0, 0 0 16px rgba(0,255,0,0.5); }
+    50% { box-shadow: 0 0 0 5px #4f0, 0 0 26px rgba(0,255,0,0.7); }
   }
   .stock-pile .card { cursor: pointer; }
+  .stock-pile .card.face-down {
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .stock-pile .card.face-down:hover {
+    transform: translateY(-2px);
+    box-shadow: 2px 4px 10px rgba(0,0,0,0.4);
+  }
   .foundation .card { cursor: default; }
   .waste-pile .card { cursor: pointer; }
   .pile-label {
@@ -219,7 +241,9 @@
     display: none;
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1000;
     justify-content: center;
     align-items: center;
@@ -243,9 +267,12 @@
     cursor: pointer;
     color: #000;
     font-weight: bold;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
   }
   #win-overlay button:hover {
     background: #ffed4a;
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(255,215,0,0.4);
   }
   .btn {
     padding: 10px 22px;
@@ -258,13 +285,17 @@
     color: #fff;
     align-self: flex-start;
     margin-top: 8px;
-    transition: background 0.15s;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
   }
   .btn:hover {
     background: var(--btn-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
   }
   .btn:active {
     background: var(--btn-active);
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
   .btn-icon {
     padding: 10px 12px;
@@ -310,7 +341,9 @@
     display: none;
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     z-index: 999;
     justify-content: center;
     align-items: center;
@@ -356,11 +389,12 @@
     background: rgba(255,255,255,0.08);
     border: 2px solid transparent;
     text-align: center;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
     width: 100px;
   }
   .theme-tile:hover, .back-tile:hover {
     background: rgba(255,255,255,0.14);
+    transform: translateY(-2px);
   }
   .theme-tile.selected, .back-tile.selected {
     border-color: #ffd700;
@@ -410,9 +444,15 @@
     background: #ffd700;
     color: #000;
     font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
   }
   .btn-settings-close:hover {
     background: #ffed4a;
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(255,215,0,0.4);
   }
 </style>
 </head>
