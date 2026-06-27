@@ -155,6 +155,11 @@
   }
   .foundation .card { cursor: default; }
   .waste-pile .card { cursor: pointer; }
+  .waste-pile .card:not(:last-child) {
+    cursor: default;
+    opacity: 0.6;
+    pointer-events: none;
+  }
   .pile-label {
     text-align: center;
     color: var(--label-color);
@@ -322,6 +327,62 @@
     opacity: 0;
     background: transparent;
   }
+  #debug-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 220px;
+    height: 100vh;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 998;
+    overflow-y: auto;
+    padding: 20px 14px;
+    font-size: 12px;
+    color: #fff;
+    transition: transform 0.3s ease;
+    transform: translateX(100%);
+  }
+  #debug-panel.debug-visible {
+    transform: translateX(0);
+  }
+  #debug-panel h3 {
+    color: #ffd700;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 12px 0 6px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  #debug-panel h3:first-child {
+    margin-top: 0;
+  }
+  #debug-panel .debug-card {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+  }
+  #debug-panel .debug-card.red { color: #ff6b6b; }
+  #debug-panel .debug-card.black { color: #ddd; }
+  #debug-panel .debug-card .debug-idx {
+    width: 22px;
+    text-align: right;
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    flex-shrink: 0;
+  }
+  #debug-panel .debug-empty {
+    text-align: center;
+    color: rgba(255,255,255,0.25);
+    font-style: italic;
+    padding: 4px 0;
+  }
   .empty-placeholder {
     width: 100px;
     height: 140px;
@@ -468,6 +529,7 @@
 <body>
 <div id="game">
   <div id="game-title">foighne</div>
+  <div id="debug-panel" class="debug-hidden"></div>
   <div class="top-row">
     <div class="top-section">
       <div class="pile stock-pile" id="stock">
@@ -477,7 +539,6 @@
         <div class="empty-placeholder"></div>
       </div>
     </div>
-    <div id="debug-deck-container" style="align-self:flex-start"></div>
     <div class="top-section" id="foundations">
       <div class="pile foundation" data-suit="0"><div class="empty-placeholder">&#9824;</div></div>
       <div class="pile foundation" data-suit="1"><div class="empty-placeholder">&#9829;</div></div>
@@ -520,6 +581,10 @@
     <div class="setting-group">
       <h3>Face Card Style</h3>
       <div class="tile-grid" id="face-grid"></div>
+    </div>
+    <div class="setting-group">
+      <h3>Draw Count</h3>
+      <div class="tile-grid" id="draw-grid"></div>
     </div>
     <button class="btn btn-settings-close" onclick="closeSettings()">Done</button>
   </div>
@@ -614,7 +679,8 @@ const CARD_BACKS = {
 const DEFAULT_SETTINGS = {
   theme: 'azure',
   cardBack: 'prism',
-  faceStyle: 'funny'
+  faceStyle: 'funny',
+  drawCount: 3
 };
 
 function loadSettings() {
@@ -679,6 +745,17 @@ function populateSettings() {
     const svg = facePreviewSVG(id);
     tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;overflow:hidden">${svg}</div><div class="tile-label" style="text-transform:capitalize">${id}</div>`;
     faceGrid.appendChild(tile);
+  });
+  
+  const drawGrid = document.getElementById('draw-grid');
+  drawGrid.innerHTML = '';
+  [{v:1,n:'Single'},{v:3,n:'Triple'}].forEach(d => {
+    const tile = document.createElement('div');
+    tile.className = 'back-tile' + (d.v === settings.drawCount ? ' selected' : '');
+    tile.dataset.draw = d.v;
+    tile.onclick = () => selectDrawCount(d.v);
+    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:32px;color:rgba(255,255,255,0.6)">${d.v}</div><div class="tile-label">${d.n}</div>`;
+    drawGrid.appendChild(tile);
   });
 }
 
@@ -755,6 +832,15 @@ function selectFaceStyle(id) {
   });
 }
 
+function selectDrawCount(v) {
+  const settings = loadSettings();
+  settings.drawCount = v;
+  saveSettings(settings);
+  document.querySelectorAll('#draw-grid .back-tile').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.draw) === v);
+  });
+}
+
 function createDeck() {
   const deck = [];
   for (let s = 0; s < 4; s++) {
@@ -802,54 +888,59 @@ let debugMode = false;
 
 function toggleDebug() {
   debugMode = !debugMode;
-  const btn = document.getElementById('debug-btn');
-  if (btn) btn.classList.toggle('active', debugMode);
-  render();
+  const panel = document.getElementById('debug-panel');
+  if (panel) {
+    panel.classList.toggle('debug-visible', debugMode);
+  }
+  renderDebugPanel();
 }
 
-function renderDebugDeck(container) {
-  if (!debugMode) return;
+function renderDebugPanel() {
+  const panel = document.getElementById('debug-panel');
+  if (!panel) return;
   
-  const debugEl = document.createElement('div');
-  debugEl.id = 'debug-deck';
-  debugEl.style.cssText = 'margin-top: 10px; max-width: 230px; background: rgba(0,0,0,0.5); border-radius: 8px; padding: 8px; max-height: 400px; overflow-y: auto;';
-  
-  const title = document.createElement('div');
-  title.style.cssText = 'color: #ffd700; font-size: 11px; font-weight: bold; margin-bottom: 6px; text-align: center;';
-  title.textContent = 'STOCK DECK (' + stock.length + ' cards)';
-  debugEl.appendChild(title);
-  
-  // Show duplicates count
-  const ids = stock.map(c => cardId(c));
-  const unique = new Set(ids);
-  if (ids.length !== unique.size) {
-    const dupNote = document.createElement('div');
-    dupNote.style.cssText = 'color: #ff4444; font-size: 10px; text-align: center; margin-bottom: 4px;';
-    dupNote.textContent = '⚠ ' + (ids.length - unique.size) + ' DUPLICATES!';
-    debugEl.appendChild(dupNote);
+  if (!debugMode) {
+    panel.innerHTML = '';
+    return;
   }
   
-  // Show ALL stock cards face-up (top-to-bottom, top of deck first)
-  for (let i = stock.length - 1; i >= 0; i--) {
-    const c = stock[i];
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; gap:4px; padding:2px 4px; border-radius:3px; font-size:12px; font-weight:bold;';
-    row.style.color = cardColor(c.suit) === 'red' ? '#ff6b6b' : '#eee';
-    row.style.background = (i === 0) ? 'rgba(255,255,255,0.08)' : 'transparent';
-    
-    const idxLabel = document.createElement('span');
-    idxLabel.style.cssText = 'color:rgba(255,255,255,0.4); width:20px; text-align:right; font-size:10px;';
-    idxLabel.textContent = i + ':';
-    row.appendChild(idxLabel);
-    
-    const label = document.createElement('span');
-    label.textContent = rankStr(c.rank) + suitSymbol(c.suit);
-    row.appendChild(label);
-    
-    debugEl.appendChild(row);
+  let html = '';
+  
+  html += '<h3>📦 Stock (' + stock.length + ')</h3>';
+  if (stock.length === 0) {
+    html += '<div class="debug-empty">empty</div>';
+  } else {
+    for (let i = stock.length - 1; i >= 0; i--) {
+      const c = stock[i];
+      const col = cardColor(c.suit);
+      html += '<div class="debug-card ' + col + '"><span class="debug-idx">' + i + '</span>' + rankStr(c.rank) + suitSymbol(c.suit) + '</div>';
+    }
   }
   
-  container.appendChild(debugEl);
+  html += '<h3>🗑 Waste (' + waste.length + ')</h3>';
+  if (waste.length === 0) {
+    html += '<div class="debug-empty">empty</div>';
+  } else {
+    for (let i = waste.length - 1; i >= 0; i--) {
+      const c = waste[i];
+      const col = cardColor(c.suit);
+      html += '<div class="debug-card ' + col + '"><span class="debug-idx">' + i + '</span>' + rankStr(c.rank) + suitSymbol(c.suit) + '</div>';
+    }
+  }
+  
+  html += '<h3>🏆 Foundations</h3>';
+  for (let f = 0; f < 4; f++) {
+    const top = foundations[f].length > 0 ? rankStr(foundations[f][foundations[f].length - 1].rank) + suitSymbol(foundations[f][foundations[f].length - 1].suit) : '—';
+    html += '<div class="debug-card black"><span class="debug-idx">' + suitSymbol(f) + '</span>' + foundations[f].length + '/13 — ' + top + '</div>';
+  }
+  
+  const allIds = [...stock, ...waste, ...tableau.flat(), ...foundations.flat()].map(c => cardId(c));
+  const unique = new Set(allIds);
+  if (allIds.length !== unique.size) {
+    html += '<div style="color:#ff4444;text-align:center;margin-top:10px;font-size:11px">⚠ ' + (allIds.length - unique.size) + ' DUPLICATES!</div>';
+  }
+  
+  panel.innerHTML = html;
 }
 
 // Validate ALL cards in the game state and auto-fix duplicates
@@ -964,8 +1055,8 @@ function canPlaceOnFoundation(card, destPile) {
 }
 
 function drawStock() {
+  const count = loadSettings().drawCount || 1;
   if (stock.length === 0) {
-    // Recycle waste
     if (waste.length === 0) return;
     while (waste.length > 0) {
       const card = waste.pop();
@@ -975,9 +1066,11 @@ function drawStock() {
     render();
     return;
   }
-  const card = stock.pop();
-  card.faceUp = true;
-  waste.push(card);
+  for (let k = 0; k < count && stock.length > 0; k++) {
+    const card = stock.pop();
+    card.faceUp = true;
+    waste.push(card);
+  }
   selectedCards = null;
   render();
 }
@@ -995,6 +1088,8 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
   if (!card || !card.faceUp) return;
   
   if (pileType === 'waste') {
+    // Only the top waste card is playable
+    if (cardIdx !== pile.length - 1) return;
     // Try foundations first, then tableau
     let moved = false;
     for (let f = 0; f < 4; f++) {
@@ -1515,10 +1610,16 @@ function render() {
   wasteEl.dataset.pileIndex = '0';
   wasteEl.innerHTML = '<div class="empty-placeholder"></div>';
   if (waste.length > 0) {
-    const top = waste[waste.length - 1];
-    const cardEl = createCardElement(top, waste.length - 1);
-    cardEl.style.position = 'relative';
-    wasteEl.appendChild(cardEl);
+    const drawCount = loadSettings().drawCount || 1;
+    const showCount = Math.min(drawCount, waste.length);
+    for (let w = waste.length - showCount; w < waste.length; w++) {
+      const cardEl = createCardElement(waste[w], w);
+      cardEl.style.position = 'absolute';
+      cardEl.style.left = ((w - (waste.length - showCount)) * 24) + 'px';
+      cardEl.style.zIndex = w;
+      wasteEl.appendChild(cardEl);
+    }
+    wasteEl.style.minWidth = (100 + (showCount - 1) * 24) + 'px';
   }
   
   // Foundations
@@ -1573,12 +1674,8 @@ function render() {
     tableauEl.appendChild(pileEl);
   }
   
-  // Debug deck display
-  const debugContainer = document.getElementById('debug-deck-container');
-  debugContainer.innerHTML = '';
-  if (debugMode) {
-    renderDebugDeck(debugContainer);
-  }
+  // Debug panel
+  renderDebugPanel();
   
   // Style drag-over piles
   saveGame();
