@@ -885,6 +885,83 @@ function dealBoard() {
 
 // ---- DEBUG MODE ----
 let debugMode = false;
+let activeEgg = null;
+
+const EASTER_EGGS = {
+  '07-07': {
+    name: '🎂 Birthday Celebration',
+    css: `
+      body.egg- { background: linear-gradient(135deg, #0d4f7c 0%, #1a3a6e 30%, #2c1050 50%, #1a3a6e 70%, #0d4f7c 100%); background-size: 400% 400%; animation: bg-party 8s ease infinite; }
+      @keyframes bg-party { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+      body.egg-::before {
+        content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; z-index: 0; opacity: 0.4;
+        background:
+          radial-gradient(2px 2px at 15% 20%, #ffd93d 50%, transparent 50%),
+          radial-gradient(2px 2px at 30% 60%, #ff6b9d 50%, transparent 50%),
+          radial-gradient(2px 2px at 50% 15%, #6bcb77 50%, transparent 50%),
+          radial-gradient(2px 2px at 70% 50%, #4d96ff 50%, transparent 50%),
+          radial-gradient(2px 2px at 85% 30%, #ffd93d 50%, transparent 50%),
+          radial-gradient(3px 3px at 10% 70%, #ff6b9d 50%, transparent 50%),
+          radial-gradient(3px 3px at 40% 85%, #6bcb77 50%, transparent 50%),
+          radial-gradient(3px 3px at 60% 10%, #4d96ff 50%, transparent 50%),
+          radial-gradient(2px 2px at 90% 75%, #ffd93d 50%, transparent 50%),
+          radial-gradient(3px 3px at 20% 40%, #ff6b9d 50%, transparent 50%),
+          radial-gradient(2px 2px at 75% 80%, #6bcb77 50%, transparent 50%),
+          radial-gradient(2px 2px at 45% 55%, #4d96ff 50%, transparent 50%),
+          radial-gradient(3px 3px at 5% 10%, #ffd93d 50%, transparent 50%),
+          radial-gradient(2px 2px at 55% 70%, #ff6b9d 50%, transparent 50%),
+          radial-gradient(3px 3px at 35% 25%, #6bcb77 50%, transparent 50%);
+        animation: confetti 10s linear infinite;
+      }
+      @keyframes confetti {
+        0% { transform: translateY(-10px); opacity: 0.3; }
+        25% { transform: translateY(5px); opacity: 0.5; }
+        50% { transform: translateY(-5px); opacity: 0.35; }
+        75% { transform: translateY(10px); opacity: 0.5; }
+        100% { transform: translateY(-10px); opacity: 0.3; }
+      }
+      body.egg- .card.face-up { border-color: #c9a84c !important; box-shadow: 1px 1px 4px rgba(201,168,76,0.3); }
+      body.egg- .card.face-down { border-color: rgba(201,168,76,0.5) !important; }
+      body.egg- .card.selected { animation: pulse-egg 1.5s ease-in-out infinite; box-shadow: 0 0 0 3px #c9a84c, 0 0 18px rgba(201,168,76,0.5); }
+      @keyframes pulse-egg { 0%,100%{box-shadow:0 0 0 3px #c9a84c,0 0 18px rgba(201,168,76,0.5)} 50%{box-shadow:0 0 0 4px #c9a84c,0 0 28px rgba(201,168,76,0.7)} }
+      body.egg- #game-title { color: rgba(201,168,76,0.25); }
+    `
+  }
+};
+
+function checkEasterEgg() {
+  const today = new Date();
+  const key = String(today.getMonth() + 1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  if (EASTER_EGGS[key]) {
+    activateEgg(key);
+  }
+}
+
+function activateEgg(key) {
+  if (activeEgg === key) return;
+  deactivateEgg();
+  activeEgg = key;
+  const egg = EASTER_EGGS[key];
+  const style = document.createElement('style');
+  style.id = 'egg-style';
+  const cls = 'egg-' + key.replace(/-/g, '');
+  style.textContent = egg.css.replace(/\.egg-/g, '.' + cls + ' ');
+  document.head.appendChild(style);
+  document.body.classList.add(cls);
+  renderDebugPanel();
+}
+
+function deactivateEgg() {
+  if (activeEgg) {
+    const style = document.getElementById('egg-style');
+    if (style) style.remove();
+    const cls = 'egg-' + activeEgg.replace(/-/g, '');
+    document.body.classList.remove(cls);
+    activeEgg = null;
+    renderDebugPanel();
+  }
+}
 
 function toggleDebug() {
   debugMode = !debugMode;
@@ -939,6 +1016,20 @@ function renderDebugPanel() {
   if (allIds.length !== unique.size) {
     html += '<div style="color:#ff4444;text-align:center;margin-top:10px;font-size:11px">⚠ ' + (allIds.length - unique.size) + ' DUPLICATES!</div>';
   }
+  
+  // Easter egg selector
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  html += '<h3>🥚 Easter Eggs</h3>';
+  html += '<div style="display:flex;flex-direction:column;gap:3px">';
+  Object.entries(EASTER_EGGS).forEach(([key, egg]) => {
+    const [m, d] = key.split('-');
+    const dateStr = MONTHS[parseInt(m)-1] + ' ' + parseInt(d);
+    const active = activeEgg === key;
+    const bg = active ? 'background:rgba(201,168,76,0.18);border:1px solid #c9a84c' : '';
+    const action = active ? 'deactivateEgg()' : 'activateEgg(\'' + key + '\')';
+    html += '<div onclick="event.stopPropagation();' + action + '" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-radius:4px;padding:4px 6px;font-size:11px;' + bg + ';transition:background 0.15s" onmouseover="this.style.background=\'' + (active ? 'rgba(201,168,76,0.22)' : 'rgba(255,255,255,0.06)') + '\'" onmouseout="this.style.background=\'' + (active ? 'rgba(201,168,76,0.18)' : 'transparent') + '\'"><span style="color:rgba(255,255,255,0.55)">' + dateStr + '</span><span style="color:#eee">' + egg.name + '</span>' + (active ? '<span style="font-size:10px">✓</span>' : '') + '</div>';
+  });
+  html += '</div>';
   
   panel.innerHTML = html;
 }
@@ -1838,6 +1929,7 @@ document.getElementById('settings-overlay').addEventListener('click', (e) => {
 
 // Start game — restore saved state or deal fresh
 applySettings();
+checkEasterEgg();
 const savedStats = loadStats();
 updateStatsDisplay(savedStats);
 if (!loadGame()) {
