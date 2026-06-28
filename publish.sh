@@ -31,6 +31,12 @@ fi
 # --- Copy game to public/ with version + commit injected ---
 COMMIT_HASH=$(git rev-parse --short HEAD)
 mkdir -p "$PUB_DIR"
+# Copy card back images
+if [ -d images ]; then
+  rm -rf "$PUB_DIR/images"
+  cp -r images "$PUB_DIR/images"
+  echo "✔ Copied images/ → $PUB_DIR/images/"
+fi
 sed -e "s/content=\"VERSION\"/content=\"${NEXT_VERSION}\"/" \
     -e "s/content=\"COMMIT\"/content=\"${COMMIT_HASH}\"/" \
     "$SRC" > "$DEST"
