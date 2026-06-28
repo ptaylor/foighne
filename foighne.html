@@ -263,6 +263,15 @@
     border: 2px solid rgba(255,255,255,0.1);
     border-radius: 50%;
   }
+  /* Custom image card back */
+  body[data-card-back="custom"] .card.face-down {
+    background: #0d1b3e center/cover no-repeat;
+    background-image: var(--custom-back-image, none);
+    border-color: rgba(255,255,255,0.15);
+  }
+  body[data-card-back="custom"] .card.face-down::after {
+    content: '';
+  }
   #win-overlay {
     display: none;
     position: fixed;
@@ -717,6 +726,10 @@
     <div class="setting-group">
       <h3>Card Back</h3>
       <div class="tile-grid" id="back-grid"></div>
+      <div id="custom-back-row" style="display:none;margin-top:8px">
+        <input id="custom-back-url" type="text" placeholder="images/my-card-back.jpg" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:13px" onchange="saveCustomBackImage(this.value)">
+        <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px">Enter an image path (e.g. images/myback.png). Must be a valid URL relative to this page.</div>
+      </div>
     </div>
     <div class="setting-group">
       <h3>Face Card Style</h3>
@@ -819,6 +832,7 @@ const CARD_BACKS = {
 const DEFAULT_SETTINGS = {
   theme: 'azure',
   cardBack: 'prism',
+  customBackImage: '',
   faceStyle: 'funny',
   drawCount: 3
 };
@@ -847,6 +861,13 @@ function applySettings() {
   
   // Card back pattern
   document.body.dataset.cardBack = settings.cardBack;
+  
+  // Custom card back image
+  if (settings.cardBack === 'custom' && settings.customBackImage) {
+    document.documentElement.style.setProperty('--custom-back-image', `url(${settings.customBackImage})`);
+  } else {
+    document.documentElement.style.setProperty('--custom-back-image', 'none');
+  }
 }
 
 function populateSettings() {
@@ -875,6 +896,22 @@ function populateSettings() {
     tile.innerHTML = `<div class="preview" style="${previewStyle}"><span class="preview-symbol">${b.symbol}</span></div><div class="tile-label">${b.name}</div>`;
     backGrid.appendChild(tile);
   });
+  
+  // Custom image tile
+  {
+    const tile = document.createElement('div');
+    tile.className = 'back-tile' + (settings.cardBack === 'custom' ? ' selected' : '');
+    tile.dataset.back = 'custom';
+    tile.onclick = () => selectCardBack('custom');
+    tile.innerHTML = `<div class="preview" style="background:#1a2a4a;border:2px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px">🖼️</div><div class="tile-label">Custom</div>`;
+    backGrid.appendChild(tile);
+  }
+  
+  // Show/hide URL input for custom
+  const customRow = document.getElementById('custom-back-row');
+  const customUrl = document.getElementById('custom-back-url');
+  customRow.style.display = settings.cardBack === 'custom' ? 'block' : 'none';
+  if (customUrl) customUrl.value = settings.customBackImage || '';
   
   faceGrid.innerHTML = '';
   ['cool','funky','cute','funny','stupid'].forEach(id => {
@@ -960,6 +997,18 @@ function selectCardBack(id) {
   document.querySelectorAll('.back-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.back === id);
   });
+  // Show/hide custom URL input
+  const customRow = document.getElementById('custom-back-row');
+  if (customRow) customRow.style.display = id === 'custom' ? 'block' : 'none';
+  const customUrl = document.getElementById('custom-back-url');
+  if (customUrl) customUrl.value = settings.customBackImage || '';
+}
+
+function saveCustomBackImage(url) {
+  const settings = loadSettings();
+  settings.customBackImage = url.trim();
+  saveSettings(settings);
+  applySettings();
 }
 
 function selectFaceStyle(id) {
