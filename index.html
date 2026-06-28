@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foighne</title>
+<style>
+  :root {
+    --bg-color: #0d4f7c;
+    --card-bg: #f7f2e8;
+    --card-text-red: #c0392b;
+    --card-text-black: #1a1a2e;
+    --card-border-color: #d4c8b8;
+    --label-color: rgba(255,255,255,0.55);
+    --border-color: rgba(255,255,255,0.2);
+    --dashed-border: rgba(255,255,255,0.2);
+    --empty-placeholder-color: rgba(255,255,255,0.15);
+    --message-color: #ffd700;
+    --btn-bg: rgba(255,255,255,0.15);
+    --btn-hover: rgba(255,255,255,0.25);
+    --btn-active: rgba(255,255,255,0.35);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-color);
+    font-family: Arial, sans-serif;
+    height: 100vh;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #game {
+    padding: 20px;
+    width: 100%;
+    max-width: 1100px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    gap: 10px;
+    min-height: 150px;
+  }
+  .top-section {
+    display: flex;
+    gap: 10px;
+  }
+  .tableau-row {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+  }
+  .pile {
+    position: relative;
+    min-width: 100px;
+    min-height: 140px;
+    border-radius: 8px;
+    border: 2px dashed var(--dashed-border);
+  }
+  .pile.tableau-pile {
+    flex: 1;
+    min-width: 0;
+  }
+  .card {
+    width: 100px;
+    height: 140px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    position: absolute;
+    cursor: pointer;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    transition: box-shadow 0.2s, transform 0.2s, top 0.2s ease, left 0.2s ease;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    flex-direction: column;
+    padding: 7px;
+  }
+  .card.face-up:hover {
+    transform: translateY(-3px);
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.35);
+  }
+  .card.face-down {
+    background: linear-gradient(135deg, #1a3a8a, #2a5aca);
+    border: 3px solid rgba(255,255,255,0.35);
+    cursor: default;
+  }
+  .card.face-down::after {
+    content: '✦';
+    color: rgba(255,255,255,0.3);
+    font-size: 36px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .card.face-up {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border-color);
+  }
+  .card.red { color: var(--card-text-red); }
+  .card.black { color: var(--card-text-black); }
+  .card .rank-suit-top {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1;
+  }
+  .card .rank-suit-bottom {
+    position: absolute;
+    bottom: 7px;
+    right: 7px;
+    line-height: 1;
+    transform: rotate(180deg);
+  }
+  .card .center-suit {
+    font-size: 48px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 1;
+  }
+  .card .center-suit svg {
+    display: block;
+  }
+  .card.selected {
+    box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5);
+    animation: pulse-gold 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5); }
+    50% { box-shadow: 0 0 0 4px #ffd700, 0 0 28px rgba(255,215,0,0.7); }
+  }
+  .pile.drag-over .card:last-child {
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.3);
+    animation: pulse-white 1s ease-in-out infinite;
+  }
+  @keyframes pulse-white {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.3); }
+    50% { box-shadow: 0 0 0 5px rgba(255,255,255,1), 0 0 30px rgba(255,255,255,0.5); }
+  }
+  .stock-pile .card { cursor: pointer; }
+  .stock-pile .card.face-down {
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .stock-pile .card.face-down:hover {
+    transform: translateY(-2px);
+    box-shadow: 2px 4px 10px rgba(0,0,0,0.4);
+  }
+  .foundation .card { cursor: default; }
+  .waste-pile .card { cursor: pointer; }
+  .waste-pile .card:not(:last-child) {
+    cursor: default;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .pile-label {
+    text-align: center;
+    color: var(--label-color);
+    font-size: 11px;
+    margin-top: 4px;
+    pointer-events: none;
+  }
+  #message {
+    color: var(--message-color);
+    text-align: center;
+    font-size: 18px;
+    margin: 8px 0 4px;
+    min-height: 28px;
+    font-weight: bold;
+  }
+  #stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    color: var(--label-color);
+    font-size: 13px;
+    margin-bottom: 10px;
+    min-height: 20px;
+  }
+  #stats-bar b {
+    color: rgba(255,255,255,0.85);
+    font-weight: 600;
+  }
+  #stats-bar .sep {
+    color: var(--dashed-border);
+  }
+  
+  /* Card back patterns */
+  body[data-card-back="classic"] .card.face-down {
+    background: linear-gradient(135deg, #0d1b3e 0%, #1a357c 50%, #0d1b3e 100%);
+  }
+  body[data-card-back="classic"] .card.face-down::after {
+    content: '✦'; font-size: 30px; color: rgba(255,255,255,0.15);
+  }
+  
+  body[data-card-back="prism"] .card.face-down {
+    background: linear-gradient(30deg, #0f2044 0%, #1a3a6e 25%, #0d1f45 25%, #162d5a 50%, #0f2044 50%, #1a3a6e 75%, #0d1f45 75%, #162d5a 100%);
+  }
+  body[data-card-back="prism"] .card.face-down::after {
+    content: '◆'; font-size: 26px; color: rgba(255,255,255,0.12);
+  }
+  
+  body[data-card-back="circuit"] .card.face-down {
+    background-color: #0c1a35;
+    background-image: 
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  body[data-card-back="circuit"] .card.face-down::after {
+    content: '⬡'; font-size: 30px; color: rgba(255,255,255,0.17);
+  }
+  
+  body[data-card-back="carbon"] .card.face-down {
+    background: repeating-linear-gradient(
+      135deg,
+      #0d1a35 0px, #0d1a35 2px,
+      #13264a 2px, #13264a 4px,
+      #0f1e3d 4px, #0f1e3d 6px,
+      #152b52 6px, #152b52 8px
+    );
+  }
+  body[data-card-back="carbon"] .card.face-down::after {
+    content: '◈'; font-size: 32px; color: rgba(255,255,255,0.13);
+  }
+  
+  body[data-card-back="minimal"] .card.face-down {
+    background: #0d1b3e;
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,0.08);
+  }
+  body[data-card-back="minimal"] .card.face-down::after {
+    content: ''; 
+    width: 40px; height: 40px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+  }
+  #win-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+  #win-overlay.show {
+    display: flex;
+  }
+  #win-overlay h1 {
+    color: #ffd700;
+    font-size: 60px;
+    text-shadow: 0 0 20px rgba(255,215,0,0.5);
+    margin-bottom: 20px;
+  }
+  #win-overlay button {
+    padding: 15px 40px;
+    font-size: 20px;
+    border: none;
+    border-radius: 8px;
+    background: #ffd700;
+    cursor: pointer;
+    color: #000;
+    font-weight: bold;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+  }
+  #win-overlay button:hover {
+    background: #ffed4a;
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(255,215,0,0.4);
+  }
+  .btn {
+    padding: 10px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--btn-bg);
+    color: #fff;
+    align-self: flex-start;
+    margin-top: 8px;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  }
+  .btn:hover {
+    background: var(--btn-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  .btn:active {
+    background: var(--btn-active);
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .btn-icon {
+    padding: 10px 12px;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .btn-debug.active {
+    background: rgba(255,215,0,0.4);
+    box-shadow: 0 0 8px rgba(255,215,0,0.3);
+  }
+  #debug-btn {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    z-index: 999;
+    opacity: 0;
+  }
+  #debug-btn.active {
+    opacity: 0;
+    background: transparent;
+  }
+  #debug-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 220px;
+    height: 100vh;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 998;
+    overflow-y: auto;
+    padding: 20px 14px;
+    font-size: 12px;
+    color: #fff;
+    transition: transform 0.3s ease;
+    transform: translateX(100%);
+  }
+  #debug-panel.debug-visible {
+    transform: translateX(0);
+  }
+  #debug-panel h3 {
+    color: #ffd700;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 12px 0 6px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  #debug-panel h3:first-child {
+    margin-top: 0;
+  }
+  #debug-panel .debug-card {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+  }
+  #debug-panel .debug-card.red { color: #ff6b6b; }
+  #debug-panel .debug-card.black { color: #ddd; }
+  #debug-panel .debug-card .debug-idx {
+    width: 22px;
+    text-align: right;
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    flex-shrink: 0;
+  }
+  #debug-panel .debug-empty {
+    text-align: center;
+    color: rgba(255,255,255,0.25);
+    font-style: italic;
+    padding: 4px 0;
+  }
+  .empty-placeholder {
+    width: 100px;
+    height: 140px;
+    position: absolute;
+    border-radius: 8px;
+    border: 2px dashed var(--dashed-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--empty-placeholder-color);
+    font-size: 36px;
+  }
+  
+  /* Settings overlay */
+  #settings-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+  }
+  #settings-overlay.show {
+    display: flex;
+  }
+  .settings-panel {
+    background: #1e3a5f;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .settings-panel h2 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 24px;
+    color: #fff;
+  }
+  .setting-group {
+    margin-bottom: 24px;
+  }
+  .setting-group h3 {
+    font-size: 15px;
+    margin-bottom: 10px;
+    color: rgba(255,255,255,0.7);
+    font-weight: 600;
+  }
+  .tile-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .theme-tile, .back-tile {
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 8px 8px 6px;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid transparent;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    width: 100px;
+  }
+  .theme-tile:hover, .back-tile:hover {
+    background: rgba(255,255,255,0.14);
+    transform: translateY(-2px);
+  }
+  .theme-tile.selected, .back-tile.selected {
+    border-color: #ffd700;
+    background: rgba(255,215,0,0.12);
+  }
+  .theme-tile .preview, .back-tile .preview {
+    width: 80px;
+    height: 56px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 5px;
+    overflow: hidden;
+  }
+  .theme-tile .mini-card {
+    width: 50px;
+    height: 36px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .back-tile .preview {
+    position: relative;
+  }
+  .back-tile .preview-symbol {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255,255,255,0.35);
+    font-size: 20px;
+  }
+  .tile-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+  }
+  .btn-settings-close {
+    display: block;
+    margin: 8px auto 0;
+    padding: 12px 44px;
+    font-size: 16px;
+    background: #ffd700;
+    color: #000;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+  }
+  .btn-settings-close:hover {
+    background: #ffed4a;
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(255,215,0,0.4);
+  }
+  #game-title {
+    text-align: center;
+    color: rgba(255,255,255,0.18);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    font-style: italic;
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="game-title">foighne</div>
+  <div id="debug-panel" class="debug-hidden"></div>
+  <div class="top-row">
+    <div class="top-section">
+      <div class="pile stock-pile" id="stock">
+        <div class="empty-placeholder">&#9824;</div>
+      </div>
+      <div class="pile waste-pile" id="waste">
+        <div class="empty-placeholder"></div>
+      </div>
+    </div>
+    <div class="top-section" id="foundations">
+      <div class="pile foundation" data-suit="0"><div class="empty-placeholder">&#9824;</div></div>
+      <div class="pile foundation" data-suit="1"><div class="empty-placeholder">&#9829;</div></div>
+      <div class="pile foundation" data-suit="2"><div class="empty-placeholder">&#9830;</div></div>
+      <div class="pile foundation" data-suit="3"><div class="empty-placeholder">&#9827;</div></div>
+    </div>
+    <div style="display:flex;gap:6px;align-self:flex-start;margin-top:8px">
+      <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
+      <button class="btn" onclick="newGame()">New Game</button>
+    </div>
+  </div>
+  <button id="debug-btn" onclick="toggleDebug()" title="Debug"></button>
+  <div id="message"></div>
+  <div id="stats-bar">
+    <span>Games: <b id="statGames">0</b></span>
+    <span class="sep">|</span>
+    <span>Won: <b id="statWon">0</b></span>
+    <span class="sep">|</span>
+    <span>Streak: <b id="statStreak">0</b></span>
+    <span class="sep">|</span>
+    <span>Best: <b id="statBest">0</b></span>
+  </div>
+  <div class="tableau-row" id="tableau"></div>
+</div>
+<div id="win-overlay">
+  <h1>&#127881; You Win! &#127881;</h1>
+  <button onclick="newGame()">Play Again</button>
+</div>
+<div id="settings-overlay">
+  <div class="settings-panel">
+    <h2>Settings</h2>
+    <div class="setting-group">
+      <h3>Color Theme</h3>
+      <div class="tile-grid" id="theme-grid"></div>
+    </div>
+    <div class="setting-group">
+      <h3>Card Back</h3>
+      <div class="tile-grid" id="back-grid"></div>
+    </div>
+    <div class="setting-group">
+      <h3>Face Card Style</h3>
+      <div class="tile-grid" id="face-grid"></div>
+    </div>
+    <div class="setting-group">
+      <h3>Draw Count</h3>
+      <div class="tile-grid" id="draw-grid"></div>
+    </div>
+    <button class="btn btn-settings-close" onclick="closeSettings()">Done</button>
+  </div>
+</div>
+<script>
+const SUITS = ['♠', '♥', '♦', '♣'];
+const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+
+let stock = [];
+let waste = [];
+let tableau = [[], [], [], [], [], [], []];
+let foundations = [[], [], [], []];
+let selectedCards = null; // { pile: 'waste'|'tableau', index: number, cardIndex: number }
+let draggedCards = null;
+let dragOffsetX = 0, dragOffsetY = 0;
+let dragStartEl = null;
+let isDragging = false;
+
+const SAVE_KEY = 'solitaire_save';
+const STATS_KEY = 'solitaire_stats';
+
+function saveGame() {
+  try {
+    // Validate before saving to prevent persisting corrupted state
+    const result = validateGameState();
+    if (!result.valid) {
+      console.warn('Refusing to save corrupted state');
+      return;
+    }
+    const state = { stock, waste, tableau, foundations, selectedCards };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch (e) { /* quota or other error */ }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    stock = state.stock || [];
+    waste = state.waste || [];
+    tableau = state.tableau || [[], [], [], [], [], [], []];
+    foundations = state.foundations || [[], [], [], []];
+    selectedCards = state.selectedCards || null;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function clearSavedGame() {
+  localStorage.removeItem(SAVE_KEY);
+}
+
+function loadStats() {
+  try {
+    const raw = localStorage.getItem(STATS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { gamesPlayed: 0, gamesWon: 0, currentStreak: 0, bestStreak: 0 };
+}
+
+function saveStats(s) {
+  localStorage.setItem(STATS_KEY, JSON.stringify(s));
+}
+
+function updateStatsDisplay(s) {
+  document.getElementById('statGames').textContent = s.gamesPlayed;
+  document.getElementById('statWon').textContent = s.gamesWon;
+  document.getElementById('statStreak').textContent = s.currentStreak;
+  document.getElementById('statBest').textContent = s.bestStreak;
+}
+
+// Settings
+const SETTINGS_KEY = 'solitaire_settings';
+
+const THEMES = {
+  azure:   { name: 'Azure',        bg: '#0d4f7c', cardBg: '#f7f2e8', red: '#c0392b', black: '#1a1a2e', cardBorder: '#d4c8b8' },
+  classic: { name: 'Classic Green', bg: '#0d5c28', cardBg: '#fafaf7', red: '#b71c1c', black: '#1b1b1b', cardBorder: '#c8c8c0' },
+  dark:    { name: 'Midnight',      bg: '#0f0f1a', cardBg: '#1e1e30', red: '#ff6b6b', black: '#d4d4e0', cardBorder: '#2a2a40' },
+  forest:  { name: 'Cedar',         bg: '#1e3328', cardBg: '#f0ece4', red: '#a33030', black: '#1c1c1c', cardBorder: '#c4bfb4' },
+};
+
+const CARD_BACKS = {
+  classic: { name: 'Classic', css: 'linear-gradient(135deg, #0d1b3e, #1a357c)', border: '#0d1b3e', symbol: '✦', symbolSize: '30px' },
+  prism:   { name: 'Prism',   css: 'repeating-linear-gradient(30deg, #0f2044 0px, #1a3a6e 6px, #0d1f45 6px, #162d5a 12px)', border: '#0d1f45', symbol: '◆', symbolSize: '22px' },
+  circuit: { name: 'Circuit', css: '#0c1a35', border: '#0c1a35', symbol: '⬡', symbolSize: '24px' },
+  carbon:  { name: 'Carbon',  css: 'repeating-linear-gradient(135deg, #0d1a35 0px, #0d1a35 2px, #13264a 2px, #13264a 4px, #0f1e3d 4px, #0f1e3d 6px, #152b52 6px, #152b52 8px)', border: '#0d1a35', symbol: '◈', symbolSize: '26px' },
+  minimal: { name: 'Minimal', css: '#0d1b3e', border: '#0d1b3e', symbol: '○', symbolSize: '18px' },
+};
+
+const DEFAULT_SETTINGS = {
+  theme: 'azure',
+  cardBack: 'prism',
+  faceStyle: 'funny',
+  drawCount: 3
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch (e) {}
+  return { ...DEFAULT_SETTINGS };
+}
+
+function saveSettings(s) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
+function applySettings() {
+  const settings = loadSettings();
+  const theme = THEMES[settings.theme] || THEMES.classic;
+  const root = document.documentElement;
+  root.style.setProperty('--bg-color', theme.bg);
+  root.style.setProperty('--card-bg', theme.cardBg);
+  root.style.setProperty('--card-text-red', theme.red);
+  root.style.setProperty('--card-text-black', theme.black);
+  root.style.setProperty('--card-border-color', theme.cardBorder);
+  
+  // Card back pattern
+  document.body.dataset.cardBack = settings.cardBack;
+}
+
+function populateSettings() {
+  const themeGrid = document.getElementById('theme-grid');
+  const backGrid = document.getElementById('back-grid');
+  const faceGrid = document.getElementById('face-grid');
+  const settings = loadSettings();
+  
+  themeGrid.innerHTML = '';
+  Object.entries(THEMES).forEach(([id, t]) => {
+    const tile = document.createElement('div');
+    tile.className = 'theme-tile' + (id === settings.theme ? ' selected' : '');
+    tile.dataset.theme = id;
+    tile.onclick = () => selectTheme(id);
+    tile.innerHTML = `<div class="preview" style="background:${t.bg}"><div class="mini-card" style="background:${t.cardBg};color:${t.red}">A♥</div></div><div class="tile-label">${t.name}</div>`;
+    themeGrid.appendChild(tile);
+  });
+  
+  backGrid.innerHTML = '';
+  Object.entries(CARD_BACKS).forEach(([id, b]) => {
+    const tile = document.createElement('div');
+    tile.className = 'back-tile' + (id === settings.cardBack ? ' selected' : '');
+    tile.dataset.back = id;
+    tile.onclick = () => selectCardBack(id);
+    const previewStyle = `background:${b.css};border:2px solid ${b.border || '#1a3a8a'}`;
+    tile.innerHTML = `<div class="preview" style="${previewStyle}"><span class="preview-symbol">${b.symbol}</span></div><div class="tile-label">${b.name}</div>`;
+    backGrid.appendChild(tile);
+  });
+  
+  faceGrid.innerHTML = '';
+  ['cool','funky','cute','funny','stupid'].forEach(id => {
+    const tile = document.createElement('div');
+    tile.className = 'back-tile' + (id === settings.faceStyle ? ' selected' : '');
+    tile.dataset.face = id;
+    tile.onclick = () => selectFaceStyle(id);
+    const svg = facePreviewSVG(id);
+    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;overflow:hidden">${svg}</div><div class="tile-label" style="text-transform:capitalize">${id}</div>`;
+    faceGrid.appendChild(tile);
+  });
+  
+  const drawGrid = document.getElementById('draw-grid');
+  drawGrid.innerHTML = '';
+  [{v:1,n:'Single'},{v:3,n:'Triple'}].forEach(d => {
+    const tile = document.createElement('div');
+    tile.className = 'back-tile' + (d.v === settings.drawCount ? ' selected' : '');
+    tile.dataset.draw = d.v;
+    tile.onclick = () => selectDrawCount(d.v);
+    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:32px;color:rgba(255,255,255,0.6)">${d.v}</div><div class="tile-label">${d.n}</div>`;
+    drawGrid.appendChild(tile);
+  });
+}
+
+function facePreviewSVG(style) {
+  // Mini King preview using neutral dark tones, 40x48 viewBox
+  const f = '#334', l = '#556', a = '#ccd';
+  const svg = (s) => `<svg viewBox="0 0 40 48" width="36" height="43">${s}</svg>`;
+  switch (style) {
+    case 'funky': return svg(`<rect x="1" y="1" width="38" height="46" rx="4" fill="none" stroke="${f}" stroke-width="1.5" stroke-dasharray="4 2"/>
+      <polygon points="20,5 8,20 14,18 5,22 12,23 20,37 28,23 35,22 26,18 32,20" fill="${f}" opacity="0.8"/>
+      <ellipse cx="20" cy="28" rx="14" ry="11" fill="${f}"/><ellipse cx="15" cy="26" rx="3.5" ry="5" fill="${a}"/><ellipse cx="25" cy="26" rx="3.5" ry="5" fill="${a}"/>
+      <circle cx="15" cy="25" r="2" fill="#f0f"/><circle cx="25" cy="25" r="2" fill="#f0f"/>
+      <path d="M15 34 Q20 40 25 34" fill="none" stroke="#f0f" stroke-width="2"/>`);
+    case 'cute': return svg(`<circle cx="20" cy="27" r="16" fill="${f}"/>
+      <path d="M6 22 L11 12 L17 20 L20 8 L23 20 L29 12 L34 22 L6 22Z" fill="${f}"/>
+      <circle cx="20" cy="8" r="2.5" fill="${a}"/><circle cx="14" cy="26" r="3.5" fill="${a}"/><circle cx="26" cy="26" r="3.5" fill="${a}"/>
+      <circle cx="15" cy="25" r="2" fill="${f}"/><circle cx="25" cy="25" r="2" fill="${f}"/><circle cx="14.5" cy="24.5" r="1" fill="#fff"/><circle cx="24.5" cy="24.5" r="1" fill="#fff"/>
+      <ellipse cx="15" cy="29" rx="3" ry="2" fill="rgba(255,150,150,0.4)"/><ellipse cx="25" cy="29" rx="3" ry="2" fill="rgba(255,150,150,0.4)"/>
+      <path d="M18 32 Q20 35 22 32" fill="none" stroke="${f}" stroke-width="1"/>`);
+    case 'funny': return svg(`<ellipse cx="20" cy="26" rx="15" ry="13" fill="${f}"/>
+      <path d="M0 21 L7 12 L13 18 L20 6 L27 18 L33 12 L40 21 Z" fill="${f}"/>
+      <circle cx="14" cy="24" r="5.5" fill="#fff"/><circle cx="26" cy="24" r="5.5" fill="#fff"/>
+      <circle cx="14" cy="26" r="2.5" fill="${f}"/><circle cx="26" cy="25" r="2.5" fill="${f}"/>
+      <ellipse cx="20" cy="32" rx="5" ry="3.5" fill="${f}"/><ellipse cx="20" cy="31" rx="4" ry="2" fill="${a}"/>`);
+    case 'stupid': return svg(`<ellipse cx="20" cy="28" rx="16" ry="13" fill="${f}"/>
+      <path d="M3 22 L8 15 L15 20 L20 12 L25 20 L32 15 L37 22 Z" fill="${f}"/>
+      <circle cx="11" cy="24" r="4.5" fill="#fff"/><circle cx="29" cy="24" r="4.5" fill="#fff"/>
+      <circle cx="12" cy="24" r="2" fill="${f}"/><circle cx="28" cy="24" r="2" fill="${f}"/>
+      <circle cx="14" cy="32" r="2.5" fill="${a}"/><path d="M17 32 Q20 28 23 32" fill="none" stroke="${f}" stroke-width="1.5"/>`);
+    default: return svg(`<ellipse cx="20" cy="28" rx="12" ry="13" fill="${f}"/>
+      <path d="M2 21 L7 14 L13 18 L20 8 L27 18 L33 14 L38 21 L2 21Z" fill="${f}"/>
+      <circle cx="20" cy="8" r="2" fill="${a}"/><circle cx="12" cy="17" r="1.5" fill="${a}"/><circle cx="28" cy="17" r="1.5" fill="${a}"/>
+      <path d="M12 32 Q20 43 28 32" fill="${f}"/><ellipse cx="15" cy="26" rx="2" ry="3" fill="${a}"/>`);
+  }
+}
+
+function openSettings() {
+  populateSettings();
+  document.getElementById('settings-overlay').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('show');
+}
+
+function selectTheme(id) {
+  const settings = loadSettings();
+  settings.theme = id;
+  saveSettings(settings);
+  applySettings();
+  // Update tile visuals
+  document.querySelectorAll('.theme-tile').forEach(el => {
+    el.classList.toggle('selected', el.dataset.theme === id);
+  });
+}
+
+function selectCardBack(id) {
+  const settings = loadSettings();
+  settings.cardBack = id;
+  saveSettings(settings);
+  applySettings();
+  document.querySelectorAll('.back-tile').forEach(el => {
+    el.classList.toggle('selected', el.dataset.back === id);
+  });
+}
+
+function selectFaceStyle(id) {
+  const settings = loadSettings();
+  settings.faceStyle = id;
+  saveSettings(settings);
+  render();
+  document.querySelectorAll('#face-grid .back-tile').forEach(el => {
+    el.classList.toggle('selected', el.dataset.face === id);
+  });
+}
+
+function selectDrawCount(v) {
+  const settings = loadSettings();
+  settings.drawCount = v;
+  saveSettings(settings);
+  document.querySelectorAll('#draw-grid .back-tile').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.draw) === v);
+  });
+}
+
+function createDeck() {
+  const deck = [];
+  for (let s = 0; s < 4; s++) {
+    for (let r = 0; r < 13; r++) {
+      deck.push({ suit: s, rank: r, faceUp: false });
+    }
+  }
+  return deck;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function dealBoard() {
+  document.getElementById('win-overlay').classList.remove('show');
+  document.getElementById('message').textContent = '';
+  stock = shuffle(createDeck());
+  waste = [];
+  tableau = [[], [], [], [], [], [], []];
+  foundations = [[], [], [], []];
+  selectedCards = null;
+  
+  // Deal tableau by popping from end (top of deck)
+  for (let i = 0; i < 7; i++) {
+    for (let j = 0; j <= i; j++) {
+      const card = stock.pop();
+      card.faceUp = (j === i);
+      tableau[i].push(card);
+    }
+  }
+  // Reverse so the top of the stock (next draw) is at the end
+  stock.reverse();
+  
+  // Validate and auto-fix duplicates
+  ensureValidState();
+}
+
+// ---- DEBUG MODE ----
+let debugMode = false;
+let activeEgg = null;
+
+const EASTER_EGGS = {
+  '07-07': {
+    name: '🎂 Birthday Celebration',
+    css: `
+      body.egg- { background: linear-gradient(135deg, #0d4f7c 0%, #1a3a6e 30%, #2c1050 50%, #1a3a6e 70%, #0d4f7c 100%); background-size: 400% 400%; animation: bg-party 8s ease infinite; }
+      @keyframes bg-party { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+      body.egg-::before {
+        content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; z-index: 0; opacity: 0.4;
+        background:
+          radial-gradient(2px 2px at 15% 20%, #ffd93d 50%, transparent 50%),
+          radial-gradient(2px 2px at 30% 60%, #ff6b9d 50%, transparent 50%),
+          radial-gradient(2px 2px at 50% 15%, #6bcb77 50%, transparent 50%),
+          radial-gradient(2px 2px at 70% 50%, #4d96ff 50%, transparent 50%),
+          radial-gradient(2px 2px at 85% 30%, #ffd93d 50%, transparent 50%),
+          radial-gradient(3px 3px at 10% 70%, #ff6b9d 50%, transparent 50%),
+          radial-gradient(3px 3px at 40% 85%, #6bcb77 50%, transparent 50%),
+          radial-gradient(3px 3px at 60% 10%, #4d96ff 50%, transparent 50%),
+          radial-gradient(2px 2px at 90% 75%, #ffd93d 50%, transparent 50%),
+          radial-gradient(3px 3px at 20% 40%, #ff6b9d 50%, transparent 50%),
+          radial-gradient(2px 2px at 75% 80%, #6bcb77 50%, transparent 50%),
+          radial-gradient(2px 2px at 45% 55%, #4d96ff 50%, transparent 50%),
+          radial-gradient(3px 3px at 5% 10%, #ffd93d 50%, transparent 50%),
+          radial-gradient(2px 2px at 55% 70%, #ff6b9d 50%, transparent 50%),
+          radial-gradient(3px 3px at 35% 25%, #6bcb77 50%, transparent 50%);
+        animation: confetti 10s linear infinite;
+      }
+      @keyframes confetti {
+        0% { transform: translateY(-10px); opacity: 0.3; }
+        25% { transform: translateY(5px); opacity: 0.5; }
+        50% { transform: translateY(-5px); opacity: 0.35; }
+        75% { transform: translateY(10px); opacity: 0.5; }
+        100% { transform: translateY(-10px); opacity: 0.3; }
+      }
+      body.egg- .card.face-up { border-color: #c9a84c !important; box-shadow: 1px 1px 4px rgba(201,168,76,0.3); }
+      body.egg- .card.face-down { border-color: rgba(201,168,76,0.5) !important; }
+      body.egg- .card.selected { animation: pulse-egg 1.5s ease-in-out infinite; box-shadow: 0 0 0 3px #c9a84c, 0 0 18px rgba(201,168,76,0.5); }
+      @keyframes pulse-egg { 0%,100%{box-shadow:0 0 0 3px #c9a84c,0 0 18px rgba(201,168,76,0.5)} 50%{box-shadow:0 0 0 4px #c9a84c,0 0 28px rgba(201,168,76,0.7)} }
+      body.egg- #game-title { color: rgba(201,168,76,0.25); }
+    `
+  }
+};
+
+function checkEasterEgg() {
+  const today = new Date();
+  const key = String(today.getMonth() + 1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  if (EASTER_EGGS[key]) {
+    activateEgg(key);
+  }
+}
+
+function activateEgg(key) {
+  if (activeEgg === key) return;
+  deactivateEgg();
+  activeEgg = key;
+  const egg = EASTER_EGGS[key];
+  const style = document.createElement('style');
+  style.id = 'egg-style';
+  const cls = 'egg-' + key.replace(/-/g, '');
+  style.textContent = egg.css.replace(/\.egg-/g, '.' + cls + ' ');
+  document.head.appendChild(style);
+  document.body.classList.add(cls);
+  renderDebugPanel();
+}
+
+function deactivateEgg() {
+  if (activeEgg) {
+    const style = document.getElementById('egg-style');
+    if (style) style.remove();
+    const cls = 'egg-' + activeEgg.replace(/-/g, '');
+    document.body.classList.remove(cls);
+    activeEgg = null;
+    renderDebugPanel();
+  }
+}
+
+function toggleDebug() {
+  debugMode = !debugMode;
+  const panel = document.getElementById('debug-panel');
+  if (panel) {
+    panel.classList.toggle('debug-visible', debugMode);
+  }
+  renderDebugPanel();
+}
+
+function renderDebugPanel() {
+  const panel = document.getElementById('debug-panel');
+  if (!panel) return;
+  
+  if (!debugMode) {
+    panel.innerHTML = '';
+    return;
+  }
+  
+  let html = '';
+  
+  html += '<h3>📦 Stock (' + stock.length + ')</h3>';
+  if (stock.length === 0) {
+    html += '<div class="debug-empty">empty</div>';
+  } else {
+    for (let i = stock.length - 1; i >= 0; i--) {
+      const c = stock[i];
+      const col = cardColor(c.suit);
+      html += '<div class="debug-card ' + col + '"><span class="debug-idx">' + i + '</span>' + rankStr(c.rank) + suitSymbol(c.suit) + '</div>';
+    }
+  }
+  
+  html += '<h3>🗑 Waste (' + waste.length + ')</h3>';
+  if (waste.length === 0) {
+    html += '<div class="debug-empty">empty</div>';
+  } else {
+    for (let i = waste.length - 1; i >= 0; i--) {
+      const c = waste[i];
+      const col = cardColor(c.suit);
+      html += '<div class="debug-card ' + col + '"><span class="debug-idx">' + i + '</span>' + rankStr(c.rank) + suitSymbol(c.suit) + '</div>';
+    }
+  }
+  
+  html += '<h3>🏆 Foundations</h3>';
+  for (let f = 0; f < 4; f++) {
+    const top = foundations[f].length > 0 ? rankStr(foundations[f][foundations[f].length - 1].rank) + suitSymbol(foundations[f][foundations[f].length - 1].suit) : '—';
+    html += '<div class="debug-card black"><span class="debug-idx">' + suitSymbol(f) + '</span>' + foundations[f].length + '/13 — ' + top + '</div>';
+  }
+  
+  const allIds = [...stock, ...waste, ...tableau.flat(), ...foundations.flat()].map(c => cardId(c));
+  const unique = new Set(allIds);
+  if (allIds.length !== unique.size) {
+    html += '<div style="color:#ff4444;text-align:center;margin-top:10px;font-size:11px">⚠ ' + (allIds.length - unique.size) + ' DUPLICATES!</div>';
+  }
+  
+  // Easter egg selector
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  html += '<h3>🥚 Easter Eggs</h3>';
+  html += '<div style="display:flex;flex-direction:column;gap:3px">';
+  Object.entries(EASTER_EGGS).forEach(([key, egg]) => {
+    const [m, d] = key.split('-');
+    const dateStr = MONTHS[parseInt(m)-1] + ' ' + parseInt(d);
+    const active = activeEgg === key;
+    const bg = active ? 'background:rgba(201,168,76,0.18);border:1px solid #c9a84c' : '';
+    const action = active ? 'deactivateEgg()' : 'activateEgg(\'' + key + '\')';
+    html += '<div onclick="event.stopPropagation();' + action + '" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-radius:4px;padding:4px 6px;font-size:11px;' + bg + ';transition:background 0.15s" onmouseover="this.style.background=\'' + (active ? 'rgba(201,168,76,0.22)' : 'rgba(255,255,255,0.06)') + '\'" onmouseout="this.style.background=\'' + (active ? 'rgba(201,168,76,0.18)' : 'transparent') + '\'"><span style="color:rgba(255,255,255,0.55)">' + dateStr + '</span><span style="color:#eee">' + egg.name + '</span>' + (active ? '<span style="font-size:10px">✓</span>' : '') + '</div>';
+  });
+  html += '</div>';
+  
+  panel.innerHTML = html;
+}
+
+// Validate ALL cards in the game state and auto-fix duplicates
+function validateGameState() {
+    const allCards = [];
+    const locationMap = [];
+  
+    function collect(cards, loc) {
+      for (const c of cards) { allCards.push(c); locationMap.push(loc); }
+    }
+  
+    collect(stock, 'stock');
+    collect(waste, 'waste');
+    for (let t = 0; t < 7; t++) collect(tableau[t], 'tableau-' + t);
+    for (let f = 0; f < 4; f++) collect(foundations[f], 'foundation-' + f);
+  
+    const ids = allCards.map(c => cardId(c));
+    const uniqueIds = new Set(ids);
+  
+    if (ids.length === uniqueIds.length) {
+      return { valid: true };
+    }
+  
+    // Report duplicates
+    const seen = new Map();
+    const dups = [];
+    for (let i = 0; i < ids.length; i++) {
+      if (seen.has(ids[i])) {
+        dups.push({ id: ids[i], a: seen.get(ids[i]), b: i, locA: locationMap[seen.get(ids[i])], locB: locationMap[i] });
+      } else {
+        seen.set(ids[i], i);
+      }
+    }
+    console.error('DUPLICATE CARDS:', dups);
+    dups.forEach(d => console.error('  ' + d.id + ' at ' + d.locA + ' and ' + d.locB));
+    return { valid: false, duplicates: dups };
+}
+
+function ensureValidState() {
+    const result = validateGameState();
+    if (result.valid) return true;
+  
+    // Silently fix corrupted state
+    clearSavedGame();
+  
+    // Deal fresh cards
+    stock = shuffle(createDeck());
+    waste = [];
+    tableau = [[], [], [], [], [], [], []];
+    foundations = [[], [], [], []];
+    selectedCards = null;
+  
+    for (let i = 0; i < 7; i++) {
+      for (let j = 0; j <= i; j++) {
+        const card = stock.pop();
+        card.faceUp = (j === i);
+        tableau[i].push(card);
+      }
+    }
+    stock.reverse();
+  
+    if (!validateGameState().valid) {
+      console.error('CRITICAL: Fresh deal also has duplicates!');
+    }
+    return false;
+}
+
+function newGame() {
+  const stats = loadStats();
+  stats.gamesPlayed++;
+  stats.currentStreak = 0;
+  saveStats(stats);
+  updateStatsDisplay(stats);
+  
+  clearSavedGame();
+  dealBoard();
+  render();
+  saveGame();
+}
+
+function suitSymbol(s) {
+  return SUITS[s];
+}
+
+function rankStr(r) {
+  return RANKS[r];
+}
+
+function cardColor(suit) {
+  return (suit === 1 || suit === 2) ? 'red' : 'black';
+}
+
+function cardId(card) {
+  return rankStr(card.rank) + suitSymbol(card.suit);
+}
+
+function canPlaceOnTableau(card, destPile) {
+  if (destPile.length === 0) {
+    return card.rank === 12; // King
+  }
+  const top = destPile[destPile.length - 1];
+  if (!top.faceUp) return false;
+  return (top.rank === card.rank + 1) && (cardColor(top.suit) !== cardColor(card.suit));
+}
+
+function canPlaceOnFoundation(card, destPile) {
+  if (destPile.length === 0) {
+    return card.rank === 0; // Ace
+  }
+  const top = destPile[destPile.length - 1];
+  return top.suit === card.suit && top.rank === card.rank - 1;
+}
+
+function drawStock() {
+  const count = loadSettings().drawCount || 1;
+  if (stock.length === 0) {
+    if (waste.length === 0) return;
+    while (waste.length > 0) {
+      const card = waste.pop();
+      card.faceUp = false;
+      stock.push(card);
+    }
+    render();
+    return;
+  }
+  for (let k = 0; k < count && stock.length > 0; k++) {
+    const card = stock.pop();
+    card.faceUp = true;
+    waste.push(card);
+  }
+  selectedCards = null;
+  render();
+}
+
+function clickCard(e, pileType, pileIdx, cardIdx) {
+  if (isDragging) return;
+  
+  if (pileType === 'stock') {
+    drawStock();
+    return;
+  }
+  
+  const pile = getPile(pileType, pileIdx);
+  const card = pile[cardIdx];
+  if (!card || !card.faceUp) return;
+  
+  if (pileType === 'waste') {
+    // Only the top waste card is playable
+    if (cardIdx !== pile.length - 1) return;
+    // Try foundations first, then tableau
+    let moved = false;
+    for (let f = 0; f < 4; f++) {
+      if (canPlaceOnFoundation(card, foundations[f])) {
+        waste.pop();
+        foundations[f].push(card);
+        moved = true;
+        flipTopTableau();
+        render();
+        checkWin();
+        return;
+      }
+    }
+    // Try tableau
+    for (let t = 0; t < 7; t++) {
+      if (canPlaceOnTableau(card, tableau[t])) {
+        waste.pop();
+        tableau[t].push(card);
+        moved = true;
+        flipTopTableau();
+        render();
+        return;
+      }
+    }
+    if (!moved) {
+      showMessage('No valid move for this card');
+    }
+    return;
+  }
+  
+  if (pileType === 'tableau') {
+    // Check if it's a single card going to foundation
+    if (cardIdx === pile.length - 1) {
+      for (let f = 0; f < 4; f++) {
+        if (canPlaceOnFoundation(card, foundations[f])) {
+          pile.pop();
+          foundations[f].push(card);
+          flipTopTableau();
+          render();
+          checkWin();
+          return;
+        }
+      }
+    }
+    
+    // Toggle selection for tableau-to-tableau moves
+    if (selectedCards && selectedCards.pile === 'tableau' && 
+        selectedCards.index === pileIdx && selectedCards.cardIndex === cardIdx) {
+      // Deselect
+      selectedCards = null;
+      render();
+      return;
+    }
+    
+    // Can only select contiguous face-up cards from cardIdx onwards
+    for (let i = cardIdx; i < pile.length; i++) {
+      if (!pile[i].faceUp) return;
+    }
+    
+    selectedCards = { pile: 'tableau', index: pileIdx, cardIndex: cardIdx };
+    render();
+  }
+}
+
+function getPile(type, idx) {
+  if (type === 'stock') return stock;
+  if (type === 'waste') return waste;
+  if (type === 'tableau') return tableau[idx];
+  if (type === 'foundation') return foundations[idx];
+  return null;
+}
+
+function flipTopTableau() {
+  // Flip top card of each tableau pile if face-down
+  for (let t = 0; t < 7; t++) {
+    if (tableau[t].length > 0) {
+      const top = tableau[t][tableau[t].length - 1];
+      if (!top.faceUp) {
+        top.faceUp = true;
+      }
+    }
+  }
+}
+
+// Drag and drop
+document.addEventListener('mousedown', (e) => {
+  const cardEl = e.target.closest('.card');
+  if (!cardEl) return;
+  
+  const pileEl = cardEl.closest('.pile');
+  if (!pileEl) return;
+  
+  const pileType = pileEl.dataset.pileType;
+  const pileIdx = parseInt(pileEl.dataset.pileIndex);
+  const cardIdx = parseInt(cardEl.dataset.cardIndex);
+  const pile = getPile(pileType, pileIdx);
+  const card = pile ? pile[cardIdx] : null;
+  
+  if (!card) return;
+  if (!card.faceUp) return;
+  if (pileType === 'stock') return; // Stock uses click
+  
+  // Validate drag: must be contiguous face-up from cardIdx
+  if (pileType === 'tableau') {
+    for (let i = cardIdx; i < pile.length; i++) {
+      if (!pile[i].faceUp) return;
+    }
+  } else if (pileType === 'waste' && cardIdx !== pile.length - 1) {
+    return; // Only top waste card is draggable
+  }
+  
+  isDragging = false;
+  dragStartEl = cardEl;
+  
+  const rect = cardEl.getBoundingClientRect();
+  dragOffsetX = e.clientX - rect.left;
+  dragOffsetY = e.clientY - rect.top;
+  
+  draggedCards = {
+    pile: pileType,
+    index: pileIdx,
+    cardIndex: cardIdx,
+    cards: pile.slice(cardIdx)
+  };
+  
+  let ghost = null;
+  
+  const moveHandler = (ev) => {
+    if (!isDragging) {
+      isDragging = true;
+      // Create drag ghost on first real mouse movement
+      ghost = document.createElement('div');
+      ghost.className = 'drag-ghost';
+      ghost.style.cssText = `
+        position: fixed;
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0.85;
+        transform: rotate(3deg);
+        left: ${ev.clientX - dragOffsetX}px;
+        top: ${ev.clientY - dragOffsetY}px;
+      `;
+      
+      const cardsToDrag = pile.slice(cardIdx);
+      const ghostHeight = 140 + (cardsToDrag.length - 1) * 36;
+      ghost.style.height = ghostHeight + 'px';
+      
+      cardsToDrag.forEach((c, i) => {
+        const mini = createCardElement(c, cardIdx + i);
+        mini.style.position = 'absolute';
+        mini.style.top = (i * 36) + 'px';
+        mini.style.left = '0';
+        mini.style.pointerEvents = 'none';
+        ghost.appendChild(mini);
+      });
+      
+      document.body.appendChild(ghost);
+    }
+    ghost.style.left = (ev.clientX - dragOffsetX) + 'px';
+    ghost.style.top = (ev.clientY - dragOffsetY) + 'px';
+    
+    // Highlight droppable piles
+    document.querySelectorAll('.pile').forEach(el => {
+      el.classList.remove('drag-over');
+    });
+    const target = document.elementFromPoint(ev.clientX, ev.clientY);
+    if (target) {
+      const pileEl2 = target.closest('.pile.tableau-pile, .pile.foundation');
+      if (pileEl2 && isValidDrop(pileEl2)) {
+        pileEl2.classList.add('drag-over');
+      }
+    }
+  };
+  
+  const upHandler = (ev) => {
+    document.removeEventListener('mousemove', moveHandler);
+    document.removeEventListener('mouseup', upHandler);
+    if (ghost) ghost.remove();
+    
+    document.querySelectorAll('.pile').forEach(el => el.classList.remove('drag-over'));
+    
+    if (!isDragging) {
+      // Treat as click
+      clickCard(e, pileType, pileIdx, cardIdx);
+      draggedCards = null;
+      return;
+    }
+    
+    // Find drop target
+    const target = document.elementFromPoint(ev.clientX, ev.clientY);
+    if (target) {
+      const pileEl2 = target.closest('.pile.tableau-pile, .pile.foundation');
+      if (pileEl2) {
+        const targetType = pileEl2.dataset.pileType;
+        const targetIdx = parseInt(pileEl2.dataset.pileIndex);
+        performDrop(pileType, pileIdx, cardIdx, targetType, targetIdx);
+      }
+    }
+    draggedCards = null;
+    isDragging = false;
+    render();
+    checkWin();
+  };
+  
+  document.addEventListener('mousemove', moveHandler);
+  document.addEventListener('mouseup', upHandler);
+});
+
+document.addEventListener('dblclick', (e) => {
+  const cardEl = e.target.closest('.card');
+  if (!cardEl) return;
+  
+  const pileEl = cardEl.closest('.pile');
+  if (!pileEl) return;
+  
+  const pileType = pileEl.dataset.pileType;
+  const pileIdx = parseInt(pileEl.dataset.pileIndex);
+  const cardIdx = parseInt(cardEl.dataset.cardIndex);
+  const pile = getPile(pileType, pileIdx);
+  const card = pile ? pile[cardIdx] : null;
+  
+  if (!card || !card.faceUp) return;
+  
+  // Only auto-move single top card of tableau or waste
+  if (pileType === 'tableau' && cardIdx === pile.length - 1) {
+    for (let f = 0; f < 4; f++) {
+      if (canPlaceOnFoundation(card, foundations[f])) {
+        pile.pop();
+        foundations[f].push(card);
+        flipTopTableau();
+        render();
+        checkWin();
+        return;
+      }
+    }
+  } else if (pileType === 'waste' && cardIdx === pile.length - 1) {
+    for (let f = 0; f < 4; f++) {
+      if (canPlaceOnFoundation(card, foundations[f])) {
+        waste.pop();
+        foundations[f].push(card);
+        flipTopTableau();
+        render();
+        checkWin();
+        return;
+      }
+    }
+  }
+});
+
+function isValidDrop(pileEl) {
+  const t = pileEl.dataset.pileType;
+  const i = parseInt(pileEl.dataset.pileIndex);
+  if (!draggedCards) return false;
+  const sourcePile = getPile(draggedCards.pile, draggedCards.index);
+  const sourceCard = sourcePile[draggedCards.cardIndex];
+  if (!sourceCard) return false;
+  
+  if (t === 'tableau') {
+    return canPlaceOnTableau(sourceCard, tableau[i]);
+  } else if (t === 'foundation' && draggedCards.cards.length === 1) {
+    return canPlaceOnFoundation(sourceCard, foundations[i]);
+  }
+  return false;
+}
+
+function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
+  const srcPile = getPile(srcType, srcIdx);
+  const destPile = getPile(destType, destIdx);
+  const cards = srcPile.splice(cardIdx);
+  
+  if (destType === 'tableau') {
+    if (!canPlaceOnTableau(cards[0], tableau[destIdx])) {
+      // Revert
+      srcPile.push(...cards);
+      return;
+    }
+    destPile.push(...cards);
+    flipTopTableau();
+  } else if (destType === 'foundation' && cards.length === 1) {
+    if (!canPlaceOnFoundation(cards[0], foundations[destIdx])) {
+      srcPile.push(...cards);
+      return;
+    }
+    destPile.push(cards[0]);
+    flipTopTableau();
+  } else {
+    srcPile.push(...cards);
+  }
+}
+
+function faceCardSVG(rank, suitColor, style) {
+  const fill = suitColor === 'red' ? '#c22' : '#222';
+  const light = suitColor === 'red' ? '#e55' : '#444';
+  const accent = suitColor === 'red' ? '#fdd' : '#ddd';
+  
+  switch (style) {
+    case 'funky': return faceFunky(rank, fill, light, accent, suitColor);
+    case 'cute':  return faceCute(rank, fill, light, accent);
+    case 'funny': return faceFunny(rank, fill, light, accent);
+    case 'stupid':return faceStupid(rank, fill, light, accent);
+    default:      return faceCool(rank, fill, light, accent);
+  }
+}
+
+function faceCool(rank, fill, light, accent) {
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
+    <path d="M2 32 L10 20 L18 28 L30 12 L42 28 L50 20 L58 32 L2 32Z" fill="${fill}"/>
+    <circle cx="30" cy="12" r="3" fill="${accent}"/><circle cx="18" cy="25" r="2" fill="${accent}"/><circle cx="42" cy="25" r="2" fill="${accent}"/>
+    <ellipse cx="30" cy="42" rx="18" ry="20" fill="${fill}"/>
+    <path d="M12 32 Q12 20 30 20 Q48 20 48 32" fill="${fill}"/>
+    <path d="M18 52 Q30 68 42 52" fill="${fill}"/>
+    <ellipse cx="22" cy="40" rx="3" ry="4" fill="${accent}"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
+    <path d="M6 30 L14 18 L22 26 L30 10 L38 26 L46 18 L54 30 L6 30Z" fill="${fill}"/>
+    <circle cx="30" cy="10" r="2.5" fill="${accent}"/>
+    <path d="M10 32 Q10 22 20 24 Q24 18 30 26 Q36 18 40 24 Q50 22 50 32 L50 58 Q42 62 30 60 Q18 62 10 58Z" fill="${fill}"/>
+    <ellipse cx="30" cy="38" rx="16" ry="18" fill="${accent}"/>
+    <ellipse cx="24" cy="36" rx="2.5" ry="3" fill="${fill}"/><ellipse cx="36" cy="36" rx="2.5" ry="3" fill="${fill}"/>
+    <path d="M27 44 Q30 47 33 44" fill="none" stroke="${fill}" stroke-width="1.2"/>
+    <path d="M18 50 Q30 56 42 50" fill="none" stroke="${light}" stroke-width="1.5"/>
+    <circle cx="30" cy="54" r="2" fill="${accent}"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
+    <path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="${fill}"/>
+    <circle cx="30" cy="24" r="3" fill="${accent}"/>
+    <path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="${fill}"/><path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="${fill}"/>
+    <ellipse cx="30" cy="42" rx="16" ry="18" fill="${accent}"/>
+    <ellipse cx="24" cy="40" rx="2.5" ry="3" fill="${fill}"/><ellipse cx="36" cy="40" rx="2.5" ry="3" fill="${fill}"/>
+    <path d="M27 48 Q30 44 33 48" fill="none" stroke="${fill}" stroke-width="1.2"/>
+    <path d="M16 54 L30 62 L44 54" fill="none" stroke="${fill}" stroke-width="2"/>
+  </svg>`;
+}
+
+function faceFunky(rank, fill, light, accent, suitColor) {
+  const f2 = suitColor === 'red' ? '#f0f' : '#0ff'; // neon accent
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <rect x="2" y="2" width="56" height="68" rx="6" fill="none" stroke="${fill}" stroke-width="2" stroke-dasharray="6 3"/>
+    <polygon points="30,8 12,30 20,28 8,32 18,33 30,55 42,33 52,32 40,28 48,30" fill="${fill}" opacity="0.8"/>
+    <ellipse cx="30" cy="40" rx="20" ry="16" fill="${fill}"/>
+    <ellipse cx="22" cy="38" rx="5" ry="7" fill="${accent}"/><ellipse cx="38" cy="38" rx="5" ry="7" fill="${accent}"/>
+    <circle cx="22" cy="37" r="3" fill="${f2}"/><circle cx="38" cy="37" r="3" fill="${f2}"/>
+    <path d="M22 50 Q30 58 38 50" fill="none" stroke="${f2}" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M12 56 L22 52 L30 58 L38 52 L48 56" fill="none" stroke="${light}" stroke-width="1.5"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <rect x="2" y="2" width="56" height="68" rx="6" fill="none" stroke="${fill}" stroke-width="2" stroke-dasharray="6 3"/>
+    <polygon points="30,6 10,26 22,24 6,28 20,30 30,52 40,30 54,28 38,24 50,26" fill="${fill}" opacity="0.8"/>
+    <ellipse cx="30" cy="38" rx="18" ry="16" fill="${accent}"/>
+    <ellipse cx="23" cy="36" rx="5" ry="6" fill="${f2}"/><ellipse cx="37" cy="36" rx="5" ry="6" fill="${f2}"/>
+    <circle cx="23" cy="35" r="2" fill="${fill}"/><circle cx="37" cy="35" r="2" fill="${fill}"/>
+    <path d="M25 46 Q30 50 35 46" fill="none" stroke="${fill}" stroke-width="1.5"/>
+    <circle cx="22" cy="52" r="3" fill="${f2}"/><circle cx="30" cy="55" r="3" fill="${f2}"/><circle cx="38" cy="52" r="3" fill="${f2}"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <rect x="2" y="2" width="56" height="68" rx="6" fill="none" stroke="${fill}" stroke-width="2" stroke-dasharray="6 3"/>
+    <ellipse cx="30" cy="38" rx="19" ry="18" fill="${accent}"/>
+    <ellipse cx="22" cy="34" rx="6" ry="8" fill="${f2}"/><ellipse cx="38" cy="34" rx="6" ry="8" fill="${f2}"/>
+    <circle cx="22" cy="33" r="3" fill="${fill}"/><circle cx="38" cy="33" r="3" fill="${fill}"/>
+    <polygon points="30,18 22,28 30,26 38,28" fill="${fill}"/>
+    <path d="M18 48 Q30 56 42 48" fill="none" stroke="${f2}" stroke-width="3" stroke-linecap="round"/>
+    <path d="M10 58 L18 54 L30 60 L42 54 L50 58" fill="none" stroke="${light}" stroke-width="1.5"/>
+  </svg>`;
+}
+
+function faceCute(rank, fill, light, accent) {
+  const blush = 'rgba(255,150,150,0.5)';
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <circle cx="30" cy="40" r="24" fill="${fill}"/>
+    <path d="M8 32 L16 18 L24 28 L30 12 L36 28 L44 18 L52 32 L8 32Z" fill="${fill}"/>
+    <circle cx="30" cy="12" r="4" fill="${accent}"/><circle cx="18" cy="23" r="2.5" fill="${accent}"/><circle cx="42" cy="23" r="2.5" fill="${accent}"/>
+    <circle cx="22" cy="38" r="5" fill="${accent}"/><circle cx="38" cy="38" r="5" fill="${accent}"/>
+    <circle cx="22" cy="37" r="3" fill="${fill}"/><circle cx="38" cy="37" r="3" fill="${fill}"/>
+    <circle cx="21" cy="36" r="1.5" fill="#fff"/><circle cx="37" cy="36" r="1.5" fill="#fff"/>
+    <ellipse cx="22" cy="42" rx="5" ry="3" fill="${blush}"/><ellipse cx="38" cy="42" rx="5" ry="3" fill="${blush}"/>
+    <path d="M27 47 Q30 51 33 47" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M14 54 Q30 64 46 54" fill="none" stroke="${light}" stroke-width="2"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="42" rx="22" ry="22" fill="${fill}"/>
+    <path d="M10 34 L18 22 L26 30 L30 14 L34 30 L42 22 L50 34 L10 34Z" fill="${fill}"/>
+    <circle cx="30" cy="14" r="3.5" fill="${accent}"/>
+    <circle cx="22" cy="40" r="4" fill="${accent}"/><circle cx="38" cy="40" r="4" fill="${accent}"/>
+    <circle cx="22" cy="39" r="2.5" fill="${fill}"/><circle cx="38" cy="39" r="2.5" fill="${fill}"/>
+    <circle cx="21" cy="38" r="1.2" fill="#fff"/><circle cx="37" cy="38" r="1.2" fill="#fff"/>
+    <ellipse cx="22" cy="44" rx="4.5" ry="2.5" fill="${blush}"/><ellipse cx="38" cy="44" rx="4.5" ry="2.5" fill="${blush}"/>
+    <path d="M27 48 Q30 44 33 48" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M16 56 Q30 64 44 56" fill="none" stroke="${light}" stroke-width="2"/>
+    <circle cx="30" cy="60" r="2.5" fill="${accent}"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="44" rx="22" ry="22" fill="${fill}"/>
+    <path d="M10 34 L18 20 L30 26 L42 20 L50 34 Q40 28 30 28 Q20 28 10 34Z" fill="${fill}"/>
+    <circle cx="30" cy="22" r="3" fill="${accent}"/>
+    <circle cx="21" cy="42" r="5" fill="${accent}"/><circle cx="39" cy="42" r="5" fill="${accent}"/>
+    <circle cx="21" cy="41" r="3" fill="${fill}"/><circle cx="39" cy="41" r="3" fill="${fill}"/>
+    <circle cx="20" cy="40" r="1.5" fill="#fff"/><circle cx="38" cy="40" r="1.5" fill="#fff"/>
+    <ellipse cx="21" cy="47" rx="5" ry="3" fill="${blush}"/><ellipse cx="39" cy="47" rx="5" ry="3" fill="${blush}"/>
+    <path d="M27 50 Q30 47 33 50" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M16 58 L30 64 L44 58" fill="none" stroke="${light}" stroke-width="2"/>
+  </svg>`;
+}
+
+function faceFunny(rank, fill, light, accent) {
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="38" rx="22" ry="20" fill="${fill}"/>
+    <path d="M0 30 L10 16 L20 26 L30 8 L40 26 L50 16 L60 30 Z" fill="${fill}"/>
+    <circle cx="30" cy="8" r="4" fill="${accent}"/>
+    <circle cx="20" cy="36" r="8" fill="#fff"/><circle cx="40" cy="36" r="8" fill="#fff"/>
+    <circle cx="20" cy="38" r="3" fill="${fill}"/><circle cx="40" cy="38" r="3" fill="${fill}"/>
+    <ellipse cx="30" cy="48" rx="8" ry="5" fill="${fill}"/>
+    <ellipse cx="30" cy="46" rx="6" ry="3" fill="${accent}"/>
+    <path d="M12 54 Q30 68 48 54" fill="none" stroke="${light}" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="10" cy="36" r="3" fill="${accent}"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="40" rx="22" ry="20" fill="${fill}"/>
+    <path d="M2 28 L12 14 L22 24 L30 6 L38 24 L48 14 L58 28 Z" fill="${fill}"/>
+    <circle cx="30" cy="6" r="4" fill="${accent}"/>
+    <circle cx="19" cy="38" r="9" fill="#fff"/><circle cx="41" cy="38" r="9" fill="#fff"/>
+    <circle cx="19" cy="40" r="3.5" fill="${fill}"/><circle cx="41" cy="37" r="3.5" fill="${fill}"/>
+    <path d="M24 50 Q30 56 36 50" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M12 56 Q30 66 48 56" fill="none" stroke="${accent}" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="42" rx="22" ry="20" fill="${fill}"/>
+    <path d="M6 30 L16 16 L26 26 L30 10 L34 26 L44 16 L54 30 Z" fill="${fill}"/>
+    <circle cx="30" cy="10" r="3.5" fill="${accent}"/>
+    <circle cx="20" cy="40" r="9" fill="#fff"/><circle cx="40" cy="40" r="9" fill="#fff"/>
+    <circle cx="22" cy="42" r="4" fill="${fill}"/><circle cx="38" cy="43" r="4" fill="${fill}"/>
+    <ellipse cx="30" cy="52" rx="7" ry="4" fill="${fill}"/>
+    <path d="M26 52 Q30 56 34 52" fill="${accent}"/>
+  </svg>`;
+}
+
+function faceStupid(rank, fill, light, accent) {
+  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="42" rx="24" ry="20" fill="${fill}"/>
+    <path d="M4 30 L12 18 L22 28 L30 14 L38 28 L48 18 L56 30 Z" fill="${fill}"/>
+    <circle cx="14" cy="36" r="6" fill="#fff"/><circle cx="46" cy="36" r="6" fill="#fff"/>
+    <circle cx="16" cy="36" r="2.5" fill="${fill}"/><circle cx="44" cy="36" r="2.5" fill="${fill}"/>
+    <circle cx="20" cy="48" r="4" fill="${accent}"/>
+    <path d="M24 52 Q30 46 36 52" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M10 58 L20 54 L30 62 L40 54 L50 58" fill="none" stroke="${light}" stroke-width="2"/>
+    <ellipse cx="30" cy="64" rx="5" ry="3" fill="${accent}"/>
+  </svg>`;
+  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="44" rx="24" ry="20" fill="${fill}"/>
+    <path d="M6 32 L14 20 L24 30 L30 16 L36 30 L46 20 L54 32 Z" fill="${fill}"/>
+    <circle cx="16" cy="40" r="7" fill="#fff"/><circle cx="44" cy="40" r="7" fill="#fff"/>
+    <circle cx="17" cy="39" r="3" fill="${fill}"/><circle cx="43" cy="41" r="3" fill="${fill}"/>
+    <ellipse cx="30" cy="52" rx="5" ry="3" fill="${accent}"/>
+    <path d="M26 52 Q30 48 34 52" stroke="${fill}" stroke-width="1.5" fill="none"/>
+    <circle cx="22" cy="56" r="2.5" fill="${accent}"/><circle cx="30" cy="58" r="2.5" fill="${accent}"/><circle cx="38" cy="56" r="2.5" fill="${accent}"/>
+  </svg>`;
+  return `<svg viewBox="0 0 60 72" width="54" height="65">
+    <ellipse cx="30" cy="44" rx="23" ry="20" fill="${fill}"/>
+    <path d="M8 32 L16 20 L28 28 L30 18 L32 28 L44 20 L52 32 Z" fill="${fill}"/>
+    <circle cx="16" cy="40" r="7" fill="#fff"/><circle cx="44" cy="40" r="7" fill="#fff"/>
+    <circle cx="18" cy="40" r="3" fill="${fill}"/><circle cx="42" cy="40" r="3" fill="${fill}"/>
+    <ellipse cx="30" cy="52" rx="6" ry="4" fill="${accent}"/>
+    <path d="M22 54 Q30 50 38 54" stroke="${fill}" stroke-width="2" fill="none"/>
+    <path d="M12 60 L20 56 L30 64 L40 56 L48 60" fill="none" stroke="${light}" stroke-width="2"/>
+  </svg>`;
+}
+
+function createCardElement(card, index) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.dataset.cardIndex = index;
+  
+  if (!card.faceUp) {
+    div.classList.add('face-down');
+    return div;
+  }
+  
+  div.classList.add('face-up');
+  div.classList.add(cardColor(card.suit));
+  
+  const rank = RANKS[card.rank];
+  const suit = SUITS[card.suit];
+  const isFace = card.rank >= 10;
+  const style = loadSettings().faceStyle || 'cool';
+  
+  div.innerHTML = `
+    <div class="rank-suit-top">${rank}${suit}</div>
+    <div class="center-suit">${isFace ? faceCardSVG(card.rank, cardColor(card.suit), style) : suit}</div>
+    <div class="rank-suit-bottom">${rank}${suit}</div>
+  `;
+  
+  return div;
+}
+
+function render() {
+  if (foundations.every(f => f.length === 13)) {
+    // Game already won — keep overlay up during re-renders
+    document.getElementById('win-overlay').classList.add('show');
+  }
+  // Don't clear selectedCards here - preserve selection for highlight
+  
+  // Stock
+  const stockEl = document.getElementById('stock');
+  stockEl.dataset.pileType = 'stock';
+  stockEl.dataset.pileIndex = '0';
+  stockEl.innerHTML = '<div class="empty-placeholder">&#9824;</div>';
+  if (stock.length > 0) {
+    const cardEl = createCardElement(stock[stock.length - 1], stock.length - 1);
+    cardEl.style.position = 'relative';
+    stockEl.appendChild(cardEl);
+  }
+  
+  // Waste
+  const wasteEl = document.getElementById('waste');
+  wasteEl.dataset.pileType = 'waste';
+  wasteEl.dataset.pileIndex = '0';
+  wasteEl.innerHTML = '<div class="empty-placeholder"></div>';
+  if (waste.length > 0) {
+    const drawCount = loadSettings().drawCount || 1;
+    const showCount = Math.min(drawCount, waste.length);
+    for (let w = waste.length - showCount; w < waste.length; w++) {
+      const cardEl = createCardElement(waste[w], w);
+      cardEl.style.position = 'absolute';
+      cardEl.style.left = ((w - (waste.length - showCount)) * 24) + 'px';
+      cardEl.style.zIndex = w;
+      wasteEl.appendChild(cardEl);
+    }
+    wasteEl.style.minWidth = (100 + (showCount - 1) * 24) + 'px';
+  }
+  
+  // Foundations
+  SUITS.forEach((suit, i) => {
+    const el = document.querySelector(`.foundation[data-suit="${i}"]`);
+    el.dataset.pileType = 'foundation';
+    el.dataset.pileIndex = i;
+    const empty = el.querySelector('.empty-placeholder');
+    empty.innerHTML = suit;
+    // Remove old cards
+    el.querySelectorAll('.card').forEach(c => c.remove());
+    if (foundations[i].length > 0) {
+      const top = foundations[i][foundations[i].length - 1];
+      const cardEl = createCardElement(top, foundations[i].length - 1);
+      cardEl.style.position = 'relative';
+      el.appendChild(cardEl);
+    }
+  });
+  
+  // Tableau
+  const tableauEl = document.getElementById('tableau');
+  tableauEl.innerHTML = '';
+  
+  for (let t = 0; t < 7; t++) {
+    const pileEl = document.createElement('div');
+    pileEl.className = 'pile tableau-pile';
+    pileEl.dataset.pileType = 'tableau';
+    pileEl.dataset.pileIndex = t;
+    
+    if (tableau[t].length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-placeholder';
+      empty.style.position = 'relative';
+      empty.textContent = '';
+      pileEl.appendChild(empty);
+    } else {
+      tableau[t].forEach((card, ci) => {
+        const cardEl = createCardElement(card, ci);
+        cardEl.style.top = (ci * 36) + 'px';
+        cardEl.style.zIndex = ci;
+        if (selectedCards && selectedCards.pile === 'tableau' && 
+            selectedCards.index === t && ci >= selectedCards.cardIndex) {
+          cardEl.classList.add('selected');
+        }
+        pileEl.appendChild(cardEl);
+      });
+      // Set min-height based on cards
+      const h = 140 + (tableau[t].length - 1) * 36;
+      pileEl.style.minHeight = h + 'px';
+    }
+    
+    tableauEl.appendChild(pileEl);
+  }
+  
+  // Debug panel
+  renderDebugPanel();
+  
+  // Style drag-over piles
+  saveGame();
+  
+  // Check for stalemate
+  checkStalemate();
+}
+
+function showMessage(msg) {
+  document.getElementById('message').textContent = msg;
+  setTimeout(() => {
+    document.getElementById('message').textContent = '';
+  }, 1500);
+}
+
+function hasAnyValidMove() {
+  // Check waste → foundation or tableau
+  if (waste.length > 0) {
+    const w = waste[waste.length - 1];
+    for (let f = 0; f < 4; f++) {
+      if (canPlaceOnFoundation(w, foundations[f])) return true;
+    }
+    for (let t = 0; t < 7; t++) {
+      if (canPlaceOnTableau(w, tableau[t])) return true;
+    }
+  }
+  // Check stock has cards or waste can recycle
+  if (stock.length > 0) return true;
+  if (waste.length > 0) return true; // can recycle
+  
+  // Check tableau → foundation or tableau → tableau
+  for (let t = 0; t < 7; t++) {
+    const pile = tableau[t];
+    for (let ci = 0; ci < pile.length; ci++) {
+      if (!pile[ci].faceUp) continue;
+      // Only top card goes to foundation
+      if (ci === pile.length - 1) {
+        for (let f = 0; f < 4; f++) {
+          if (canPlaceOnFoundation(pile[ci], foundations[f])) return true;
+        }
+      }
+      // Any face-up card (with all cards above it) can move to another tableau
+      // Check if all cards from ci onward are face-up
+      let allUp = true;
+      for (let k = ci; k < pile.length; k++) {
+        if (!pile[k].faceUp) { allUp = false; break; }
+      }
+      if (!allUp) continue;
+      for (let dt = 0; dt < 7; dt++) {
+        if (dt === t) continue;
+        if (canPlaceOnTableau(pile[ci], tableau[dt])) return true;
+        // King on empty
+        if (tableau[dt].length === 0 && pile[ci].rank === 12) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function checkStalemate() {
+  // Don't show stalemate if already won
+  if (foundations.every(f => f.length === 13)) return;
+  
+  if (!hasAnyValidMove()) {
+    document.getElementById('message').innerHTML = 
+      '😔 No moves left — this deal is unwinnable. <button class="btn" onclick="newGame()" style="margin:0 0 0 10px;padding:6px 16px;font-size:13px">New Deal</button>';
+  }
+}
+
+function checkWin() {
+  for (let f = 0; f < 4; f++) {
+    if (foundations[f].length !== 13) return;
+  }
+  
+  const stats = loadStats();
+  stats.gamesWon++;
+  stats.currentStreak++;
+  if (stats.currentStreak > stats.bestStreak) {
+    stats.bestStreak = stats.currentStreak;
+  }
+  saveStats(stats);
+  updateStatsDisplay(stats);
+  
+  clearSavedGame();
+  document.getElementById('win-overlay').classList.add('show');
+}
+
+// Click on tableau empty space to place selected cards via click-to-move
+document.addEventListener('click', (e) => {
+  if (!selectedCards || isDragging) return;
+  
+  // Ignore if we clicked on a card (those are handled by clickCard)
+  if (e.target.closest('.card')) return;
+  
+  const pileEl = e.target.closest('.pile.tableau-pile');
+  if (!pileEl) return;
+  
+  const targetIdx = parseInt(pileEl.dataset.pileIndex);
+  if (selectedCards.pile !== 'tableau') return;
+  
+  const srcIdx = selectedCards.index;
+  const cardIdx = selectedCards.cardIndex;
+  
+  if (srcIdx === targetIdx) {
+    selectedCards = null;
+    render();
+    return;
+  }
+  
+  const srcPile = tableau[srcIdx];
+  const destPile = tableau[targetIdx];
+  const cards = srcPile.slice(cardIdx);
+  
+  if (destPile.length === 0) {
+    if (cards[0].rank === 12) { // King
+      srcPile.splice(cardIdx);
+      destPile.push(...cards);
+      flipTopTableau();
+      selectedCards = null;
+      render();
+      checkWin();
+    } else {
+      showMessage('Only a King can start an empty tableau pile');
+    }
+  } else {
+    if (canPlaceOnTableau(cards[0], destPile)) {
+      srcPile.splice(cardIdx);
+      destPile.push(...cards);
+      flipTopTableau();
+      selectedCards = null;
+      render();
+      checkWin();
+    } else {
+      showMessage('Invalid move');
+    }
+  }
+});
+
+// Click on stock to draw/recycle
+document.getElementById('stock').addEventListener('click', (e) => {
+  drawStock();
+});
+
+// Escape to deselect or close settings
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('settings-overlay').classList.contains('show')) {
+      closeSettings();
+    } else {
+      selectedCards = null;
+      render();
+    }
+  }
+});
+
+// Click outside settings panel to close
+document.getElementById('settings-overlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeSettings();
+});
+
+// Start game — restore saved state or deal fresh
+applySettings();
+checkEasterEgg();
+const savedStats = loadStats();
+updateStatsDisplay(savedStats);
+if (!loadGame()) {
+  dealBoard();
+} else {
+  // Validate the loaded state; auto-fix if corrupted
+  ensureValidState();
+}
+render();
+// If loaded a won game, ensure overlay shows (don't count stats again)
+if (foundations.every(f => f.length === 13)) {
+  document.getElementById('win-overlay').classList.add('show');
+}
+</script>
+</body>
+</html>
+
