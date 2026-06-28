@@ -891,13 +891,13 @@ const SETTINGS_KEY = 'solitaire_settings';
 
 const THEMES = {
   azure:   { name: 'Azure',        bg: '#0d4f7c', cardBg: '#f7f2e8', red: '#c0392b', black: '#1a1a2e', cardBorder: '#d4c8b8' },
+  paper:   { name: 'Paper',         bg: '#3d3226', cardBg: '#f5f0e4', red: '#8b4513', black: '#2c1810', cardBorder: '#c4b8a8' },
+  ocean:   { name: 'Ocean',         bg: '#0a3d3d', cardBg: '#f0f5f5', red: '#b53434', black: '#1a2a2a', cardBorder: '#b8c8c8' },
+  sunset:  { name: 'Sunset',        bg: '#3d1b2e', cardBg: '#faf5f0', red: '#b84040', black: '#2c1818', cardBorder: '#d4c0b0' },
   classic: { name: 'Classic Green', bg: '#0d5c28', cardBg: '#fafaf7', red: '#b71c1c', black: '#1b1b1b', cardBorder: '#c8c8c0' },
   dark:    { name: 'Midnight',      bg: '#0f0f1a', cardBg: '#1e1e30', red: '#ff6b6b', black: '#d4d4e0', cardBorder: '#2a2a40' },
   forest:  { name: 'Cedar',         bg: '#1e3328', cardBg: '#f0ece4', red: '#a33030', black: '#1c1c1c', cardBorder: '#c4bfb4' },
   clover:  { name: 'Clover',        bg: '#0a2e1f', cardBg: '#f5f0e0', red: '#8b1a1a', black: '#1c1c14', cardBorder: '#c8b898' },
-  sunset:  { name: 'Sunset',        bg: '#3d1b2e', cardBg: '#faf5f0', red: '#b84040', black: '#2c1818', cardBorder: '#d4c0b0' },
-  ocean:   { name: 'Ocean',         bg: '#0a3d3d', cardBg: '#f0f5f5', red: '#b53434', black: '#1a2a2a', cardBorder: '#b8c8c8' },
-  paper:   { name: 'Paper',         bg: '#3d3226', cardBg: '#f5f0e4', red: '#8b4513', black: '#2c1810', cardBorder: '#c4b8a8' },
 };
 
 const CARD_BACKS = {
@@ -2747,6 +2747,45 @@ const SOUND_THEMES = {
     winDur: 0.60,
     gain: 0.70,
     desc: 'Warm & lyrical'
+  },
+  paper: {
+    name: 'Paper',
+    wave: 'triangle',
+    clickHi: 523, clickLo: 392, clickDur: 0.09,
+    dingLo: 494, dingHi: 740, dingDur: 0.22,
+    bump: 156, bumpDur: 0.13,
+    deal: [349, 392, 440, 494, 523, 587, 659],
+    dealGap: 0.06,
+    win: [{f:262,t:0},{f:330,t:0.14},{f:392,t:0.28},{f:523,t:0.44},{f:659,t:0.58}],
+    winDur: 0.55,
+    gain: 0.75,
+    desc: 'Soft & mellow'
+  },
+  ocean: {
+    name: 'Ocean',
+    wave: 'sine',
+    clickHi: 784, clickLo: 587, clickDur: 0.12,
+    dingLo: 698, dingHi: 1047, dingDur: 0.28,
+    bump: 196, bumpDur: 0.16,
+    deal: [440, 494, 554, 622, 698, 784, 880],
+    dealGap: 0.08,
+    win: [{f:330,t:0},{f:440,t:0.18},{f:554,t:0.36},{f:698,t:0.54},{f:880,t:0.72}],
+    winDur: 0.65,
+    gain: 0.65,
+    desc: 'Fluid & rolling'
+  },
+  sunset: {
+    name: 'Sunset',
+    wave: 'triangle',
+    clickHi: 587, clickLo: 440, clickDur: 0.11,
+    dingLo: 554, dingHi: 831, dingDur: 0.30,
+    bump: 165, bumpDur: 0.15,
+    deal: [330, 370, 415, 466, 523, 587, 659],
+    dealGap: 0.07,
+    win: [{f:247,t:0},{f:311,t:0.16},{f:370,t:0.32},{f:466,t:0.50},{f:554,t:0.66}],
+    winDur: 0.62,
+    gain: 0.68,
+    desc: 'Warm & glowing'
   }
 };
 
