@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="version" content="v1.14">
-<meta name="commit" content="a138fb2">
+<meta name="version" content="v1.15">
+<meta name="commit" content="6767eab">
 <title>Foighne</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
 <style>
@@ -1661,62 +1661,75 @@ function drawCross(ctx, p) {
   const strawMid   = '#d4b840';
   const strawDark  = '#c4a23c';
   const bandColor  = '#8b6914';
-  // central woven diamond — "God's eye"
-  const ctr = s * 0.16;
-  ctx.fillStyle = strawLight;
-  ctx.fillRect(-ctr, -ctr, ctr * 2, ctr * 2);
-  // weave detail
-  ctx.strokeStyle = strawDark;
-  ctx.lineWidth = Math.max(0.6, s * 0.04);
-  ctx.beginPath();
-  ctx.moveTo(-ctr, -ctr); ctx.lineTo(ctr, ctr);
-  ctx.moveTo(-ctr, ctr); ctx.lineTo(ctr, -ctr);
-  ctx.stroke();
-  ctx.lineWidth = 1;
-  // inner diamond highlight
-  ctx.fillStyle = strawMid;
-  ctx.fillRect(-ctr*0.5, -ctr*0.5, ctr, ctr);
-  // four arms — each starts offset from a different corner of the centre square
-  // like real Brigid's crosses where reeds bend around each other
+  const ctr = s * 0.12;
+  // four wide flat reed-bundle arms — drawn FIRST so centre weaves on top
   const arms = [
-    { baseX: -ctr, baseY: -ctr, dx: -1, dy: -1 },  // top-left
-    { baseX:  ctr, baseY: -ctr, dx:  1, dy: -1 },  // top-right
-    { baseX:  ctr, baseY:  ctr, dx:  1, dy:  1 },  // bottom-right
-    { baseX: -ctr, baseY:  ctr, dx: -1, dy:  1 },  // bottom-left
+    { dx: -1, dy: -1 },  // top-left
+    { dx:  1, dy: -1 },  // top-right
+    { dx:  1, dy:  1 },  // bottom-right
+    { dx: -1, dy:  1 },  // bottom-left
   ];
   for (const a of arms) {
-    // arm is a flat reed bundle — wider at base, tapering slightly to tip
-    const tipX = a.dx * s * 0.55, tipY = a.dy * s * 0.55;
-    const perpX = a.dy, perpY = -a.dx; // perpendicular direction
-    const baseW = s * 0.14;
-    const tipW  = s * 0.09;
-    // draw arm as filled polygon with straw texture stripes
+    const perpX = a.dy, perpY = -a.dx;
+    // arm starts offset from centre, extends out
+    const baseX = a.dx * ctr, baseY = a.dy * ctr;
+    const tipX = a.dx * s * 0.58, tipY = a.dy * s * 0.58;
+    const baseW = s * 0.20;
+    const tipW  = s * 0.13;
+    // main arm body
     ctx.fillStyle = strawLight;
     ctx.beginPath();
-    ctx.moveTo(a.baseX + perpX * baseW, a.baseY + perpY * baseW);
+    ctx.moveTo(baseX + perpX * baseW, baseY + perpY * baseW);
     ctx.lineTo(tipX + perpX * tipW, tipY + perpY * tipW);
     ctx.lineTo(tipX - perpX * tipW, tipY - perpY * tipW);
-    ctx.lineTo(a.baseX - perpX * baseW, a.baseY - perpY * baseW);
+    ctx.lineTo(baseX - perpX * baseW, baseY - perpY * baseW);
     ctx.closePath();
     ctx.fill();
-    // darker stripe through middle of arm for reed texture
+    // darker centre stripe for reed texture
     ctx.fillStyle = strawDark;
     ctx.beginPath();
-    ctx.moveTo(a.baseX + perpX * baseW * 0.25, a.baseY + perpY * baseW * 0.25);
-    ctx.lineTo(tipX + perpX * tipW * 0.25, tipY + perpY * tipW * 0.25);
-    ctx.lineTo(tipX - perpX * tipW * 0.25, tipY - perpY * tipW * 0.25);
-    ctx.lineTo(a.baseX - perpX * baseW * 0.25, a.baseY - perpY * baseW * 0.25);
+    ctx.moveTo(baseX + perpX * baseW * 0.22, baseY + perpY * baseW * 0.22);
+    ctx.lineTo(tipX + perpX * tipW * 0.22, tipY + perpY * tipW * 0.22);
+    ctx.lineTo(tipX - perpX * tipW * 0.22, tipY - perpY * tipW * 0.22);
+    ctx.lineTo(baseX - perpX * baseW * 0.22, baseY - perpY * baseW * 0.22);
+    ctx.closePath();
+    ctx.fill();
+    // mid-tone highlight stripe
+    ctx.fillStyle = strawMid;
+    ctx.beginPath();
+    ctx.moveTo(baseX - perpX * baseW * 0.15, baseY - perpY * baseW * 0.15);
+    ctx.lineTo(tipX - perpX * tipW * 0.15, tipY - perpY * tipW * 0.15);
+    ctx.lineTo(tipX - perpX * tipW * 0.45, tipY - perpY * tipW * 0.45);
+    ctx.lineTo(baseX - perpX * baseW * 0.45, baseY - perpY * baseW * 0.45);
     ctx.closePath();
     ctx.fill();
     // tied band at tip
-    const bw = tipW * 1.6;
     ctx.fillStyle = bandColor;
     ctx.save();
     ctx.translate(tipX, tipY);
     ctx.rotate(Math.atan2(a.dy, a.dx) + Math.PI/2);
-    ctx.fillRect(-bw, -s*0.035, bw*2, s*0.07);
+    ctx.fillRect(-tipW * 1.4, -s*0.04, tipW * 2.8, s*0.08);
     ctx.restore();
   }
+  // central woven diamond drawn ON TOP — creates weave overlay effect
+  ctx.fillStyle = strawLight;
+  ctx.fillRect(-ctr, -ctr, ctr * 2, ctr * 2);
+  // cross-hatch weave lines
+  ctx.strokeStyle = strawDark;
+  ctx.lineWidth = Math.max(0.6, s * 0.04);
+  ctx.beginPath();
+  for (let i = -2; i <= 2; i++) {
+    const off = i * ctr * 0.35;
+    ctx.moveTo(-ctr + off, -ctr); ctx.lineTo(ctr + off, ctr);
+    ctx.moveTo(-ctr, -ctr + off); ctx.lineTo(ctr, ctr + off);
+    ctx.moveTo(ctr - off, -ctr); ctx.lineTo(-ctr - off, ctr);
+    ctx.moveTo(ctr, -ctr + off); ctx.lineTo(-ctr, ctr + off);
+  }
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  // bright centre knot
+  ctx.fillStyle = strawMid;
+  ctx.fillRect(-ctr*0.4, -ctr*0.4, ctr*0.8, ctr*0.8);
   ctx.restore();
 }
 
