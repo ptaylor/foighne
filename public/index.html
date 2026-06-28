@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="version" content="v1.21">
-<meta name="commit" content="f07c7d6">
+<meta name="version" content="v1.22">
+<meta name="commit" content="3c0ec79">
 <title>Foighne</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
 <style>
@@ -1396,7 +1396,7 @@ const EASTER_EGGS = {
   },
   '02-01': {
     name: '🕯️ St Brigid\'s Day',
-    particles: { shape:'cross', count:14, colors:['#e8d48b','#d4b840','#c4a23c','#f0e0a0','#8b6914'], size:[16,30], speed:[0.07,0.18], opacity:[0.16,0.28] }
+    particles: { shape:'cross', count:14, colors:['#8fbc5e','#7aad45','#6b9e38','#5c8a2e'], size:[16,30], speed:[0.07,0.18], opacity:[0.16,0.28] }
   },
   '02-14': {
     name: '💕 Valentine\'s Day',
@@ -1804,67 +1804,61 @@ function drawCross(ctx, p) {
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(p.rot + Math.PI / 4);
-  // straw/rush tones
-  const strawLight = '#e8d48b';
-  const strawMid   = '#d4b840';
-  const strawDark  = '#c4a23c';
-  const bandColor  = '#8b6914';
-  const ctr = s * 0.12;
-  // four wide flat reed-bundle arms — drawn FIRST so centre weaves on top
-  const arms = [
-    { dx: -1, dy: -1 },  // top-left
-    { dx:  1, dy: -1 },  // top-right
-    { dx:  1, dy:  1 },  // bottom-right
-    { dx: -1, dy:  1 },  // bottom-left
+  // straw/rush tones — green rushes (traditional), tied with twine
+  const rush1 = '#8fbc5e';
+  const rush2 = '#7aad45';
+  const rush3 = '#6b9e38';
+  const band   = '#5c3d1a';
+  const ctr = s * 0.10;
+  // each folded rush forms an L-shape: starts in one arm, bends at centre,
+  // continues into the adjacent arm. Rotate 90° and repeat.
+  // We draw several folded rushes in each orientation.
+  const folds = [
+    { a1: [-1,-1], a2: [ 1,-1] },  // top-left → top-right
+    { a1: [ 1,-1], a2: [ 1, 1] },  // top-right → bottom-right
+    { a1: [ 1, 1], a2: [-1, 1] },  // bottom-right → bottom-left
+    { a1: [-1, 1], a2: [-1,-1] },  // bottom-left → top-left
   ];
-  for (const a of arms) {
-    const perpX = a.dy, perpY = -a.dx;
-    const tipX = a.dx * s * 0.58, tipY = a.dy * s * 0.58;
-    // each arm is TWO parallel strands:
-    //   strand A starts from the corner of the centre square
-    //   strand B starts from the centre point (0,0)
-    const sw = s * 0.08; // strand half-width
-    const strands = [
-      { bx: a.dx * ctr, by: a.dy * ctr, color: strawLight }, // corner strand
-      { bx: 0, by: 0, color: strawDark },                      // centre strand
-    ];
-    for (const st of strands) {
-      ctx.fillStyle = st.color;
+  // each fold orientation gets 3 rushes, stacked slightly offset
+  for (const fold of folds) {
+    for (let r = 0; r < 3; r++) {
+      const off = (r - 1) * s * 0.07; // slight offset for stacked look
+      const px = fold.a1[1] * off, py = -fold.a1[0] * off; // perpendicular
+      // strand from arm1 tip, bending at centre, to arm2 tip
+      const x1 = fold.a1[0] * s * 0.55 + px, y1 = fold.a1[1] * s * 0.55 + py;
+      const x2 = fold.a2[0] * s * 0.55 + px, y2 = fold.a2[1] * s * 0.55 + py;
+      ctx.strokeStyle = [rush1, rush2, rush3][r];
+      ctx.lineWidth = Math.max(1.0, s * 0.07);
       ctx.beginPath();
-      ctx.moveTo(st.bx + perpX * sw, st.by + perpY * sw);
-      ctx.lineTo(tipX + perpX * sw, tipY + perpY * sw);
-      ctx.lineTo(tipX - perpX * sw, tipY - perpY * sw);
-      ctx.lineTo(st.bx - perpX * sw, st.by - perpY * sw);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(x1, y1);
+      // bend through centre with a slight curve (the fold)
+      ctx.quadraticCurveTo(px, py, x2, y2);
+      ctx.stroke();
+      ctx.lineWidth = 1;
     }
-    // tied band at tip
-    ctx.fillStyle = bandColor;
-    ctx.save();
-    ctx.translate(tipX, tipY);
-    ctx.rotate(Math.atan2(a.dy, a.dx) + Math.PI/2);
-    ctx.fillRect(-sw * 1.6, -s*0.04, sw * 3.2, s*0.08);
-    ctx.restore();
   }
-  // central woven diamond drawn ON TOP — creates weave overlay effect
-  ctx.fillStyle = strawLight;
+  // central woven square — where all folds overlap
+  ctx.fillStyle = rush2;
   ctx.fillRect(-ctr, -ctr, ctr * 2, ctr * 2);
-  // cross-hatch weave lines
-  ctx.strokeStyle = strawDark;
-  ctx.lineWidth = Math.max(0.6, s * 0.04);
+  // weave detail — tiny cross lines
+  ctx.strokeStyle = rush3;
+  ctx.lineWidth = Math.max(0.5, s * 0.03);
   ctx.beginPath();
-  for (let i = -2; i <= 2; i++) {
-    const off = i * ctr * 0.35;
-    ctx.moveTo(-ctr + off, -ctr); ctx.lineTo(ctr + off, ctr);
-    ctx.moveTo(-ctr, -ctr + off); ctx.lineTo(ctr, ctr + off);
-    ctx.moveTo(ctr - off, -ctr); ctx.lineTo(-ctr - off, ctr);
-    ctx.moveTo(ctr, -ctr + off); ctx.lineTo(-ctr, ctr + off);
-  }
+  ctx.moveTo(-ctr, -ctr); ctx.lineTo(ctr, ctr);
+  ctx.moveTo(-ctr, ctr); ctx.lineTo(ctr, -ctr);
   ctx.stroke();
   ctx.lineWidth = 1;
-  // bright centre knot
-  ctx.fillStyle = strawMid;
-  ctx.fillRect(-ctr*0.4, -ctr*0.4, ctr*0.8, ctr*0.8);
+  // tied bands at the four arm tips
+  const tips = [[-1,-1],[1,-1],[1,1],[-1,1]];
+  for (const [dx, dy] of tips) {
+    const tx = dx * s * 0.55, ty = dy * s * 0.55;
+    ctx.fillStyle = band;
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.rotate(Math.atan2(dy, dx) + Math.PI/2);
+    ctx.fillRect(-s * 0.12, -s * 0.035, s * 0.24, s * 0.07);
+    ctx.restore();
+  }
   ctx.restore();
 }
 
