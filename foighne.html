@@ -1416,7 +1416,7 @@ const EASTER_EGGS = {
   },
   '12-21--12-22': {
     name: '❄️ Mid Winter',
-    particles: { shape:['snowflake','snowflake','snowflake','sparkle'], count:14, colors:['#ffffff','#d4e6f1','#e8f4f8','#bdd7ee'], size:[12,22], speed:[0.08,0.20], opacity:[0.18,0.30] }
+    particles: { shape:'snowflake', count:16, colors:['#ffffff','#d4e6f1','#e8f4f8','#bdd7ee'], size:[14,26], speed:[0.06,0.16], fall:true, opacity:[0.18,0.30] }
   },
   '12-24--01-06': {
     name: '🎄 Christmas Week',
@@ -1481,7 +1481,7 @@ function initEggParticles(cfg) {
       x: Math.random() * w,
       y: Math.random() * h,
       vx: (Math.random() - 0.5) * cfg.speed[1] * 0.4,
-      vy: -(cfg.speed[0] + Math.random() * (cfg.speed[1] - cfg.speed[0])),
+      vy: (cfg.fall ? 1 : -1) * (cfg.speed[0] + Math.random() * (cfg.speed[1] - cfg.speed[0])),
       size: cfg.size[0] + Math.random() * (cfg.size[1] - cfg.size[0]),
       color: cfg.colors[Math.floor(Math.random() * cfg.colors.length)],
       opacity: cfg.opacity[0] + Math.random() * (cfg.opacity[1] - cfg.opacity[0]),
