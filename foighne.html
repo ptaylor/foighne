@@ -1412,7 +1412,7 @@ const EASTER_EGGS = {
   },
   '07-07': {
     name: '🎂 Birthday Celebration',
-    particles: { shape:['circle','circle','circle','sparkle'], count:16, colors:['#ffd93d','#ff6b9d','#6bcb77','#4d96ff'], size:[10,18], speed:[0.10,0.24], opacity:[0.16,0.28] }
+    particles: { shape:['balloon','balloon','balloon','sparkle'], count:16, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff','#ffb347'], size:[16,30], speed:[0.08,0.20], opacity:[0.18,0.30] }
   },
   '12-21--12-22': {
     name: '❄️ Mid Winter',
@@ -1586,6 +1586,33 @@ function drawSun(ctx, p) {
   ctx.restore();
 }
 
+function drawBalloon(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.3);
+  // balloon body — slightly taller ellipse
+  ctx.beginPath();
+  ctx.ellipse(0, -s * 0.1, s * 0.38, s * 0.48, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // knot — tiny triangle
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.08, s * 0.35);
+  ctx.lineTo(s * 0.08, s * 0.35);
+  ctx.lineTo(0, s * 0.48);
+  ctx.closePath();
+  ctx.fill();
+  // string — short curved line
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.46);
+  ctx.quadraticCurveTo(s * 0.15, s * 0.75, -s * 0.05, s * 0.95);
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = Math.max(0.8, s * 0.06);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
 function drawHeart(ctx, p) {
   const s = p.size;
   ctx.save();
@@ -1650,7 +1677,7 @@ function drawSnowflake(ctx, p) {
   ctx.restore();
 }
 
-const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
 
 function animateEgg() {
   if (!eggCtx || !eggCanvas) return;
