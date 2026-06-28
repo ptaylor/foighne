@@ -1424,7 +1424,7 @@ const EASTER_EGGS = {
   },
   '10-31': {
     name: '🎃 Halloween',
-    particles: { shape:'pumpkin', count:14, colors:['#f57c00'], size:[16,30], speed:[0.07,0.18], opacity:[0.18,0.30] }
+    particles: { shape:['skull','skull','witch','pumpkin'], count:16, colors:['#f0ead6'], size:[18,34], speed:[0.07,0.18], opacity:[0.18,0.32] }
   },
   '12-21--12-22': {
     name: '❄️ Mid Winter',
@@ -1648,6 +1648,75 @@ function drawPumpkin(ctx, p) {
   // stem
   ctx.fillStyle = '#4a7c2e';
   ctx.fillRect(-s * 0.06, -s * 0.38, s * 0.12, s * 0.14);
+  ctx.restore();
+}
+
+function drawSkull(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.15);
+  // skull dome
+  ctx.fillStyle = '#f0ead6';
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.35, Math.PI, 0);
+  ctx.lineTo(s * 0.28, s * 0.18);
+  ctx.quadraticCurveTo(0, s * 0.4, -s * 0.28, s * 0.18);
+  ctx.closePath();
+  ctx.fill();
+  // eye sockets
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath();
+  ctx.arc(-s * 0.12, -s * 0.02, s * 0.09, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(s * 0.12, -s * 0.02, s * 0.09, 0, Math.PI * 2);
+  ctx.fill();
+  // nose
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.04);
+  ctx.lineTo(-s * 0.04, s * 0.12);
+  ctx.lineTo(s * 0.04, s * 0.12);
+  ctx.closePath();
+  ctx.fill();
+  // teeth — row of vertical lines
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = Math.max(0.6, s * 0.03);
+  ctx.beginPath();
+  for (let i = -3; i <= 3; i++) {
+    ctx.moveTo(i * s * 0.06, s * 0.16);
+    ctx.lineTo(i * s * 0.06, s * 0.27);
+  }
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
+function drawWitch(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.2);
+  // wide brim
+  ctx.fillStyle = '#2c1050';
+  ctx.beginPath();
+  ctx.ellipse(0, s * 0.02, s * 0.42, s * 0.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // pointed crown
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.28, s * 0.0);
+  ctx.quadraticCurveTo(-s * 0.1, -s * 0.2, 0, -s * 0.55);
+  ctx.quadraticCurveTo(s * 0.1, -s * 0.2, s * 0.28, s * 0.0);
+  ctx.closePath();
+  ctx.fill();
+  // hat band
+  ctx.fillStyle = '#ff6600';
+  ctx.fillRect(-s * 0.28, -s * 0.02, s * 0.56, s * 0.07);
+  // buckle
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(-s * 0.09, -s * 0.04, s * 0.18, s * 0.1);
+  ctx.fillStyle = '#2c1050';
+  ctx.fillRect(-s * 0.05, -s * 0.02, s * 0.1, s * 0.06);
   ctx.restore();
 }
 
@@ -1953,7 +2022,7 @@ function drawSnowflake(ctx, p) {
   ctx.restore();
 }
 
-const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, pumpkin: drawPumpkin, banana: drawBanana, jester: drawJester, cross: drawCross, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, pumpkin: drawPumpkin, skull: drawSkull, witch: drawWitch, banana: drawBanana, jester: drawJester, cross: drawCross, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
 
 function animateEgg() {
   if (!eggCtx || !eggCanvas) return;
