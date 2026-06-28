@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="version" content="v1.17">
-<meta name="commit" content="6676cc1">
+<meta name="version" content="v1.18">
+<meta name="commit" content="c522b8c">
 <title>Foighne</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
 <style>
@@ -1408,7 +1408,7 @@ const EASTER_EGGS = {
   },
   '04-01': {
     name: '🤡 April Fools\' Day',
-    particles: { shape:['sparkle','star','circle','burst'], count:20, colors:['#ff00ff','#00ff00','#ff6600','#00ffff','#ffff00','#ff1493'], size:[10,22], speed:[0.08,0.30], opacity:[0.18,0.30] }
+    particles: { shape:['jester','jester','jester','sparkle'], count:18, colors:['#ff00ff','#00ff00','#ff6600','#ffff00','#8b00ff','#00ffff'], size:[18,32], speed:[0.08,0.25], opacity:[0.18,0.32] }
   },
   '05-10': {
     name: '💍 Wedding Anniversary',
@@ -1651,6 +1651,43 @@ function drawPumpkin(ctx, p) {
   ctx.restore();
 }
 
+function drawJester(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.2);
+  // jester hat — three-pointed cap with bells
+  // brim band
+  ctx.fillStyle = '#8b00ff';
+  ctx.fillRect(-s * 0.4, s * 0.05, s * 0.8, s * 0.12);
+  // three peaks with alternating colours
+  const peaks = [
+    { x: -s * 0.25, h: s * 0.45, color: '#ff00ff' },
+    { x: 0,        h: s * 0.55, color: '#00ff00' },
+    { x:  s * 0.25, h: s * 0.45, color: '#ff6600' },
+  ];
+  for (const pk of peaks) {
+    ctx.fillStyle = pk.color;
+    ctx.beginPath();
+    ctx.moveTo(pk.x - s * 0.14, s * 0.05);
+    ctx.quadraticCurveTo(pk.x, -pk.h * 0.3, pk.x, -pk.h);
+    ctx.quadraticCurveTo(pk.x, -pk.h * 0.3, pk.x + s * 0.14, s * 0.05);
+    ctx.closePath();
+    ctx.fill();
+    // bell at tip
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(pk.x, -pk.h, s * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+    // bell clapper
+    ctx.fillStyle = '#ffec8b';
+    ctx.beginPath();
+    ctx.arc(pk.x, -pk.h + s * 0.06, s * 0.035, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawCross(ctx, p) {
   const s = p.size;
   ctx.save();
@@ -1874,7 +1911,7 @@ function drawSnowflake(ctx, p) {
   ctx.restore();
 }
 
-const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, pumpkin: drawPumpkin, cross: drawCross, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, pumpkin: drawPumpkin, jester: drawJester, cross: drawCross, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
 
 function animateEgg() {
   if (!eggCtx || !eggCanvas) return;
