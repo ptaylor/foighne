@@ -22,6 +22,19 @@
     --btn-bg: rgba(255,255,255,0.15);
     --btn-hover: rgba(255,255,255,0.25);
     --btn-active: rgba(255,255,255,0.35);
+    /* Card dimensions — overridden in media queries for tablet/mobile */
+    --card-width: 100px;
+    --card-height: 140px;
+    --stack-offset: 36px;
+    --fan-offset: 24px;
+    --card-font: 24px;
+    --card-center: 48px;
+    --card-pad: 7px;
+    --card-back-sym: 36px;
+    --game-pad: 20px;
+    --pile-gap: 10px;
+    --top-row-gap: 30px;
+    --top-row-min-h: 150px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -34,33 +47,34 @@
     align-items: center;
   }
   #game {
-    padding: 20px;
+    padding: var(--game-pad);
     width: 100%;
     max-width: 1100px;
     flex: 1;
     display: flex;
     flex-direction: column;
+    touch-action: none;  /* prevent browser scroll/zoom during card drag */
   }
   .top-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 30px;
-    gap: 10px;
-    min-height: 150px;
+    margin-bottom: var(--top-row-gap);
+    gap: var(--pile-gap);
+    min-height: var(--top-row-min-h);
   }
   .top-section {
     display: flex;
-    gap: 10px;
+    gap: var(--pile-gap);
   }
   .tableau-row {
     flex: 1;
     display: flex;
-    gap: 10px;
+    gap: var(--pile-gap);
   }
   .pile {
     position: relative;
-    min-width: 100px;
-    min-height: 140px;
+    min-width: var(--card-width);
+    min-height: var(--card-height);
     border-radius: 8px;
     border: 2px dashed var(--dashed-border);
   }
@@ -69,8 +83,8 @@
     min-width: 0;
   }
   .card {
-    width: 100px;
-    height: 140px;
+    width: var(--card-width);
+    height: var(--card-height);
     background: var(--card-bg);
     border-radius: 8px;
     position: absolute;
@@ -78,11 +92,11 @@
     box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
     transition: box-shadow 0.2s, transform 0.2s, top 0.2s ease, left 0.2s ease;
     font-family: Georgia, 'Times New Roman', serif;
-    font-size: 24px;
+    font-size: var(--card-font);
     font-weight: 700;
     display: flex;
     flex-direction: column;
-    padding: 7px;
+    padding: var(--card-pad);
   }
   .card.face-up:hover {
     transform: translateY(-3px);
@@ -96,7 +110,7 @@
   .card.face-down::after {
     content: '✦';
     color: rgba(255,255,255,0.3);
-    font-size: 36px;
+    font-size: var(--card-back-sym);
     position: absolute;
     top: 50%;
     left: 50%;
@@ -116,13 +130,13 @@
   }
   .card .rank-suit-bottom {
     position: absolute;
-    bottom: 7px;
-    right: 7px;
+    bottom: var(--card-pad);
+    right: var(--card-pad);
     line-height: 1;
     transform: rotate(180deg);
   }
   .card .center-suit {
-    font-size: 48px;
+    font-size: var(--card-center);
     position: absolute;
     top: 50%;
     left: 50%;
@@ -205,14 +219,14 @@
     background: linear-gradient(135deg, #0d1b3e 0%, #1a357c 50%, #0d1b3e 100%);
   }
   body[data-card-back="classic"] .card.face-down::after {
-    content: '✦'; font-size: 30px; color: rgba(255,255,255,0.15);
+    content: '✦'; font-size: calc(var(--card-back-sym) * 0.83); color: rgba(255,255,255,0.15);
   }
   
   body[data-card-back="prism"] .card.face-down {
     background: linear-gradient(30deg, #0f2044 0%, #1a3a6e 25%, #0d1f45 25%, #162d5a 50%, #0f2044 50%, #1a3a6e 75%, #0d1f45 75%, #162d5a 100%);
   }
   body[data-card-back="prism"] .card.face-down::after {
-    content: '◆'; font-size: 26px; color: rgba(255,255,255,0.12);
+    content: '◆'; font-size: calc(var(--card-back-sym) * 0.72); color: rgba(255,255,255,0.12);
   }
   
   body[data-card-back="circuit"] .card.face-down {
@@ -223,7 +237,7 @@
     background-size: 20px 20px;
   }
   body[data-card-back="circuit"] .card.face-down::after {
-    content: '⬡'; font-size: 30px; color: rgba(255,255,255,0.17);
+    content: '⬡'; font-size: calc(var(--card-back-sym) * 0.83); color: rgba(255,255,255,0.17);
   }
   
   body[data-card-back="carbon"] .card.face-down {
@@ -236,7 +250,7 @@
     );
   }
   body[data-card-back="carbon"] .card.face-down::after {
-    content: '◈'; font-size: 32px; color: rgba(255,255,255,0.13);
+    content: '◈'; font-size: calc(var(--card-back-sym) * 0.89); color: rgba(255,255,255,0.13);
   }
   
   body[data-card-back="minimal"] .card.face-down {
@@ -424,8 +438,8 @@
     padding: 4px 0;
   }
   .empty-placeholder {
-    width: 100px;
-    height: 140px;
+    width: var(--card-width);
+    height: var(--card-height);
     position: absolute;
     border-radius: 8px;
     border: 2px dashed var(--dashed-border);
@@ -433,7 +447,7 @@
     align-items: center;
     justify-content: center;
     color: var(--empty-placeholder-color);
-    font-size: 36px;
+    font-size: var(--card-back-sym);
   }
   
   /* Settings overlay */
@@ -563,6 +577,89 @@
     letter-spacing: 0.15em;
     margin-bottom: 2px;
     pointer-events: none;
+  }
+
+  /* ── Tablet (≤900px) ── */
+  @media (max-width: 900px) {
+    :root {
+      --card-width: 72px;
+      --card-height: 101px;
+      --stack-offset: 26px;
+      --fan-offset: 17px;
+      --card-font: 17px;
+      --card-center: 34px;
+      --card-pad: 5px;
+      --card-back-sym: 26px;
+      --game-pad: 12px;
+      --pile-gap: 8px;
+      --top-row-gap: 16px;
+      --top-row-min-h: 110px;
+    }
+    #game { max-width: 900px; }
+    #game-title { font-size: 22px; }
+    #message { font-size: 15px; min-height: 22px; }
+    #stats-bar { font-size: 11px; }
+    .btn { padding: 8px 16px; font-size: 14px; }
+    .btn-icon { padding: 8px 10px; font-size: 16px; }
+    #win-overlay h1 { font-size: 42px; }
+    #win-overlay button { padding: 12px 32px; font-size: 17px; }
+    .settings-panel h2 { font-size: 22px; }
+    .settings-panel { padding: 22px; }
+    .theme-tile, .back-tile { width: 80px; }
+    #debug-panel { width: 190px; font-size: 11px; }
+  }
+
+  /* ── Mobile (≤600px) ── */
+  @media (max-width: 600px) {
+    :root {
+      --card-width: 56px;
+      --card-height: 78px;
+      --stack-offset: 20px;
+      --fan-offset: 13px;
+      --card-font: 13px;
+      --card-center: 26px;
+      --card-pad: 4px;
+      --card-back-sym: 20px;
+      --game-pad: 8px;
+      --pile-gap: 5px;
+      --top-row-gap: 10px;
+      --top-row-min-h: auto;
+    }
+    #game { max-width: 600px; }
+    #game-title { font-size: 18px; }
+    #message { font-size: 13px; min-height: 20px; margin: 4px 0 2px; }
+    #stats-bar { font-size: 10px; gap: 6px; margin-bottom: 8px; }
+    .btn { padding: 7px 12px; font-size: 12px; }
+    .btn-icon { padding: 7px 9px; font-size: 14px; }
+    #win-overlay h1 { font-size: 30px; margin-bottom: 12px; }
+    #win-overlay button { padding: 10px 24px; font-size: 15px; }
+    .settings-panel { padding: 16px; max-height: 90vh; }
+    .settings-panel h2 { font-size: 18px; margin-bottom: 16px; }
+    .setting-group { margin-bottom: 16px; }
+    .setting-group h3 { font-size: 13px; }
+    .theme-tile, .back-tile { width: 68px; padding: 6px; }
+    .tile-grid { gap: 6px; }
+    .btn-settings-close { padding: 10px 30px; font-size: 14px; }
+    #debug-panel { width: 160px; font-size: 10px; padding: 14px 10px; }
+    /* Stack top-row vertically on mobile */
+    .top-row {
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .top-row > .top-section:first-child {
+      flex: 1 1 auto;
+    }
+    .top-row > .top-section:nth-child(2) {
+      flex: 1 1 auto;
+    }
+    .top-row > div:last-child {
+      width: 100%;
+      flex-direction: row !important;
+      justify-content: center;
+      gap: 8px !important;
+      margin-top: 4px;
+    }
   }
 </style>
 </head>
@@ -1416,8 +1513,15 @@ function flipTopTableau() {
   }
 }
 
-// Drag and drop
-document.addEventListener('mousedown', (e) => {
+// Shared coordinate extraction for mouse & touch events
+function getEventCoords(ev) {
+  if (ev.touches && ev.touches.length > 0) return { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+  if (ev.changedTouches && ev.changedTouches.length > 0) return { x: ev.changedTouches[0].clientX, y: ev.changedTouches[0].clientY };
+  return { x: ev.clientX, y: ev.clientY };
+}
+
+// Shared drag-start logic for mouse & touch
+function startDrag(e) {
   const cardEl = e.target.closest('.card');
   if (!cardEl) return;
   
@@ -1442,13 +1546,14 @@ document.addEventListener('mousedown', (e) => {
   } else if (pileType === 'waste' && cardIdx !== pile.length - 1) {
     return; // Only top waste card is draggable
   }
-  
+
   isDragging = false;
   dragStartEl = cardEl;
   
   const rect = cardEl.getBoundingClientRect();
-  dragOffsetX = e.clientX - rect.left;
-  dragOffsetY = e.clientY - rect.top;
+  const coords = getEventCoords(e);
+  dragOffsetX = coords.x - rect.left;
+  dragOffsetY = coords.y - rect.top;
   
   draggedCards = {
     pile: pileType,
@@ -1460,9 +1565,12 @@ document.addEventListener('mousedown', (e) => {
   let ghost = null;
   
   const moveHandler = (ev) => {
+    if (ev.type === 'touchmove') ev.preventDefault();
+    const mc = getEventCoords(ev);
+    
     if (!isDragging) {
       isDragging = true;
-      // Create drag ghost on first real mouse movement
+      // Create drag ghost on first real movement
       ghost = document.createElement('div');
       ghost.className = 'drag-ghost';
       ghost.style.cssText = `
@@ -1471,18 +1579,21 @@ document.addEventListener('mousedown', (e) => {
         z-index: 1000;
         opacity: 0.85;
         transform: rotate(3deg);
-        left: ${ev.clientX - dragOffsetX}px;
-        top: ${ev.clientY - dragOffsetY}px;
+        left: ${mc.x - dragOffsetX}px;
+        top: ${mc.y - dragOffsetY}px;
       `;
       
       const cardsToDrag = pile.slice(cardIdx);
-      const ghostHeight = 140 + (cardsToDrag.length - 1) * 36;
+      const cssVars = getComputedStyle(document.documentElement);
+      const ghostCardH = parseFloat(cssVars.getPropertyValue('--card-height'));
+      const ghostStack = parseFloat(cssVars.getPropertyValue('--stack-offset'));
+      const ghostHeight = ghostCardH + (cardsToDrag.length - 1) * ghostStack;
       ghost.style.height = ghostHeight + 'px';
       
       cardsToDrag.forEach((c, i) => {
         const mini = createCardElement(c, cardIdx + i);
         mini.style.position = 'absolute';
-        mini.style.top = (i * 36) + 'px';
+        mini.style.top = (i * ghostStack) + 'px';
         mini.style.left = '0';
         mini.style.pointerEvents = 'none';
         ghost.appendChild(mini);
@@ -1490,14 +1601,14 @@ document.addEventListener('mousedown', (e) => {
       
       document.body.appendChild(ghost);
     }
-    ghost.style.left = (ev.clientX - dragOffsetX) + 'px';
-    ghost.style.top = (ev.clientY - dragOffsetY) + 'px';
+    ghost.style.left = (mc.x - dragOffsetX) + 'px';
+    ghost.style.top = (mc.y - dragOffsetY) + 'px';
     
     // Highlight droppable piles
     document.querySelectorAll('.pile').forEach(el => {
       el.classList.remove('drag-over');
     });
-    const target = document.elementFromPoint(ev.clientX, ev.clientY);
+    const target = document.elementFromPoint(mc.x, mc.y);
     if (target) {
       const pileEl2 = target.closest('.pile.tableau-pile, .pile.foundation');
       if (pileEl2 && isValidDrop(pileEl2)) {
@@ -1509,19 +1620,34 @@ document.addEventListener('mousedown', (e) => {
   const upHandler = (ev) => {
     document.removeEventListener('mousemove', moveHandler);
     document.removeEventListener('mouseup', upHandler);
+    document.removeEventListener('touchmove', moveHandler);
+    document.removeEventListener('touchend', upHandler);
     if (ghost) ghost.remove();
     
     document.querySelectorAll('.pile').forEach(el => el.classList.remove('drag-over'));
     
     if (!isDragging) {
-      // Treat as click
+      // Treat as click — but check for touch double-tap first
+      if (e.type === 'touchstart') {
+        const now = Date.now();
+        if (lastTapTarget === cardEl && (now - lastTapTime) < 400) {
+          autoMoveToFoundation(pileType, pileIdx, cardIdx);
+          lastTapTarget = null;
+          lastTapTime = 0;
+          draggedCards = null;
+          return;
+        }
+        lastTapTarget = cardEl;
+        lastTapTime = now;
+      }
       clickCard(e, pileType, pileIdx, cardIdx);
       draggedCards = null;
       return;
     }
     
     // Find drop target
-    const target = document.elementFromPoint(ev.clientX, ev.clientY);
+    const uc = getEventCoords(ev);
+    const target = document.elementFromPoint(uc.x, uc.y);
     if (target) {
       const pileEl2 = target.closest('.pile.tableau-pile, .pile.foundation');
       if (pileEl2) {
@@ -1538,47 +1664,45 @@ document.addEventListener('mousedown', (e) => {
   
   document.addEventListener('mousemove', moveHandler);
   document.addEventListener('mouseup', upHandler);
-});
+  document.addEventListener('touchmove', moveHandler, {passive: false});
+  document.addEventListener('touchend', upHandler);
+}
+
+document.addEventListener('mousedown', startDrag);
+document.addEventListener('touchstart', startDrag, {passive: false});
+
+// Double-tap tracking for touch (dblclick unreliable on mobile)
+let lastTapTarget = null;
+let lastTapTime = 0;
+
+// Shared auto-move-to-foundation logic (dblclick + double-tap)
+function autoMoveToFoundation(pileType, pileIdx, cardIdx) {
+  const pile = getPile(pileType, pileIdx);
+  const card = pile ? pile[cardIdx] : null;
+  if (!card || !card.faceUp) return;
+  // Only auto-move single top card of tableau or waste
+  if (!((pileType === 'tableau' || pileType === 'waste') && cardIdx === pile.length - 1)) return;
+  for (let f = 0; f < 4; f++) {
+    if (canPlaceOnFoundation(card, foundations[f])) {
+      pile.pop();
+      foundations[f].push(card);
+      if (pileType === 'tableau') flipTopTableau();
+      render();
+      checkWin();
+      return;
+    }
+  }
+}
 
 document.addEventListener('dblclick', (e) => {
   const cardEl = e.target.closest('.card');
   if (!cardEl) return;
-  
   const pileEl = cardEl.closest('.pile');
   if (!pileEl) return;
-  
   const pileType = pileEl.dataset.pileType;
   const pileIdx = parseInt(pileEl.dataset.pileIndex);
   const cardIdx = parseInt(cardEl.dataset.cardIndex);
-  const pile = getPile(pileType, pileIdx);
-  const card = pile ? pile[cardIdx] : null;
-  
-  if (!card || !card.faceUp) return;
-  
-  // Only auto-move single top card of tableau or waste
-  if (pileType === 'tableau' && cardIdx === pile.length - 1) {
-    for (let f = 0; f < 4; f++) {
-      if (canPlaceOnFoundation(card, foundations[f])) {
-        pile.pop();
-        foundations[f].push(card);
-        flipTopTableau();
-        render();
-        checkWin();
-        return;
-      }
-    }
-  } else if (pileType === 'waste' && cardIdx === pile.length - 1) {
-    for (let f = 0; f < 4; f++) {
-      if (canPlaceOnFoundation(card, foundations[f])) {
-        waste.pop();
-        foundations[f].push(card);
-        flipTopTableau();
-        render();
-        checkWin();
-        return;
-      }
-    }
-  }
+  autoMoveToFoundation(pileType, pileIdx, cardIdx);
 });
 
 function isValidDrop(pileEl) {
@@ -1834,6 +1958,13 @@ function render() {
     document.getElementById('win-overlay').classList.add('show');
   }
   // Don't clear selectedCards here - preserve selection for highlight
+
+  // Read responsive card dimensions from CSS
+  const style = getComputedStyle(document.documentElement);
+  const cardW = parseFloat(style.getPropertyValue('--card-width'));
+  const cardH = parseFloat(style.getPropertyValue('--card-height'));
+  const stackOffset = parseFloat(style.getPropertyValue('--stack-offset'));
+  const fanOffset = parseFloat(style.getPropertyValue('--fan-offset'));
   
   // Stock
   const stockEl = document.getElementById('stock');
@@ -1857,11 +1988,11 @@ function render() {
     for (let w = waste.length - showCount; w < waste.length; w++) {
       const cardEl = createCardElement(waste[w], w);
       cardEl.style.position = 'absolute';
-      cardEl.style.left = ((w - (waste.length - showCount)) * 24) + 'px';
+      cardEl.style.left = ((w - (waste.length - showCount)) * fanOffset) + 'px';
       cardEl.style.zIndex = w;
       wasteEl.appendChild(cardEl);
     }
-    wasteEl.style.minWidth = (100 + (showCount - 1) * 24) + 'px';
+    wasteEl.style.minWidth = (cardW + (showCount - 1) * fanOffset) + 'px';
   }
   
   // Foundations
@@ -1900,7 +2031,7 @@ function render() {
     } else {
       tableau[t].forEach((card, ci) => {
         const cardEl = createCardElement(card, ci);
-        cardEl.style.top = (ci * 36) + 'px';
+        cardEl.style.top = (ci * stackOffset) + 'px';
         cardEl.style.zIndex = ci;
         if (selectedCards && selectedCards.pile === 'tableau' && 
             selectedCards.index === t && ci >= selectedCards.cardIndex) {
@@ -1909,7 +2040,7 @@ function render() {
         pileEl.appendChild(cardEl);
       });
       // Set min-height based on cards
-      const h = 140 + (tableau[t].length - 1) * 36;
+      const h = cardH + (tableau[t].length - 1) * stackOffset;
       pileEl.style.minHeight = h + 'px';
     }
     
