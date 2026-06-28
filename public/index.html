@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="version" content="v1.15">
-<meta name="commit" content="6767eab">
+<meta name="version" content="v1.16">
+<meta name="commit" content="b8a08c7">
 <title>Foighne</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
 <style>
@@ -1671,7 +1671,7 @@ function drawCross(ctx, p) {
   ];
   for (const a of arms) {
     const perpX = a.dy, perpY = -a.dx;
-    // arm starts offset from centre, extends out
+    // arm inner end at corner of centre square
     const baseX = a.dx * ctr, baseY = a.dy * ctr;
     const tipX = a.dx * s * 0.58, tipY = a.dy * s * 0.58;
     const baseW = s * 0.20;
