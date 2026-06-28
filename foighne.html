@@ -769,12 +769,6 @@ const STATS_KEY = 'solitaire_stats';
 
 function saveGame() {
   try {
-    // Validate before saving to prevent persisting corrupted state
-    const result = validateGameState();
-    if (!result.valid) {
-      console.warn('Refusing to save corrupted state');
-      return;
-    }
     const state = { stock, waste, tableau, foundations, selectedCards };
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   } catch (e) { /* quota or other error */ }
@@ -790,6 +784,12 @@ function loadGame() {
     tableau = state.tableau || [[], [], [], [], [], [], []];
     foundations = state.foundations || [[], [], [], []];
     selectedCards = state.selectedCards || null;
+    // Validate loaded state; deal fresh if corrupted
+    if (!validateGameState().valid) {
+      console.warn('Loaded state was corrupted — dealing fresh game');
+      clearSavedGame();
+      return false;
+    }
     return true;
   } catch (e) {
     return false;
