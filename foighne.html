@@ -584,6 +584,7 @@
       <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
       <button class="btn" onclick="newGame()">New Game</button>
     </div>
+    <div id="autocomplete-area" style="align-self:flex-start;margin-top:6px"></div>
   </div>
   <button id="debug-btn" onclick="toggleDebug()" title="Debug"></button>
   <div id="message"></div>
@@ -1918,14 +1919,13 @@ function render() {
   checkStalemate();
 
   // Auto-complete button
-  const msg = document.getElementById('message');
-  const existingBtn = msg.querySelector('.autocomplete-btn');
-  if (!autoCompleting && canAutoComplete() && !foundations.every(f => f.length === 13)) {
-    if (!existingBtn) {
-      msg.innerHTML = '<button class="btn autocomplete-btn" onclick="runAutoComplete()" style="background:rgba(255,215,0,0.2);border:1px solid rgba(255,215,0,0.4);color:#ffd700;animation:pulse-gold 1.5s ease-in-out infinite">✨ Auto-Complete</button>';
+  const acArea = document.getElementById('autocomplete-area');
+  if (acArea) {
+    if (!autoCompleting && canAutoComplete() && !foundations.every(f => f.length === 13)) {
+      acArea.innerHTML = '<button class="btn autocomplete-btn" onclick="runAutoComplete()" style="background:rgba(255,215,0,0.2);color:#ffd700;animation:pulse-gold 1.5s ease-in-out infinite">✨ Auto-Complete</button>';
+    } else if (!autoCompleting) {
+      acArea.innerHTML = '';
     }
-  } else if (existingBtn && !autoCompleting) {
-    msg.innerHTML = '';
   }
 }
 
