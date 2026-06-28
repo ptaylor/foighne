@@ -28,10 +28,10 @@ else
   NEXT_VERSION="v1.0"
 fi
 
-# --- Copy game to public/ ---
+# --- Copy game to public/ with version injected ---
 mkdir -p "$PUB_DIR"
-cp "$SRC" "$DEST"
-echo "✔ Copied $SRC → $DEST"
+sed "s/content=\"dev\"/content=\"${NEXT_VERSION}\"/" "$SRC" > "$DEST"
+echo "✔ Copied $SRC → $DEST (version ${NEXT_VERSION})"
 
 if $NO_PUSH; then
   echo "✔ Done (no push — run './publish.sh' to push)"

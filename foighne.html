@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="version" content="dev">
 <title>Foighne</title>
 <style>
   :root {
@@ -982,6 +983,10 @@ function renderDebugPanel() {
   }
   
   let html = '';
+  
+  const versionMeta = document.querySelector('meta[name="version"]');
+  const version = versionMeta ? versionMeta.content : 'unknown';
+  html += '<div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:8px">' + version + '</div>';
   
   html += '<h3>📦 Stock (' + stock.length + ')</h3>';
   if (stock.length === 0) {
