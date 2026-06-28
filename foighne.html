@@ -1394,6 +1394,10 @@ const EASTER_EGGS = {
     name: '🎉 New Year\'s Day',
     particles: { shape:['star','star','star','burst'], count:16, colors:['#ffd700','#fff8dc','#ff6347','#00bfff','#ffffff','#ffec8b'], size:[12,24], speed:[0.10,0.25], opacity:[0.18,0.32] }
   },
+  '02-01': {
+    name: '🕯️ St Brigid\'s Day',
+    particles: { shape:'cross', count:14, colors:['#ffffff','#f5f0d0','#d4e6c0','#ffeaa7','#e8f0e0'], size:[14,26], speed:[0.07,0.18], opacity:[0.16,0.28] }
+  },
   '02-14': {
     name: '💕 Valentine\'s Day',
     particles: { shape:'heart', count:15, colors:['#e63946','#ff1744','#ff4081','#ff6b9d','#ff85b3'], size:[20,36], speed:[0.06,0.16], opacity:[0.20,0.34] }
@@ -1401,6 +1405,10 @@ const EASTER_EGGS = {
   '03-17': {
     name: '☘️ St Patrick\'s Day',
     particles: { shape:'shamrock', count:14, colors:['#6bcb77','#8fd99a','#3da55a','#b8e6c0'], size:[12,22], speed:[0.08,0.20], opacity:[0.15,0.26] }
+  },
+  '04-01': {
+    name: '🤡 April Fools\' Day',
+    particles: { shape:['sparkle','star','circle','burst'], count:20, colors:['#ff00ff','#00ff00','#ff6600','#00ffff','#ffff00','#ff1493'], size:[10,22], speed:[0.08,0.30], opacity:[0.18,0.30] }
   },
   '05-10': {
     name: '💍 Wedding Anniversary',
@@ -1413,6 +1421,10 @@ const EASTER_EGGS = {
   '07-07': {
     name: '🎂 Birthday Celebration',
     particles: { shape:['balloon','balloon','balloon','sparkle'], count:16, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff','#ffb347'], size:[16,30], speed:[0.08,0.20], opacity:[0.18,0.30] }
+  },
+  '10-31': {
+    name: '🎃 Halloween',
+    particles: { shape:'pumpkin', count:14, colors:['#f57c00'], size:[16,30], speed:[0.07,0.18], opacity:[0.18,0.30] }
   },
   '12-21--12-22': {
     name: '❄️ Mid Winter',
@@ -1613,6 +1625,61 @@ function drawBalloon(ctx, p) {
   ctx.restore();
 }
 
+function drawPumpkin(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.2);
+  // body — slightly squashed circle
+  ctx.fillStyle = '#f57c00';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, s * 0.42, s * 0.35, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // darker rib lines
+  ctx.strokeStyle = '#e65100';
+  ctx.lineWidth = Math.max(0.8, s * 0.06);
+  for (let i = -1; i <= 1; i++) {
+    const cx = i * s * 0.14;
+    ctx.beginPath();
+    ctx.ellipse(cx, 0, s * 0.1, s * 0.34, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.lineWidth = 1;
+  // stem
+  ctx.fillStyle = '#4a7c2e';
+  ctx.fillRect(-s * 0.06, -s * 0.38, s * 0.12, s * 0.14);
+  ctx.restore();
+}
+
+function drawCross(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot + Math.PI / 4);
+  // diamond-oriented cross — four arms
+  const armW = s * 0.15;
+  const armL = s * 0.45;
+  ctx.beginPath();
+  ctx.moveTo(-armW, -armW);
+  ctx.lineTo(-armW, -armL);
+  ctx.lineTo(armW, -armL);
+  ctx.lineTo(armW, -armW);
+  ctx.lineTo(armL, -armW);
+  ctx.lineTo(armL, armW);
+  ctx.lineTo(armW, armW);
+  ctx.lineTo(armW, armL);
+  ctx.lineTo(-armW, armL);
+  ctx.lineTo(-armW, armW);
+  ctx.lineTo(-armL, armW);
+  ctx.lineTo(-armL, -armW);
+  ctx.closePath();
+  ctx.fill();
+  // centre square knot
+  ctx.fillStyle = ctx.fillStyle;
+  ctx.fillRect(-armW * 0.7, -armW * 0.7, armW * 1.4, armW * 1.4);
+  ctx.restore();
+}
+
 function drawSanta(ctx, p) {
   const s = p.size;
   ctx.save();
@@ -1767,7 +1834,7 @@ function drawSnowflake(ctx, p) {
   ctx.restore();
 }
 
-const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, pumpkin: drawPumpkin, cross: drawCross, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
 
 function animateEgg() {
   if (!eggCtx || !eggCanvas) return;
