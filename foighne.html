@@ -1962,7 +1962,12 @@ function autoMoveToFoundation(pileType, pileIdx, cardIdx) {
       checkWin();
       playSound('foundation');
       spawnFoundationParticle(f);
-      return;, (e) => {
+      return;
+    }
+  }
+}
+
+document.addEventListener('dblclick', (e) => {
   const cardEl = e.target.closest('.card');
   if (!cardEl) return;
   const pileEl = cardEl.closest('.pile');
