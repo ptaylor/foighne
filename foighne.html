@@ -1392,7 +1392,7 @@ let eggCtx = null;
 const EASTER_EGGS = {
   '01-01': {
     name: '🎉 New Year\'s Day',
-    particles: { shape:'sparkle', count:14, colors:['#ffd700','#ffec8b','#fff8dc','#c0c0c0'], size:[10,20], speed:[0.12,0.28], opacity:[0.18,0.30] }
+    particles: { shape:'star', count:16, colors:['#ffd700','#fff8dc','#ff6347','#00bfff','#ffffff','#ffec8b'], size:[12,24], speed:[0.10,0.25], opacity:[0.18,0.32] }
   },
   '02-14': {
     name: '💕 Valentine\'s Day',
@@ -1517,6 +1517,51 @@ function drawSparkle(ctx, p) {
   ctx.restore();
 }
 
+function drawStar(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const outerA = (i * Math.PI * 2) / 5 - Math.PI / 2;
+    const innerA = outerA + Math.PI / 5;
+    const ox = Math.cos(outerA) * s;
+    const oy = Math.sin(outerA) * s;
+    const ix = Math.cos(innerA) * s * 0.38;
+    const iy = Math.sin(innerA) * s * 0.38;
+    if (i === 0) ctx.moveTo(ox, oy);
+    else ctx.lineTo(ox, oy);
+    ctx.lineTo(ix, iy);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBurst(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // central glow
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  // rays
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    ctx.moveTo(Math.cos(a) * s * 0.3, Math.sin(a) * s * 0.3);
+    ctx.lineTo(Math.cos(a) * s, Math.sin(a) * s);
+  }
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = Math.max(1.2, s * 0.12);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
 function drawHeart(ctx, p) {
   const s = p.size;
   ctx.save();
@@ -1581,7 +1626,7 @@ function drawSnowflake(ctx, p) {
   ctx.restore();
 }
 
-const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
 
 function animateEgg() {
   if (!eggCtx || !eggCanvas) return;
