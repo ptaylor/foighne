@@ -47,6 +47,8 @@
     align-items: center;
   }
   #game {
+    position: relative;
+    z-index: 1;
     padding: var(--game-pad);
     width: 100%;
     max-width: 1100px;
@@ -361,6 +363,14 @@
     pointer-events: none;
     border-radius: 8px;
     box-shadow: 2px 4px 20px rgba(0,0,0,0.5);
+  }
+  #egg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    display: none;
   }
   .btn {
     padding: 10px 22px;
@@ -781,6 +791,7 @@
   <h1>&#127881; You Win! &#127881;</h1>
   <button onclick="newGame()">Play Again</button>
 </div>
+<canvas id="egg-canvas"></canvas>
 <div id="settings-overlay">
   <div class="settings-panel">
     <h2>Settings</h2>
@@ -1373,56 +1384,243 @@ function setupNearlyComplete() {
 // ---- DEBUG MODE ----
 let debugMode = false;
 let activeEgg = null;
+let eggParticles = [];
+let eggAnimId = null;
+let eggCanvas = null;
+let eggCtx = null;
 
 const EASTER_EGGS = {
+  '01-01': {
+    name: '🎉 New Year\'s Day',
+    particles: { shape:'sparkle', count:14, colors:['#ffd700','#ffec8b','#fff8dc','#c0c0c0'], size:[10,20], speed:[0.12,0.28], opacity:[0.18,0.30] }
+  },
+  '02-14': {
+    name: '💕 Valentine\'s Day',
+    particles: { shape:'heart', count:10, colors:['#ff6b9d','#ff85b3','#ffb3cc','#ffe0ec'], size:[14,26], speed:[0.08,0.20], opacity:[0.16,0.28] }
+  },
+  '03-17': {
+    name: '☘️ St Patrick\'s Day',
+    particles: { shape:'shamrock', count:12, colors:['#6bcb77','#8fd99a','#3da55a','#b8e6c0'], size:[12,22], speed:[0.08,0.20], opacity:[0.15,0.26] }
+  },
+  '05-10': {
+    name: '💍 Wedding Anniversary',
+    particles: { shape:'sparkle', count:12, colors:['#ffd700','#ffec8b','#c0c0c0','#fff8dc'], size:[10,20], speed:[0.10,0.22], opacity:[0.16,0.28] }
+  },
+  '06-21': {
+    name: '☀️ Mid Summer',
+    particles: { shape:'sparkle', count:12, colors:['#ffd93d','#ffb347','#ffec8b','#ffeaa7'], size:[10,20], speed:[0.06,0.18], opacity:[0.18,0.30] }
+  },
   '07-07': {
     name: '🎂 Birthday Celebration',
-    css: `
-      body.egg- { background: linear-gradient(135deg, #0d4f7c 0%, #1a3a6e 30%, #2c1050 50%, #1a3a6e 70%, #0d4f7c 100%); background-size: 400% 400%; animation: bg-party 8s ease infinite; }
-      @keyframes bg-party { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
-      body.egg-::before {
-        content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        pointer-events: none; z-index: 0; opacity: 0.4;
-        background:
-          radial-gradient(2px 2px at 15% 20%, #ffd93d 50%, transparent 50%),
-          radial-gradient(2px 2px at 30% 60%, #ff6b9d 50%, transparent 50%),
-          radial-gradient(2px 2px at 50% 15%, #6bcb77 50%, transparent 50%),
-          radial-gradient(2px 2px at 70% 50%, #4d96ff 50%, transparent 50%),
-          radial-gradient(2px 2px at 85% 30%, #ffd93d 50%, transparent 50%),
-          radial-gradient(3px 3px at 10% 70%, #ff6b9d 50%, transparent 50%),
-          radial-gradient(3px 3px at 40% 85%, #6bcb77 50%, transparent 50%),
-          radial-gradient(3px 3px at 60% 10%, #4d96ff 50%, transparent 50%),
-          radial-gradient(2px 2px at 90% 75%, #ffd93d 50%, transparent 50%),
-          radial-gradient(3px 3px at 20% 40%, #ff6b9d 50%, transparent 50%),
-          radial-gradient(2px 2px at 75% 80%, #6bcb77 50%, transparent 50%),
-          radial-gradient(2px 2px at 45% 55%, #4d96ff 50%, transparent 50%),
-          radial-gradient(3px 3px at 5% 10%, #ffd93d 50%, transparent 50%),
-          radial-gradient(2px 2px at 55% 70%, #ff6b9d 50%, transparent 50%),
-          radial-gradient(3px 3px at 35% 25%, #6bcb77 50%, transparent 50%);
-        animation: confetti 10s linear infinite;
-      }
-      @keyframes confetti {
-        0% { transform: translateY(-10px); opacity: 0.3; }
-        25% { transform: translateY(5px); opacity: 0.5; }
-        50% { transform: translateY(-5px); opacity: 0.35; }
-        75% { transform: translateY(10px); opacity: 0.5; }
-        100% { transform: translateY(-10px); opacity: 0.3; }
-      }
-      body.egg- .card.face-up { border-color: #c9a84c !important; box-shadow: 1px 1px 4px rgba(201,168,76,0.3); }
-      body.egg- .card.face-down { border-color: rgba(201,168,76,0.5) !important; }
-      body.egg- .card.selected { animation: pulse-egg 1.5s ease-in-out infinite; box-shadow: 0 0 0 3px #c9a84c, 0 0 18px rgba(201,168,76,0.5); }
-      @keyframes pulse-egg { 0%,100%{box-shadow:0 0 0 3px #c9a84c,0 0 18px rgba(201,168,76,0.5)} 50%{box-shadow:0 0 0 4px #c9a84c,0 0 28px rgba(201,168,76,0.7)} }
-      body.egg- #game-title { color: rgba(201,168,76,0.25); }
-    `
+    particles: { shape:'circle', count:14, colors:['#ffd93d','#ff6b9d','#6bcb77','#4d96ff'], size:[10,18], speed:[0.10,0.24], opacity:[0.16,0.28] }
+  },
+  '12-21--12-22': {
+    name: '❄️ Mid Winter',
+    particles: { shape:'snowflake', count:12, colors:['#ffffff','#d4e6f1','#e8f4f8','#bdd7ee'], size:[12,22], speed:[0.08,0.20], opacity:[0.18,0.30] }
+  },
+  '12-24--01-06': {
+    name: '🎄 Christmas Week',
+    particles: { shape:'circle', count:14, colors:['#e74c3c','#27ae60','#ffffff','#ffd700'], size:[10,18], speed:[0.08,0.22], opacity:[0.18,0.30] }
   }
 };
 
+function eggKeyToDateRange(key) {
+  if (key.includes('--')) {
+    const [s, e] = key.split('--');
+    const [sm, sd] = s.split('-').map(Number);
+    const [em, ed] = e.split('-').map(Number);
+    return { start: sm * 100 + sd, end: em * 100 + ed, isRange: true };
+  }
+  const [m, d] = key.split('-').map(Number);
+  return { start: m * 100 + d, end: m * 100 + d, isRange: false };
+}
+
+function isDateInRange(today, range) {
+  const tv = (today.getMonth() + 1) * 100 + today.getDate();
+  if (!range.isRange) return tv === range.start;
+  if (range.start <= range.end) return tv >= range.start && tv <= range.end;
+  // wraps year boundary (e.g. Dec 24 – Jan 6)
+  return tv >= range.start || tv <= range.end;
+}
+
 function checkEasterEgg() {
   const today = new Date();
-  const key = String(today.getMonth() + 1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-  if (EASTER_EGGS[key]) {
-    activateEgg(key);
+  for (const [key, egg] of Object.entries(EASTER_EGGS)) {
+    if (isDateInRange(today, eggKeyToDateRange(key))) {
+      activateEgg(key);
+      return;
+    }
   }
+}
+
+function initEggCanvas() {
+  if (eggCanvas) return;
+  eggCanvas = document.getElementById('egg-canvas');
+  if (!eggCanvas) return;
+  eggCtx = eggCanvas.getContext('2d');
+}
+
+function resizeEggCanvas() {
+  if (!eggCanvas) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  eggCanvas.width = w * dpr;
+  eggCanvas.height = h * dpr;
+  eggCanvas.style.width = w + 'px';
+  eggCanvas.style.height = h + 'px';
+  if (eggCtx) eggCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function initEggParticles(cfg) {
+  eggParticles = [];
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  for (let i = 0; i < cfg.count; i++) {
+    eggParticles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * cfg.speed[1] * 0.4,
+      vy: -(cfg.speed[0] + Math.random() * (cfg.speed[1] - cfg.speed[0])),
+      size: cfg.size[0] + Math.random() * (cfg.size[1] - cfg.size[0]),
+      color: cfg.colors[Math.floor(Math.random() * cfg.colors.length)],
+      opacity: cfg.opacity[0] + Math.random() * (cfg.opacity[1] - cfg.opacity[0]),
+      phase: Math.random() * Math.PI * 2,
+      shape: cfg.shape,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.02
+    });
+  }
+}
+
+function drawCircle(ctx, p) {
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawSparkle(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * s, Math.sin(a) * s);
+    const ba = a + Math.PI / 4;
+    ctx.lineTo(Math.cos(ba) * s * 0.35, Math.sin(ba) * s * 0.35);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawHeart(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y - s * 0.25);
+  ctx.rotate(p.rot * 0.5);
+  ctx.beginPath();
+  const r = s * 0.4;
+  ctx.moveTo(0, s * 0.35);
+  ctx.bezierCurveTo(-s * 0.5, -s * 0.15, -r, -s * 0.55, 0, -s * 0.25);
+  ctx.bezierCurveTo(r, -s * 0.55, s * 0.5, -s * 0.15, 0, s * 0.35);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawShamrock(ctx, p) {
+  const s = p.size * 0.45;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.5);
+  // three leaves
+  for (let i = 0; i < 3; i++) {
+    const a = (i * Math.PI * 2) / 3 - Math.PI / 2;
+    const cx = Math.cos(a) * s * 0.65;
+    const cy = Math.sin(a) * s * 0.65;
+    ctx.beginPath();
+    ctx.arc(cx, cy, s * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // tiny stem
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.3);
+  ctx.lineTo(0, s * 1.1);
+  ctx.lineWidth = Math.max(0.8, s * 0.25);
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
+function drawSnowflake(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (i * Math.PI) / 3;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * s, Math.sin(a) * s);
+    // small branches
+    const ba = a + Math.PI / 6;
+    const br = s * 0.45;
+    ctx.moveTo(Math.cos(a) * s * 0.5, Math.sin(a) * s * 0.5);
+    ctx.lineTo(Math.cos(a) * s * 0.5 + Math.cos(ba) * br, Math.sin(a) * s * 0.5 + Math.sin(ba) * br);
+    ctx.moveTo(Math.cos(a) * s * 0.5, Math.sin(a) * s * 0.5);
+    ctx.lineTo(Math.cos(a) * s * 0.5 + Math.cos(ba - Math.PI / 3) * br, Math.sin(a) * s * 0.5 + Math.sin(ba - Math.PI / 3) * br);
+  }
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = Math.max(0.6, s * 0.15);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+
+function animateEgg() {
+  if (!eggCtx || !eggCanvas) return;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  if (document.hidden) { eggAnimId = requestAnimationFrame(animateEgg); return; }
+  eggCtx.clearRect(0, 0, w, h);
+  const drawFn = DRAW_FNS[eggParticles[0]?.shape] || drawCircle;
+  for (const p of eggParticles) {
+    p.x += p.vx + Math.sin(p.phase + performance.now() * 0.0005) * 0.15;
+    p.y += p.vy;
+    p.rot += p.rotSpeed;
+    // wrap around edges
+    if (p.y < -p.size * 2) { p.y = h + p.size; p.x = Math.random() * w; }
+    if (p.y > h + p.size * 2) { p.y = -p.size; p.x = Math.random() * w; }
+    if (p.x < -p.size * 2) p.x = w + p.size;
+    if (p.x > w + p.size * 2) p.x = -p.size;
+    eggCtx.globalAlpha = p.opacity;
+    eggCtx.fillStyle = p.color;
+    drawFn(eggCtx, p);
+  }
+  eggCtx.globalAlpha = 1;
+  eggAnimId = requestAnimationFrame(animateEgg);
+}
+
+function startEggCanvas() {
+  initEggCanvas();
+  if (!eggCanvas) return;
+  resizeEggCanvas();
+  eggCanvas.style.display = 'block';
+  window.addEventListener('resize', resizeEggCanvas);
+  if (!eggAnimId) animateEgg();
+}
+
+function stopEggCanvas() {
+  if (eggAnimId) { cancelAnimationFrame(eggAnimId); eggAnimId = null; }
+  if (eggCanvas) eggCanvas.style.display = 'none';
+  window.removeEventListener('resize', resizeEggCanvas);
+  eggParticles = [];
 }
 
 function activateEgg(key) {
@@ -1430,21 +1628,14 @@ function activateEgg(key) {
   deactivateEgg();
   activeEgg = key;
   const egg = EASTER_EGGS[key];
-  const style = document.createElement('style');
-  style.id = 'egg-style';
-  const cls = 'egg-' + key.replace(/-/g, '');
-  style.textContent = egg.css.replace(/\.egg-/g, '.' + cls + ' ');
-  document.head.appendChild(style);
-  document.body.classList.add(cls);
+  initEggParticles(egg.particles);
+  startEggCanvas();
   renderDebugPanel();
 }
 
 function deactivateEgg() {
   if (activeEgg) {
-    const style = document.getElementById('egg-style');
-    if (style) style.remove();
-    const cls = 'egg-' + activeEgg.replace(/-/g, '');
-    document.body.classList.remove(cls);
+    stopEggCanvas();
     activeEgg = null;
     renderDebugPanel();
   }
@@ -1527,8 +1718,16 @@ function renderDebugPanel() {
   html += '<h3>🥚 Easter Eggs</h3>';
   html += '<div style="display:flex;flex-direction:column;gap:3px">';
   Object.entries(EASTER_EGGS).forEach(([key, egg]) => {
-    const [m, d] = key.split('-');
-    const dateStr = MONTHS[parseInt(m)-1] + ' ' + parseInt(d);
+    const range = eggKeyToDateRange(key);
+    let dateStr;
+    if (range.isRange) {
+      const sm = Math.floor(range.start / 100), sd = range.start % 100;
+      const em = Math.floor(range.end / 100), ed = range.end % 100;
+      dateStr = MONTHS[sm-1] + ' ' + sd + ' – ' + MONTHS[em-1] + ' ' + ed;
+    } else {
+      const m = Math.floor(range.start / 100), d = range.start % 100;
+      dateStr = MONTHS[m-1] + ' ' + d;
+    }
     const active = activeEgg === key;
     const bg = active ? 'background:rgba(201,168,76,0.18);border:1px solid #c9a84c' : '';
     const action = active ? 'deactivateEgg()' : 'activateEgg(\'' + key + '\')';
