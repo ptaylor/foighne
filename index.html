@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="version" content="v1.1">
+<meta name="commit" content="154aaff">
 <title>Foighne</title>
 <style>
   :root {
@@ -178,11 +180,12 @@
   #stats-bar {
     display: flex;
     justify-content: center;
-    gap: 12px;
-    color: var(--label-color);
-    font-size: 13px;
-    margin-bottom: 10px;
-    min-height: 20px;
+    gap: 10px;
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+    margin-bottom: 16px;
+    min-height: 18px;
+    letter-spacing: 0.03em;
   }
   #stats-bar b {
     color: rgba(255,255,255,0.85);
@@ -252,15 +255,24 @@
     justify-content: center;
     align-items: center;
     flex-direction: column;
+    opacity: 0;
+    transition: opacity 0.8s ease;
   }
   #win-overlay.show {
     display: flex;
+    opacity: 1;
   }
   #win-overlay h1 {
     color: #ffd700;
     font-size: 60px;
-    text-shadow: 0 0 20px rgba(255,215,0,0.5);
+    text-shadow: 0 0 20px rgba(255,215,0,0.5), 0 0 60px rgba(255,215,0,0.3);
     margin-bottom: 20px;
+    animation: win-pop 0.6s ease-out 0.4s both;
+  }
+  @keyframes win-pop {
+    0% { transform: scale(0.3); opacity: 0; }
+    60% { transform: scale(1.08); }
+    100% { transform: scale(1); opacity: 1; }
   }
   #win-overlay button {
     padding: 15px 40px;
@@ -272,11 +284,35 @@
     color: #000;
     font-weight: bold;
     transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+    animation: win-fade-in 0.5s ease-out 0.7s both;
+  }
+  @keyframes win-fade-in {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
   #win-overlay button:hover {
     background: #ffed4a;
     transform: scale(1.05);
     box-shadow: 0 6px 24px rgba(255,215,0,0.4);
+  }
+  /* Gold sparkle particles */
+  .sparkle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 1001;
+    animation: sparkle-fall linear forwards;
+  }
+  @keyframes sparkle-fall {
+    0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg) scale(0); opacity: 0; }
+  }
+  .fly-card {
+    position: fixed;
+    z-index: 2000;
+    pointer-events: none;
+    transition: left 0.22s ease-in, top 0.22s ease-in;
+    border-radius: 8px;
+    box-shadow: 2px 4px 16px rgba(0,0,0,0.4);
   }
   .btn {
     padding: 10px 22px;
@@ -521,7 +557,7 @@
     font-size: 28px;
     font-style: italic;
     letter-spacing: 0.15em;
-    margin-bottom: 10px;
+    margin-bottom: 2px;
     pointer-events: none;
   }
 </style>
@@ -529,6 +565,15 @@
 <body>
 <div id="game">
   <div id="game-title">foighne</div>
+  <div id="stats-bar">
+    <span>Games: <b id="statGames">0</b></span>
+    <span class="sep">|</span>
+    <span>Won: <b id="statWon">0</b></span>
+    <span class="sep">|</span>
+    <span>Streak: <b id="statStreak">0</b></span>
+    <span class="sep">|</span>
+    <span>Best: <b id="statBest">0</b></span>
+  </div>
   <div id="debug-panel" class="debug-hidden"></div>
   <div class="top-row">
     <div class="top-section">
@@ -549,18 +594,10 @@
       <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
       <button class="btn" onclick="newGame()">New Game</button>
     </div>
+    <div id="autocomplete-area" style="align-self:flex-start;margin-top:6px"></div>
   </div>
   <button id="debug-btn" onclick="toggleDebug()" title="Debug"></button>
   <div id="message"></div>
-  <div id="stats-bar">
-    <span>Games: <b id="statGames">0</b></span>
-    <span class="sep">|</span>
-    <span>Won: <b id="statWon">0</b></span>
-    <span class="sep">|</span>
-    <span>Streak: <b id="statStreak">0</b></span>
-    <span class="sep">|</span>
-    <span>Best: <b id="statBest">0</b></span>
-  </div>
   <div class="tableau-row" id="tableau"></div>
 </div>
 <div id="win-overlay">
@@ -883,6 +920,105 @@ function dealBoard() {
   ensureValidState();
 }
 
+// Randomised nearly-complete game state for testing.
+// Each foundation nearly full, one undealt card in stock that completes the game.
+function setupNearlyComplete() {
+  // 1. Pick a random "final card" for the stock — rank 8..12 (9..K) so foundations feel nearly done
+  const finalSuit = Math.floor(Math.random() * 4);
+  const finalRank = 8 + Math.floor(Math.random() * 5); // 8–12
+  const finalCard = { suit: finalSuit, rank: finalRank, faceUp: false };
+
+  // Track used cards
+  const used = new Set();
+  used.add(cardId(finalCard));
+
+  // 2. Build foundations — finalCard's suit fills up to rank-1; others random 8–12
+  foundations = [[], [], [], []];
+  for (let s = 0; s < 4; s++) {
+    const max = (s === finalSuit) ? finalRank - 1 : (8 + Math.floor(Math.random() * 5));
+    for (let r = 0; r <= max; r++) {
+      foundations[s].push({ suit: s, rank: r, faceUp: true });
+      used.add(rankStr(r) + suitSymbol(s));
+    }
+  }
+
+  // 3. Gather remaining cards (not in foundations, not the final stock card)
+  const remaining = [];
+  for (let s = 0; s < 4; s++) {
+    for (let r = 0; r < 13; r++) {
+      if (!used.has(rankStr(r) + suitSymbol(s))) {
+        remaining.push({ suit: s, rank: r, faceUp: true });
+      }
+    }
+  }
+
+  // 4. Place remaining cards on tableau as valid descending alt-colour sequences
+  tableau = [[], [], [], [], [], [], []];
+  waste = [];
+  remaining.sort((a, b) => b.rank - a.rank); // high ranks first
+
+  // Process cards one at a time, pulling from remaining as needed for face-downs
+  while (remaining.length > 0) {
+    const card = remaining.shift();
+    let placed = false;
+
+    // Try existing piles
+    for (let t = 0; t < 7; t++) {
+      if (canPlaceOnTableau(card, tableau[t])) {
+        tableau[t].push(card);
+        placed = true;
+        break;
+      }
+    }
+    if (placed) continue;
+
+    // King on empty pile — need a face-down underneath
+    if (card.rank === 12) {
+      for (let t = 0; t < 7; t++) {
+        if (tableau[t].length === 0) {
+          // Grab any remaining card as face-down bottom
+          const down = remaining.pop();
+          if (down) {
+            down.faceUp = false;
+            tableau[t].push(down);
+          }
+          tableau[t].push(card);
+          placed = true;
+          break;
+        }
+      }
+    }
+    if (placed) continue;
+
+    // Non-King — start new pile with a face-down underneath
+    for (let t = 0; t < 7; t++) {
+      if (tableau[t].length === 0) {
+        const down = remaining.pop();
+        if (down) {
+          down.faceUp = false;
+          tableau[t].push(down);
+          tableau[t].push(card);
+          placed = true;
+          break;
+        }
+      }
+    }
+    if (placed) continue;
+
+    // Last resort: make it face-down in waste
+    card.faceUp = false;
+    waste.push(card);
+  }
+
+  // 5. Stock
+  stock = [finalCard];
+  selectedCards = null;
+
+  clearSavedGame();
+  render();
+  saveGame();
+}
+
 // ---- DEBUG MODE ----
 let debugMode = false;
 let activeEgg = null;
@@ -982,6 +1118,15 @@ function renderDebugPanel() {
   }
   
   let html = '';
+  
+  const versionMeta = document.querySelector('meta[name="version"]');
+  const commitMeta = document.querySelector('meta[name="commit"]');
+  const version = versionMeta ? versionMeta.content : 'unknown';
+  const commit = commitMeta ? commitMeta.content : '-----';
+  html += '<div style="text-align:center;font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px">' + version + '</div>';
+  html += '<div style="text-align:center;font-size:9px;color:rgba(255,255,255,0.25);margin-bottom:8px">' + commit + '</div>';
+  
+  html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();setupNearlyComplete()" style="background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.3);color:#ffd700;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:bold">🧪 Nearly Complete</button></div>';
   
   html += '<h3>📦 Stock (' + stock.length + ')</h3>';
   if (stock.length === 0) {
@@ -1773,6 +1918,16 @@ function render() {
   
   // Check for stalemate
   checkStalemate();
+
+  // Auto-complete button
+  const acArea = document.getElementById('autocomplete-area');
+  if (acArea) {
+    if (!autoCompleting && canAutoComplete() && !foundations.every(f => f.length === 13)) {
+      acArea.innerHTML = '<button class="btn autocomplete-btn" onclick="runAutoComplete()" style="background:rgba(255,215,0,0.2);color:#ffd700;animation:pulse-gold 1.5s ease-in-out infinite">✨ Auto-Complete</button>';
+    } else if (!autoCompleting) {
+      acArea.innerHTML = '';
+    }
+  }
 }
 
 function showMessage(msg) {
@@ -1836,6 +1991,131 @@ function checkStalemate() {
   }
 }
 
+function canAutoComplete() {
+  // All cards dealt and face-up, game is winnable by just moving to foundations
+  if (stock.length > 0) return false;
+  for (let t = 0; t < 7; t++) {
+    for (const c of tableau[t]) {
+      if (!c.faceUp) return false;
+    }
+  }
+  return true;
+}
+
+let autoCompleting = false;
+
+async function runAutoComplete() {
+  if (autoCompleting) return;
+  autoCompleting = true;
+  document.getElementById('message').innerHTML = '';
+
+  const FLY_MS = 200;  // flight duration
+  const GAP_MS  = 80;  // pause between flights
+
+  while (true) {
+    if (foundations.every(f => f.length === 13)) break;
+
+    let srcType = null, srcIdx = -1, destF = -1;
+
+    // 1. Waste top → foundation
+    if (waste.length > 0) {
+      const w = waste[waste.length - 1];
+      for (let f = 0; f < 4; f++) {
+        if (canPlaceOnFoundation(w, foundations[f])) {
+          srcType = 'waste'; srcIdx = 0; destF = f; break;
+        }
+      }
+    }
+
+    // 2. Tableau top → foundation
+    if (!srcType) {
+      for (let t = 0; t < 7; t++) {
+        if (tableau[t].length === 0) continue;
+        const top = tableau[t][tableau[t].length - 1];
+        for (let f = 0; f < 4; f++) {
+          if (canPlaceOnFoundation(top, foundations[f])) {
+            srcType = 'tableau'; srcIdx = t; destF = f; break;
+          }
+        }
+        if (srcType) break;
+      }
+    }
+
+    if (!srcType) break; // nothing to move
+
+    // --- Fly the card from source to foundation ---
+    const srcEl = findCardElement(srcType, srcIdx);
+    const destEl = document.querySelector(`.foundation[data-suit="${destF}"]`);
+    if (srcEl && destEl) {
+      await flyCard(srcEl, destEl, FLY_MS);
+    }
+
+    // Actually move the card in state
+    if (srcType === 'waste') {
+      foundations[destF].push(waste.pop());
+    } else {
+      foundations[destF].push(tableau[srcIdx].pop());
+      flipTopTableau();
+    }
+
+    render();
+    saveGame();
+    await new Promise(r => setTimeout(r, GAP_MS));
+  }
+
+  autoCompleting = false;
+  checkWin();
+}
+
+// Find the DOM element for the top card of a pile
+function findCardElement(pileType, idx) {
+  if (pileType === 'waste') {
+    const wasteEl = document.getElementById('waste');
+    const cards = wasteEl.querySelectorAll('.card');
+    return cards.length > 0 ? cards[cards.length - 1] : null;
+  }
+  if (pileType === 'tableau') {
+    const pileEl = document.querySelector(`.tableau-pile[data-pile-index="${idx}"]`);
+    if (!pileEl) return null;
+    const cards = pileEl.querySelectorAll('.card');
+    return cards.length > 0 ? cards[cards.length - 1] : null;
+  }
+  return null;
+}
+
+// Animate a card flying from srcEl to destEl
+function flyCard(srcEl, destEl, durationMs) {
+  return new Promise(resolve => {
+    const srcRect = srcEl.getBoundingClientRect();
+    const destRect = destEl.getBoundingClientRect();
+
+    // Clone the card element
+    const clone = srcEl.cloneNode(true);
+    clone.classList.add('fly-card');
+    clone.style.position = 'fixed';
+    clone.style.left = srcRect.left + 'px';
+    clone.style.top = srcRect.top + 'px';
+    clone.style.width = srcRect.width + 'px';
+    clone.style.height = srcRect.height + 'px';
+    clone.style.margin = '0';
+    clone.style.transition = `left ${durationMs}ms ease-in, top ${durationMs}ms ease-in, width ${durationMs}ms ease-in, height ${durationMs}ms ease-in`;
+    document.body.appendChild(clone);
+
+    // Start the flight on next frame
+    requestAnimationFrame(() => {
+      clone.style.left = destRect.left + 'px';
+      clone.style.top = destRect.top + 'px';
+      clone.style.width = destRect.width + 'px';
+      clone.style.height = destRect.height + 'px';
+    });
+
+    setTimeout(() => {
+      clone.remove();
+      resolve();
+    }, durationMs + 20);
+  });
+}
+
 function checkWin() {
   for (let f = 0; f < 4; f++) {
     if (foundations[f].length !== 13) return;
@@ -1852,6 +2132,26 @@ function checkWin() {
   
   clearSavedGame();
   document.getElementById('win-overlay').classList.add('show');
+  spawnSparkles();
+}
+
+function spawnSparkles() {
+  const symbols = ['✦', '✧', '◆', '⬥', '★', '💎', '✨', '⭐'];
+  for (let i = 0; i < 40; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'sparkle';
+      el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+      el.style.left = Math.random() * 100 + '%';
+      el.style.top = -(Math.random() * 40 + 10) + 'px';
+      el.style.fontSize = (Math.random() * 24 + 14) + 'px';
+      el.style.color = ['#ffd700', '#ffec8b', '#fff8dc', '#ffb347', '#ffcc00'][Math.floor(Math.random() * 5)];
+      el.style.animationDuration = (Math.random() * 3 + 2) + 's';
+      el.style.animationDelay = '0s';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 5000);
+    }, i * 60);
+  }
 }
 
 // Click on tableau empty space to place selected cards via click-to-move
