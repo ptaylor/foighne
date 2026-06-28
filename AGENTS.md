@@ -24,6 +24,8 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 - `SUITS = ['♠','♥','♦','♣']`, `RANKS = ['A'..'K']` — suit 0=♠(black), 1=♥(red), 2=♦(red), 3=♣(black); rank 0=A .. 12=K
 - `selectedCards`, `debugMode`, `autoCompleting`
 - `SETTINGS_KEY`, `SAVE_KEY`, `STATS_KEY` — localStorage keys
+- `activeEgg`, `eggParticles[]`, `eggAnimId`, `eggCanvas`, `eggCtx` — easter egg canvas system
+- `audioCtx` — Web Audio API context for sound engine
 
 ### Key functions
 - `dealBoard()` / `newGame()` — shuffle and deal
@@ -33,6 +35,16 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 - `validateGameState()` / `ensureValidState()` — duplicate detection and auto-fix
 - `saveGame()` / `loadGame()` — localStorage persistence
 - `createCardElement()` — DOM card rendering with face-card SVGs
+- `playSound(type)` — Web Audio API sound engine with 8 themes (crystal, felt, zen, arcade, clover, paper, ocean, sunset)
+
+### Easter egg system
+- `EASTER_EGGS` — object keyed by `MM-DD` or `MM-DD--MM-DD` (date ranges). Each entry has `name` and `particles` config (shape, count, colors, size range, speed range, opacity range, optional `fall: true`)
+- `checkEasterEgg()` — called at startup, iterates eggs and activates if today matches (handles year-boundary wrap for ranges like `12-24--01-06`)
+- `activateEgg(key)` / `deactivateEgg()` — shows/hides `<canvas id="egg-canvas">`, starts/stops `requestAnimationFrame` particle loop
+- `animateEgg()` — clears canvas, updates particle positions with sinusoidal drift, wraps edges, draws each particle via `DRAW_FNS`
+- `DRAW_FNS` — lookup of 16 shape functions: `drawCircle`, `drawSparkle`, `drawStar`, `drawBurst`, `drawSun`, `drawBalloon`, `drawPumpkin`, `drawSkull`, `drawWitch`, `drawBanana`, `drawJester`, `drawCross`, `drawSanta`, `drawTree`, `drawHeart`, `drawShamrock`, `drawSnowflake`
+- Shapes support multi-shape arrays per egg (particle picks randomly), and use internal hardcoded colors for complex shapes (santa, tree, skull, witch, pumpkin, jester, cross) while simpler shapes use the particle's color
+- Debug panel lists all eggs with date and active status; click to manually toggle any egg for testing
 
 ### Card object shape
 ```js

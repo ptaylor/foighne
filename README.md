@@ -11,18 +11,40 @@ Open `foighne.html` in any modern browser. The goal is to build all four foundat
 - **Tableau**: Build descending sequences in alternating colors. Drag cards or click to select, then click the destination.
 - **Stock & Waste**: Click the stock (top-left) to flip cards into the waste pile. Drag cards from the waste onto the tableau or foundations.
 - **Foundations**: Start with an Ace, then stack same-suit cards in ascending order.
-- **Auto-complete**: Cards that can safely go to the foundations are automatically sent there.
+- **Auto-complete**: When all cards are face-up, an auto-complete button appears to finish the game automatically.
 
 ## Features
 
-- Drag-and-drop and click-to-move
-- Undo, hint, and auto-complete
+- Drag-and-drop and click-to-move with touch support
 - Game state persists across page reloads via `localStorage`
-- Win stats tracking (streak, best time, total wins)
-- Customizable card backs and face styles via settings
-- Keyboard shortcuts (e.g., `Ctrl+Z` to undo, `Ctrl+H` for hint)
-- Debug panel (click the top-right corner to reveal)
-- Responsive layout that scales to the viewport
+- Win stats tracking (games played, won, current streak, best streak)
+- 8 color themes (Azure, Paper, Ocean, Sunset, Classic Green, Midnight, Cedar, Clover)
+- 6 card back styles + custom image upload
+- 5 face card styles (Cool, Funky, Cute, Funny, Stupid)
+- 8 sound themes (Crystal, Felt, Zen, Arcade, Clover, Paper, Ocean, Sunset) — Web Audio API, no files needed
+- Single or triple draw from stock
+- Responsive layout for desktop, tablet, and mobile
+- Debug panel (click top-right corner) with game state inspector, easter egg toggles, and a nearly-complete game preset
+
+### 🥚 Easter Eggs
+
+The game has **11 date-based easter eggs** that trigger subtle themed background particles on specific days:
+
+| Date | Egg |
+|------|-----|
+| Jan 1 | 🎉 New Year's — stars & bursts |
+| Feb 1 | 🕯️ St Brigid's Day — woven crosses |
+| Feb 14 | 💕 Valentine's — floating hearts |
+| Mar 17 | ☘️ St Patrick's — shamrocks |
+| Apr 1 | 🤡 April Fools — jesters & bananas |
+| May 10 | 💍 Wedding Anniversary — hearts & stars |
+| Jun 21 | ☀️ Mid Summer — suns |
+| Jul 7 | 🎂 Birthday — balloons & sparkles |
+| Oct 31 | 🎃 Halloween — skulls & witches |
+| Dec 21–22 | ❄️ Mid Winter — falling snowflakes |
+| Dec 24 – Jan 6 | 🎄 Christmas — santas, trees & stars |
+
+Particles are rendered on a lightweight `<canvas>` layer behind the game with zero performance impact.
 
 ## License
 
