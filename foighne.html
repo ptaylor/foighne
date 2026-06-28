@@ -1658,12 +1658,14 @@ function drawCross(ctx, p) {
   ctx.rotate(p.rot + Math.PI / 4);
   // straw/rush tones
   const strawLight = '#e8d48b';
-  const strawDark = '#c4a23c';
-  const bandColor = '#8b6914';
-  // central woven diamond
-  const ctr = s * 0.18;
+  const strawMid   = '#d4b840';
+  const strawDark  = '#c4a23c';
+  const bandColor  = '#8b6914';
+  // central woven diamond — "God's eye"
+  const ctr = s * 0.16;
   ctx.fillStyle = strawLight;
   ctx.fillRect(-ctr, -ctr, ctr * 2, ctr * 2);
+  // weave detail
   ctx.strokeStyle = strawDark;
   ctx.lineWidth = Math.max(0.6, s * 0.04);
   ctx.beginPath();
@@ -1671,37 +1673,49 @@ function drawCross(ctx, p) {
   ctx.moveTo(-ctr, ctr); ctx.lineTo(ctr, -ctr);
   ctx.stroke();
   ctx.lineWidth = 1;
-  // four offset arms — each starts from a different corner of the centre square
-  // so they don't all converge on one point (woven offset look)
-  const offsets = [
-    { dx: -1, dy: -1, ox: -ctr, oy: -ctr },  // top-left arm
-    { dx:  1, dy: -1, ox:  ctr, oy: -ctr },  // top-right arm
-    { dx:  1, dy:  1, ox:  ctr, oy:  ctr },  // bottom-right arm
-    { dx: -1, dy:  1, ox: -ctr, oy:  ctr },  // bottom-left arm
+  // inner diamond highlight
+  ctx.fillStyle = strawMid;
+  ctx.fillRect(-ctr*0.5, -ctr*0.5, ctr, ctr);
+  // four arms — each starts offset from a different corner of the centre square
+  // like real Brigid's crosses where reeds bend around each other
+  const arms = [
+    { baseX: -ctr, baseY: -ctr, dx: -1, dy: -1 },  // top-left
+    { baseX:  ctr, baseY: -ctr, dx:  1, dy: -1 },  // top-right
+    { baseX:  ctr, baseY:  ctr, dx:  1, dy:  1 },  // bottom-right
+    { baseX: -ctr, baseY:  ctr, dx: -1, dy:  1 },  // bottom-left
   ];
-  for (const arm of offsets) {
-    const { dx, dy, ox, oy } = arm;
-    // arm base at offset corner, arm tip further out
-    const tx = dx * s * 0.58, ty = dy * s * 0.58;
-    // two reed strands per arm, offset slightly for layered look
-    for (let strand = 0; strand < 2; strand++) {
-      const side = (strand - 0.5) * s * 0.1;
-      const bx = ox + dy * side, by = oy + dx * side;
-      const ex = tx + dy * side * 0.5, ey = ty + dx * side * 0.5;
-      ctx.fillStyle = strand === 0 ? strawLight : strawDark;
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.lineTo(ex, ey);
-      ctx.lineWidth = Math.max(1.2, s * 0.09);
-      ctx.strokeStyle = ctx.fillStyle;
-      ctx.stroke();
-      ctx.lineWidth = 1;
-    }
-    // tied band near tip
-    const bx2 = tx, by2 = ty;
-    const px = dy * s * 0.06, py = -dx * s * 0.06;
+  for (const a of arms) {
+    // arm is a flat reed bundle — wider at base, tapering slightly to tip
+    const tipX = a.dx * s * 0.55, tipY = a.dy * s * 0.55;
+    const perpX = a.dy, perpY = -a.dx; // perpendicular direction
+    const baseW = s * 0.14;
+    const tipW  = s * 0.09;
+    // draw arm as filled polygon with straw texture stripes
+    ctx.fillStyle = strawLight;
+    ctx.beginPath();
+    ctx.moveTo(a.baseX + perpX * baseW, a.baseY + perpY * baseW);
+    ctx.lineTo(tipX + perpX * tipW, tipY + perpY * tipW);
+    ctx.lineTo(tipX - perpX * tipW, tipY - perpY * tipW);
+    ctx.lineTo(a.baseX - perpX * baseW, a.baseY - perpY * baseW);
+    ctx.closePath();
+    ctx.fill();
+    // darker stripe through middle of arm for reed texture
+    ctx.fillStyle = strawDark;
+    ctx.beginPath();
+    ctx.moveTo(a.baseX + perpX * baseW * 0.25, a.baseY + perpY * baseW * 0.25);
+    ctx.lineTo(tipX + perpX * tipW * 0.25, tipY + perpY * tipW * 0.25);
+    ctx.lineTo(tipX - perpX * tipW * 0.25, tipY - perpY * tipW * 0.25);
+    ctx.lineTo(a.baseX - perpX * baseW * 0.25, a.baseY - perpY * baseW * 0.25);
+    ctx.closePath();
+    ctx.fill();
+    // tied band at tip
+    const bw = tipW * 1.6;
     ctx.fillStyle = bandColor;
-    ctx.fillRect(bx2 - s * 0.03 - px, by2 - s * 0.03 - py, s * 0.06 + px * 2, s * 0.06 + py * 2);
+    ctx.save();
+    ctx.translate(tipX, tipY);
+    ctx.rotate(Math.atan2(a.dy, a.dx) + Math.PI/2);
+    ctx.fillRect(-bw, -s*0.035, bw*2, s*0.07);
+    ctx.restore();
   }
   ctx.restore();
 }
