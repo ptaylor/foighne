@@ -1396,7 +1396,7 @@ const EASTER_EGGS = {
   },
   '02-01': {
     name: '🕯️ St Brigid\'s Day',
-    particles: { shape:'cross', count:14, colors:['#ffffff','#f5f0d0','#d4e6c0','#ffeaa7','#e8f0e0'], size:[14,26], speed:[0.07,0.18], opacity:[0.16,0.28] }
+    particles: { shape:'cross', count:14, colors:['#e8d48b','#d4b840','#c4a23c','#f0e0a0','#8b6914'], size:[16,30], speed:[0.07,0.18], opacity:[0.16,0.28] }
   },
   '02-14': {
     name: '💕 Valentine\'s Day',
@@ -1656,36 +1656,53 @@ function drawCross(ctx, p) {
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(p.rot + Math.PI / 4);
-  // central woven square
-  const ctr = s * 0.16;
+  // straw/rush tones
+  const strawLight = '#e8d48b';
+  const strawDark = '#c4a23c';
+  const bandColor = '#8b6914';
+  // central woven diamond
+  const ctr = s * 0.18;
+  ctx.fillStyle = strawLight;
   ctx.fillRect(-ctr, -ctr, ctr * 2, ctr * 2);
-  // four radiating arms tapering outward from the centre square corners
-  const armBase = s * 0.13;
-  const armTip = s * 0.06;
-  const armLen = s * 0.42;
-  // draw each arm as a tapered quadrilateral + looped end
-  const dirs = [[-1,-1],[1,-1],[1,1],[-1,1]]; // top-left, top-right, bottom-right, bottom-left
-  for (const [dx, dy] of dirs) {
-    const bx = dx * ctr, by = dy * ctr;          // base at centre square corner
-    const tx = dx * armLen, ty = dy * armLen;    // tip
-    const px = dy * armBase, py = -dx * armBase; // perpendicular offset at base
-    const ptx = dy * armTip, pty = -dx * armTip; // perpendicular offset at tip
-    ctx.beginPath();
-    ctx.moveTo(bx + px, by + py);
-    ctx.lineTo(tx + ptx, ty + pty);
-    ctx.lineTo(tx - ptx, ty - pty);
-    ctx.lineTo(bx - px, by - py);
-    ctx.closePath();
-    ctx.fill();
-    // tied loop at the end of each arm
-    ctx.beginPath();
-    ctx.arc(tx, ty, s * 0.1, 0, Math.PI * 2);
-    ctx.fill();
+  ctx.strokeStyle = strawDark;
+  ctx.lineWidth = Math.max(0.6, s * 0.04);
+  ctx.beginPath();
+  ctx.moveTo(-ctr, -ctr); ctx.lineTo(ctr, ctr);
+  ctx.moveTo(-ctr, ctr); ctx.lineTo(ctr, -ctr);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  // four offset arms — each starts from a different corner of the centre square
+  // so they don't all converge on one point (woven offset look)
+  const offsets = [
+    { dx: -1, dy: -1, ox: -ctr, oy: -ctr },  // top-left arm
+    { dx:  1, dy: -1, ox:  ctr, oy: -ctr },  // top-right arm
+    { dx:  1, dy:  1, ox:  ctr, oy:  ctr },  // bottom-right arm
+    { dx: -1, dy:  1, ox: -ctr, oy:  ctr },  // bottom-left arm
+  ];
+  for (const arm of offsets) {
+    const { dx, dy, ox, oy } = arm;
+    // arm base at offset corner, arm tip further out
+    const tx = dx * s * 0.58, ty = dy * s * 0.58;
+    // two reed strands per arm, offset slightly for layered look
+    for (let strand = 0; strand < 2; strand++) {
+      const side = (strand - 0.5) * s * 0.1;
+      const bx = ox + dy * side, by = oy + dx * side;
+      const ex = tx + dy * side * 0.5, ey = ty + dx * side * 0.5;
+      ctx.fillStyle = strand === 0 ? strawLight : strawDark;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(ex, ey);
+      ctx.lineWidth = Math.max(1.2, s * 0.09);
+      ctx.strokeStyle = ctx.fillStyle;
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+    // tied band near tip
+    const bx2 = tx, by2 = ty;
+    const px = dy * s * 0.06, py = -dx * s * 0.06;
+    ctx.fillStyle = bandColor;
+    ctx.fillRect(bx2 - s * 0.03 - px, by2 - s * 0.03 - py, s * 0.06 + px * 2, s * 0.06 + py * 2);
   }
-  // centre knot detail — small inner square
-  ctx.fillStyle = ctx.fillStyle;
-  const inner = s * 0.06;
-  ctx.fillRect(-inner, -inner, inner * 2, inner * 2);
   ctx.restore();
 }
 
