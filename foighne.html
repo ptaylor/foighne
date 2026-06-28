@@ -1904,6 +1904,17 @@ function render() {
   
   // Check for stalemate
   checkStalemate();
+
+  // Auto-complete button
+  const msg = document.getElementById('message');
+  const existingBtn = msg.querySelector('.autocomplete-btn');
+  if (!autoCompleting && canAutoComplete() && !foundations.every(f => f.length === 13)) {
+    if (!existingBtn) {
+      msg.innerHTML = '<button class="btn autocomplete-btn" onclick="runAutoComplete()" style="background:rgba(255,215,0,0.2);border:1px solid rgba(255,215,0,0.4);color:#ffd700;animation:pulse-gold 1.5s ease-in-out infinite">✨ Auto-Complete</button>';
+    }
+  } else if (existingBtn && !autoCompleting) {
+    msg.innerHTML = '';
+  }
 }
 
 function showMessage(msg) {
@@ -1965,6 +1976,72 @@ function checkStalemate() {
     document.getElementById('message').innerHTML = 
       '😔 No moves left — this deal is unwinnable. <button class="btn" onclick="newGame()" style="margin:0 0 0 10px;padding:6px 16px;font-size:13px">New Deal</button>';
   }
+}
+
+function canAutoComplete() {
+  // All cards dealt and face-up, game is winnable by just moving to foundations
+  if (stock.length > 0) return false;
+  for (let t = 0; t < 7; t++) {
+    for (const c of tableau[t]) {
+      if (!c.faceUp) return false;
+    }
+  }
+  return true;
+}
+
+let autoCompleting = false;
+
+async function runAutoComplete() {
+  if (autoCompleting) return;
+  autoCompleting = true;
+  document.getElementById('message').innerHTML = '';
+
+  const delay = 220; // ms between moves — smooth but watchable
+
+  while (true) {
+    // Check for win first
+    if (foundations.every(f => f.length === 13)) break;
+
+    let moved = false;
+
+    // 1. Try waste top → foundation
+    if (waste.length > 0) {
+      const w = waste[waste.length - 1];
+      for (let f = 0; f < 4; f++) {
+        if (canPlaceOnFoundation(w, foundations[f])) {
+          foundations[f].push(waste.pop());
+          moved = true;
+          break;
+        }
+      }
+    }
+
+    // 2. Try each tableau top → foundation
+    if (!moved) {
+      for (let t = 0; t < 7; t++) {
+        if (tableau[t].length === 0) continue;
+        const top = tableau[t][tableau[t].length - 1];
+        for (let f = 0; f < 4; f++) {
+          if (canPlaceOnFoundation(top, foundations[f])) {
+            foundations[f].push(tableau[t].pop());
+            flipTopTableau();
+            moved = true;
+            break;
+          }
+        }
+        if (moved) break;
+      }
+    }
+
+    if (!moved) break; // nothing else can be moved
+
+    render();
+    saveGame();
+    await new Promise(r => setTimeout(r, delay));
+  }
+
+  autoCompleting = false;
+  checkWin();
 }
 
 function checkWin() {
