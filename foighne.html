@@ -1671,44 +1671,31 @@ function drawCross(ctx, p) {
   ];
   for (const a of arms) {
     const perpX = a.dy, perpY = -a.dx;
-    // arm inner end at corner of centre square
-    const baseX = a.dx * ctr, baseY = a.dy * ctr;
     const tipX = a.dx * s * 0.58, tipY = a.dy * s * 0.58;
-    const baseW = s * 0.20;
-    const tipW  = s * 0.13;
-    // main arm body
-    ctx.fillStyle = strawLight;
-    ctx.beginPath();
-    ctx.moveTo(baseX + perpX * baseW, baseY + perpY * baseW);
-    ctx.lineTo(tipX + perpX * tipW, tipY + perpY * tipW);
-    ctx.lineTo(tipX - perpX * tipW, tipY - perpY * tipW);
-    ctx.lineTo(baseX - perpX * baseW, baseY - perpY * baseW);
-    ctx.closePath();
-    ctx.fill();
-    // darker centre stripe for reed texture
-    ctx.fillStyle = strawDark;
-    ctx.beginPath();
-    ctx.moveTo(baseX + perpX * baseW * 0.22, baseY + perpY * baseW * 0.22);
-    ctx.lineTo(tipX + perpX * tipW * 0.22, tipY + perpY * tipW * 0.22);
-    ctx.lineTo(tipX - perpX * tipW * 0.22, tipY - perpY * tipW * 0.22);
-    ctx.lineTo(baseX - perpX * baseW * 0.22, baseY - perpY * baseW * 0.22);
-    ctx.closePath();
-    ctx.fill();
-    // mid-tone highlight stripe
-    ctx.fillStyle = strawMid;
-    ctx.beginPath();
-    ctx.moveTo(baseX - perpX * baseW * 0.15, baseY - perpY * baseW * 0.15);
-    ctx.lineTo(tipX - perpX * tipW * 0.15, tipY - perpY * tipW * 0.15);
-    ctx.lineTo(tipX - perpX * tipW * 0.45, tipY - perpY * tipW * 0.45);
-    ctx.lineTo(baseX - perpX * baseW * 0.45, baseY - perpY * baseW * 0.45);
-    ctx.closePath();
-    ctx.fill();
+    // each arm is TWO parallel strands:
+    //   strand A starts from the corner of the centre square
+    //   strand B starts from the centre point (0,0)
+    const sw = s * 0.08; // strand half-width
+    const strands = [
+      { bx: a.dx * ctr, by: a.dy * ctr, color: strawLight }, // corner strand
+      { bx: 0, by: 0, color: strawDark },                      // centre strand
+    ];
+    for (const st of strands) {
+      ctx.fillStyle = st.color;
+      ctx.beginPath();
+      ctx.moveTo(st.bx + perpX * sw, st.by + perpY * sw);
+      ctx.lineTo(tipX + perpX * sw, tipY + perpY * sw);
+      ctx.lineTo(tipX - perpX * sw, tipY - perpY * sw);
+      ctx.lineTo(st.bx - perpX * sw, st.by - perpY * sw);
+      ctx.closePath();
+      ctx.fill();
+    }
     // tied band at tip
     ctx.fillStyle = bandColor;
     ctx.save();
     ctx.translate(tipX, tipY);
     ctx.rotate(Math.atan2(a.dy, a.dx) + Math.PI/2);
-    ctx.fillRect(-tipW * 1.4, -s*0.04, tipW * 2.8, s*0.08);
+    ctx.fillRect(-sw * 1.6, -s*0.04, sw * 3.2, s*0.08);
     ctx.restore();
   }
   // central woven diamond drawn ON TOP — creates weave overlay effect
