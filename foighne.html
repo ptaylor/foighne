@@ -1408,7 +1408,7 @@ const EASTER_EGGS = {
   },
   '06-21': {
     name: '☀️ Mid Summer',
-    particles: { shape:['sparkle','sparkle','sparkle','burst'], count:14, colors:['#ffd93d','#ffb347','#ffec8b','#ffeaa7'], size:[12,22], speed:[0.06,0.18], opacity:[0.18,0.30] }
+    particles: { shape:['sun','sun','sun','circle'], count:14, colors:['#ffd93d','#ffb347','#ffaa00','#ffec8b','#ffeaa7'], size:[16,30], speed:[0.05,0.15], opacity:[0.18,0.30] }
   },
   '07-07': {
     name: '🎂 Birthday Celebration',
@@ -1562,6 +1562,30 @@ function drawBurst(ctx, p) {
   ctx.restore();
 }
 
+function drawSun(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // disc
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+  // triangular rays
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = (i * Math.PI * 2) / 10;
+    const r1 = s * 0.5;
+    const r2 = s;
+    ctx.moveTo(Math.cos(a - 0.12) * r1, Math.sin(a - 0.12) * r1);
+    ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+    ctx.lineTo(Math.cos(a + 0.12) * r1, Math.sin(a + 0.12) * r1);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawHeart(ctx, p) {
   const s = p.size;
   ctx.save();
@@ -1626,7 +1650,7 @@ function drawSnowflake(ctx, p) {
   ctx.restore();
 }
 
-const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
 
 function animateEgg() {
   if (!eggCtx || !eggCanvas) return;
