@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="version" content="v1.8">
-<meta name="commit" content="8884b1a">
+<meta name="version" content="v1.9">
+<meta name="commit" content="3b9c7c5">
 <title>Foighne</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23f7f2e8'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23c22' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23c22'/><circle cx='16' cy='9' r='1.5' fill='%23fdd'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23c22'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23c22'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fdd'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c22'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c22'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23c22' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23c22' stroke-width='1.2'/></svg>">
 <style>
@@ -16,7 +16,7 @@
     --card-border-color: #d4c8b8;
     --label-color: rgba(255,255,255,0.55);
     --border-color: rgba(255,255,255,0.2);
-    --dashed-border: rgba(255,255,255,0.2);
+    --dashed-border: rgba(255,255,255,0.10);
     --empty-placeholder-color: rgba(255,255,255,0.15);
     --message-color: #ffd700;
     --btn-bg: rgba(100,160,220,0.25);
@@ -33,7 +33,7 @@
     --card-back-sym: 36px;
     --game-pad: 20px;
     --pile-gap: 10px;
-    --top-row-gap: 30px;
+    --top-row-gap: 18px;
     --top-row-min-h: 150px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -263,6 +263,17 @@
     border: 2px solid rgba(255,255,255,0.1);
     border-radius: 50%;
   }
+  body[data-card-back="celtic"] .card.face-down {
+    background-color: #0a2e1f;
+    background-image:
+      repeating-linear-gradient(30deg, transparent, transparent 8px, rgba(180,160,100,0.08) 8px, rgba(180,160,100,0.08) 9px),
+      repeating-linear-gradient(-30deg, transparent, transparent 8px, rgba(180,160,100,0.06) 8px, rgba(180,160,100,0.06) 9px),
+      repeating-linear-gradient(90deg, transparent, transparent 14px, rgba(180,160,100,0.05) 14px, rgba(180,160,100,0.05) 15px);
+    border-color: rgba(180,160,100,0.3);
+  }
+  body[data-card-back="celtic"] .card.face-down::after {
+    content: '☘'; font-size: calc(var(--card-back-sym) * 0.8); color: rgba(180,160,100,0.2);
+  }
   /* Custom image card back */
   body[data-card-back="custom"] .card.face-down {
     background-color: #0d1b3e;
@@ -299,7 +310,7 @@
     font-size: 60px;
     text-shadow: 0 0 20px rgba(255,215,0,0.5), 0 0 60px rgba(255,215,0,0.3);
     margin-bottom: 20px;
-    animation: win-pop 0.6s ease-out 0.4s both;
+    animation: win-pop 0.5s ease-out 0.1s both;
   }
   @keyframes win-pop {
     0% { transform: scale(0.3); opacity: 0; }
@@ -316,7 +327,7 @@
     color: #000;
     font-weight: bold;
     transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
-    animation: win-fade-in 0.5s ease-out 0.7s both;
+    animation: win-fade-in 0.5s ease-out 0.1s both;
   }
   @keyframes win-fade-in {
     0% { opacity: 0; transform: translateY(20px); }
@@ -480,71 +491,73 @@
   }
   .settings-panel {
     background: #1e3a5f;
-    border-radius: 16px;
-    padding: 30px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 85vh;
+    border-radius: 14px;
+    padding: 22px 24px;
+    max-width: 460px;
+    width: 92%;
+    max-height: 88vh;
     overflow-y: auto;
     color: #fff;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   }
   .settings-panel h2 {
     text-align: center;
-    font-size: 28px;
-    margin-bottom: 24px;
+    font-size: 22px;
+    margin-bottom: 16px;
     color: #fff;
   }
   .setting-group {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
   .setting-group h3 {
-    font-size: 15px;
-    margin-bottom: 10px;
-    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+    margin-bottom: 7px;
+    color: rgba(255,255,255,0.55);
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
   .tile-grid {
     display: flex;
-    gap: 10px;
+    gap: 7px;
     flex-wrap: wrap;
   }
   .theme-tile, .back-tile {
     cursor: pointer;
-    border-radius: 10px;
-    padding: 8px 8px 6px;
+    border-radius: 8px;
+    padding: 6px 6px 5px;
     background: rgba(255,255,255,0.08);
     border: 2px solid transparent;
     text-align: center;
     transition: border-color 0.2s, background 0.2s, transform 0.15s;
-    width: 100px;
+    width: 78px;
   }
   .theme-tile:hover, .back-tile:hover {
     background: rgba(255,255,255,0.14);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
   .theme-tile.selected, .back-tile.selected {
     border-color: #ffd700;
     background: rgba(255,215,0,0.12);
   }
   .theme-tile .preview, .back-tile .preview {
-    width: 80px;
-    height: 56px;
-    border-radius: 6px;
+    width: 64px;
+    height: 44px;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 5px;
+    margin: 0 auto 4px;
     overflow: hidden;
   }
   .theme-tile .mini-card {
-    width: 50px;
-    height: 36px;
-    border-radius: 4px;
+    width: 40px;
+    height: 28px;
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: bold;
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   }
@@ -557,17 +570,58 @@
     left: 50%;
     transform: translate(-50%, -50%);
     color: rgba(255,255,255,0.35);
-    font-size: 20px;
+    font-size: 16px;
   }
   .tile-label {
-    font-size: 11px;
-    color: rgba(255,255,255,0.7);
+    font-size: 10px;
+    color: rgba(255,255,255,0.6);
+  }
+  /* Sound toggle switch */
+  .sound-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+  .sound-toggle-row span {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+  }
+  .sound-toggle {
+    position: relative;
+    width: 44px;
+    height: 26px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 13px;
+    cursor: pointer;
+    transition: background 0.25s;
+    flex-shrink: 0;
+  }
+  .sound-toggle.on {
+    background: rgba(100,200,150,0.5);
+  }
+  .sound-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+  .sound-toggle.on::after {
+    transform: translateX(18px);
   }
   .btn-settings-close {
     display: block;
-    margin: 8px auto 0;
-    padding: 12px 44px;
-    font-size: 16px;
+    margin: 4px auto 0;
+    padding: 10px 36px;
+    font-size: 14px;
     background: #ffd700;
     color: #000;
     font-weight: bold;
@@ -605,7 +659,7 @@
       --card-back-sym: 26px;
       --game-pad: 12px;
       --pile-gap: 8px;
-      --top-row-gap: 16px;
+      --top-row-gap: 12px;
       --top-row-min-h: 110px;
     }
     #game { max-width: 900px; }
@@ -616,9 +670,9 @@
     .btn-icon { padding: 8px 10px; font-size: 16px; }
     #win-overlay h1 { font-size: 42px; }
     #win-overlay button { padding: 12px 32px; font-size: 17px; }
-    .settings-panel h2 { font-size: 22px; }
-    .settings-panel { padding: 22px; }
-    .theme-tile, .back-tile { width: 80px; }
+    .settings-panel h2 { font-size: 20px; }
+    .settings-panel { padding: 16px 18px; }
+    .theme-tile, .back-tile { width: 64px; }
     #debug-panel { width: 190px; font-size: 11px; }
   }
 
@@ -635,7 +689,7 @@
       --card-back-sym: 20px;
       --game-pad: 8px;
       --pile-gap: 5px;
-      --top-row-gap: 10px;
+      --top-row-gap: 6px;
       --top-row-min-h: auto;
     }
     #game { max-width: 600px; }
@@ -646,13 +700,14 @@
     .btn-icon { padding: 7px 9px; font-size: 14px; }
     #win-overlay h1 { font-size: 30px; margin-bottom: 12px; }
     #win-overlay button { padding: 10px 24px; font-size: 15px; }
-    .settings-panel { padding: 16px; max-height: 90vh; }
-    .settings-panel h2 { font-size: 18px; margin-bottom: 16px; }
-    .setting-group { margin-bottom: 16px; }
-    .setting-group h3 { font-size: 13px; }
-    .theme-tile, .back-tile { width: 68px; padding: 6px; }
-    .tile-grid { gap: 6px; }
-    .btn-settings-close { padding: 10px 30px; font-size: 14px; }
+    .settings-panel { padding: 14px; max-height: 92vh; }
+    .settings-panel h2 { font-size: 17px; margin-bottom: 12px; }
+    .setting-group { margin-bottom: 12px; }
+    .setting-group h3 { font-size: 11px; }
+    .theme-tile, .back-tile { width: 56px; padding: 5px 4px 4px; }
+    .theme-tile .preview, .back-tile .preview { width: 46px; height: 32px; }
+    .tile-grid { gap: 5px; }
+    .btn-settings-close { padding: 8px 24px; font-size: 13px; }
     #debug-panel { width: 160px; font-size: 10px; padding: 14px 10px; }
     /* Stack top-row vertically on mobile */
     .top-row {
@@ -723,6 +778,14 @@
 <div id="settings-overlay">
   <div class="settings-panel">
     <h2>Settings</h2>
+    <div class="sound-toggle-row">
+      <span>🔊 Sound</span>
+      <div id="sound-toggle" class="sound-toggle on" onclick="toggleSound()"></div>
+    </div>
+    <div class="setting-group">
+      <h3>Draw Count</h3>
+      <div class="tile-grid" id="draw-grid"></div>
+    </div>
     <div class="setting-group">
       <h3>Color Theme</h3>
       <div class="tile-grid" id="theme-grid"></div>
@@ -730,9 +793,9 @@
     <div class="setting-group">
       <h3>Card Back</h3>
       <div class="tile-grid" id="back-grid"></div>
-      <div id="custom-back-row" style="display:none;margin-top:8px">
-        <input id="custom-back-url" type="text" placeholder="images/my-card-back.jpg" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:13px" onchange="saveCustomBackImage(this.value)">
-        <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px">Enter an image URL or local path. The image will be automatically resized and processed for use as a card back.</div>
+      <div id="custom-back-row" style="display:none;margin-top:6px">
+        <input id="custom-back-url" type="text" placeholder="images/my-card-back.jpg" style="width:100%;padding:7px 9px;border-radius:5px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:12px" onchange="saveCustomBackImage(this.value)">
+        <div style="font-size:9px;color:rgba(255,255,255,0.35);margin-top:3px">Enter an image URL or local path. The image will be automatically resized and processed for use as a card back.</div>
       </div>
     </div>
     <div class="setting-group">
@@ -740,12 +803,8 @@
       <div class="tile-grid" id="face-grid"></div>
     </div>
     <div class="setting-group">
-      <h3>Draw Count</h3>
-      <div class="tile-grid" id="draw-grid"></div>
-    </div>
-    <div class="setting-group">
-      <h3>Sound</h3>
-      <div class="tile-grid" id="sound-grid"></div>
+      <h3>Sound Theme</h3>
+      <div class="tile-grid" id="sound-theme-grid"></div>
     </div>
     <button class="btn btn-settings-close" onclick="closeSettings()">Done</button>
   </div>
@@ -769,12 +828,6 @@ const STATS_KEY = 'solitaire_stats';
 
 function saveGame() {
   try {
-    // Validate before saving to prevent persisting corrupted state
-    const result = validateGameState();
-    if (!result.valid) {
-      console.warn('Refusing to save corrupted state');
-      return;
-    }
     const state = { stock, waste, tableau, foundations, selectedCards };
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   } catch (e) { /* quota or other error */ }
@@ -790,6 +843,12 @@ function loadGame() {
     tableau = state.tableau || [[], [], [], [], [], [], []];
     foundations = state.foundations || [[], [], [], []];
     selectedCards = state.selectedCards || null;
+    // Validate loaded state; deal fresh if corrupted
+    if (!validateGameState().valid) {
+      console.warn('Loaded state was corrupted — dealing fresh game');
+      clearSavedGame();
+      return false;
+    }
     return true;
   } catch (e) {
     return false;
@@ -827,6 +886,7 @@ const THEMES = {
   classic: { name: 'Classic Green', bg: '#0d5c28', cardBg: '#fafaf7', red: '#b71c1c', black: '#1b1b1b', cardBorder: '#c8c8c0' },
   dark:    { name: 'Midnight',      bg: '#0f0f1a', cardBg: '#1e1e30', red: '#ff6b6b', black: '#d4d4e0', cardBorder: '#2a2a40' },
   forest:  { name: 'Cedar',         bg: '#1e3328', cardBg: '#f0ece4', red: '#a33030', black: '#1c1c1c', cardBorder: '#c4bfb4' },
+  clover:  { name: 'Clover',        bg: '#0a2e1f', cardBg: '#f5f0e0', red: '#8b1a1a', black: '#1c1c14', cardBorder: '#c8b898' },
 };
 
 const CARD_BACKS = {
@@ -835,6 +895,7 @@ const CARD_BACKS = {
   circuit: { name: 'Circuit', css: '#0c1a35', border: '#0c1a35', symbol: '⬡', symbolSize: '24px' },
   carbon:  { name: 'Carbon',  css: 'repeating-linear-gradient(135deg, #0d1a35 0px, #0d1a35 2px, #13264a 2px, #13264a 4px, #0f1e3d 4px, #0f1e3d 6px, #152b52 6px, #152b52 8px)', border: '#0d1a35', symbol: '◈', symbolSize: '26px' },
   minimal: { name: 'Minimal', css: '#0d1b3e', border: '#0d1b3e', symbol: '○', symbolSize: '18px' },
+  celtic:  { name: 'Celtic',  css: 'repeating-linear-gradient(45deg, #0a2e1f 0px, #0a2e1f 3px, #0d3826 3px, #0d3826 6px, #0a2e1f 6px, #0a2e1f 9px, #0c3322 9px, #0c3322 15px)', border: '#0a2e1f', symbol: '☘', symbolSize: '22px' },
 };
 
 const DEFAULT_SETTINGS = {
@@ -843,7 +904,8 @@ const DEFAULT_SETTINGS = {
   customBackImage: '',
   faceStyle: 'funny',
   drawCount: 3,
-  soundEnabled: true
+  soundEnabled: true,
+  soundTheme: 'zen'
 };
 
 function loadSettings() {
@@ -948,15 +1010,38 @@ function populateSettings() {
     drawGrid.appendChild(tile);
   });
   
-  const soundGrid = document.getElementById('sound-grid');
-  soundGrid.innerHTML = '';
-  [{v:true,n:'On',icon:'🔊'},{v:false,n:'Off',icon:'🔇'}].forEach(d => {
+  const soundThemeGrid = document.getElementById('sound-theme-grid');
+  soundThemeGrid.innerHTML = '';
+  Object.entries(SOUND_THEMES).forEach(([id, st]) => {
     const tile = document.createElement('div');
-    tile.className = 'back-tile' + (d.v === settings.soundEnabled ? ' selected' : '');
-    tile.onclick = () => selectSound(d.v);
-    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:24px">${d.icon}</div><div class="tile-label">${d.n}</div>`;
-    soundGrid.appendChild(tile);
+    tile.className = 'back-tile' + (id === settings.soundTheme ? ' selected' : '');
+    tile.onclick = () => selectSoundTheme(id);
+    const waveIcon = {sine:'〰️',triangle:'🔺',sawtooth:'📐',square:'👾'}[st.wave] || '🎵';
+    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:16px">${waveIcon}</div><div class="tile-label">${st.name}</div><div style="font-size:8px;color:rgba(255,255,255,0.35)">${st.desc}</div>`;
+    soundThemeGrid.appendChild(tile);
   });
+}
+
+function toggleSound() {
+  const settings = loadSettings();
+  settings.soundEnabled = !settings.soundEnabled;
+  saveSettings(settings);
+  updateSoundToggle();
+  if (settings.soundEnabled) playSound('draw');
+}
+
+function updateSoundToggle() {
+  const settings = loadSettings();
+  const toggle = document.getElementById('sound-toggle');
+  if (toggle) {
+    toggle.className = 'sound-toggle' + (settings.soundEnabled ? ' on' : '');
+  }
+}
+
+function openSettings() {
+  populateSettings();
+  updateSoundToggle();
+  document.getElementById('settings-overlay').classList.add('show');
 }
 
 function facePreviewSVG(style) {
@@ -994,6 +1079,7 @@ function facePreviewSVG(style) {
 
 function openSettings() {
   populateSettings();
+  updateSoundToggle();
   document.getElementById('settings-overlay').classList.add('show');
 }
 
@@ -1125,18 +1211,15 @@ function selectDrawCount(v) {
   });
 }
 
-function selectSound(v) {
+function selectSoundTheme(id) {
   const settings = loadSettings();
-  settings.soundEnabled = v;
+  settings.soundTheme = id;
   saveSettings(settings);
-  document.querySelectorAll('#sound-grid .back-tile').forEach(el => {
-    el.classList.toggle('selected', el.dataset.selected !== undefined ? el.dataset.selected === String(v) : false);
+  document.querySelectorAll('#sound-theme-grid .back-tile').forEach(el => {
+    el.classList.toggle('selected', false);
   });
-  // Refresh tiles
-  const soundGrid = document.getElementById('sound-grid');
-  soundGrid.querySelectorAll('.back-tile').forEach((el, i) => {
-    el.classList.toggle('selected', (i === 0 && v) || (i === 1 && !v));
-  });
+  // Play a sample of the new theme
+  playSound('draw');
 }
 
 function createDeck() {
@@ -1616,7 +1699,6 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
       }
     }
     if (!moved) {
-      showMessage('No valid move for this card');
       playSound('invalid');
     }
     return;
@@ -2366,11 +2448,12 @@ async function runAutoComplete() {
 
     render();
     saveGame();
+    playSound('foundation');
     await new Promise(r => setTimeout(r, GAP_MS));
   }
 
   autoCompleting = false;
-  await new Promise(r => setTimeout(r, 1000));
+  await new Promise(r => setTimeout(r, 500));
   checkWin();
 }
 
@@ -2545,6 +2628,76 @@ document.getElementById('settings-overlay').addEventListener('click', (e) => {
 // ── Sound Engine (Web Audio API, no external files) ──
 let audioCtx = null;
 
+const SOUND_THEMES = {
+  crystal: {
+    name: 'Crystal',
+    wave: 'sine',
+    clickHi: 1047, clickLo: 784, clickDur: 0.06,
+    dingLo: 988, dingHi: 1480, dingDur: 0.18,
+    bump: 247, bumpDur: 0.10,
+    deal: [659, 740, 831, 932, 1047, 1175, 1319],
+    dealGap: 0.055,
+    win: [{f:587,t:0},{f:740,t:0.10},{f:880,t:0.20},{f:1175,t:0.32}],
+    winDur: 0.45,
+    gain: 1.0,
+    desc: 'Bright & sparkling'
+  },
+  felt: {
+    name: 'Felt',
+    wave: 'triangle',
+    clickHi: 698, clickLo: 554, clickDur: 0.07,
+    dingLo: 659, dingHi: 988, dingDur: 0.20,
+    bump: 185, bumpDur: 0.12,
+    deal: [392, 440, 494, 554, 622, 698, 784],
+    dealGap: 0.065,
+    win: [{f:349,t:0},{f:466,t:0.14},{f:587,t:0.28},{f:784,t:0.42}],
+    winDur: 0.55,
+    gain: 0.85,
+    desc: 'Warm & classic'
+  },
+  zen: {
+    name: 'Zen',
+    wave: 'sine',
+    clickHi: 330, clickLo: 247, clickDur: 0.14,
+    dingLo: 294, dingHi: 440, dingDur: 0.35,
+    bump: 147, bumpDur: 0.18,
+    // Pentatonic: D F G A C — deep, widely spaced
+    deal: [147, 196, 247, 294, 370, 440, 523],
+    dealGap: 0.10,
+    win: [{f:196,t:0},{f:247,t:0.20},{f:294,t:0.40},{f:370,t:0.62},{f:440,t:0.84}],
+    winDur: 0.70,
+    gain: 0.55,
+    desc: 'Deep & resonant'
+  },
+  arcade: {
+    name: 'Arcade',
+    wave: 'square',
+    clickHi: 1319, clickLo: 988, clickDur: 0.04,
+    dingLo: 1175, dingHi: 1760, dingDur: 0.12,
+    bump: 311, bumpDur: 0.08,
+    deal: [587, 740, 880, 1047, 1175, 1480, 1760],
+    dealGap: 0.045,
+    win: [{f:587,t:0},{f:740,t:0.06},{f:880,t:0.12},{f:1047,t:0.18},{f:1319,t:0.24}],
+    winDur: 0.35,
+    gain: 0.5,
+    desc: 'Retro & snappy'
+  },
+  clover: {
+    name: 'Clover',
+    wave: 'triangle',
+    clickHi: 660, clickLo: 523, clickDur: 0.10,
+    dingLo: 587, dingHi: 880, dingDur: 0.25,
+    bump: 175, bumpDur: 0.14,
+    // D major scale (common Irish trad key)
+    deal: [294, 330, 370, 392, 440, 494, 587],
+    dealGap: 0.07,
+    win: [{f:294,t:0},{f:370,t:0.16},{f:440,t:0.32},{f:587,t:0.50},{f:740,t:0.66}],
+    winDur: 0.60,
+    gain: 0.70,
+    desc: 'Warm & lyrical'
+  }
+};
+
 function getAudioCtx() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2552,97 +2705,74 @@ function getAudioCtx() {
   return audioCtx;
 }
 
+function getSoundTheme() {
+  const settings = loadSettings();
+  return SOUND_THEMES[settings.soundTheme] || SOUND_THEMES.crystal;
+}
+
 function playSound(type) {
   const settings = loadSettings();
   if (!settings.soundEnabled) return;
   try {
     const ctx = getAudioCtx();
+    const th = getSoundTheme();
     switch (type) {
-      case 'deal':   playDeal(ctx); break;
-      case 'draw':   playClick(ctx, 800); break;
-      case 'place':  playClick(ctx, 600); break;
-      case 'foundation': playDing(ctx); break;
-      case 'win':    playWin(ctx); break;
-      case 'invalid': playBump(ctx); break;
-      case 'autocomplete': playClick(ctx, 1000); break;
+      case 'deal':   playDeal(ctx, th); break;
+      case 'draw':   playClick(ctx, th, th.clickHi); break;
+      case 'place':  playClick(ctx, th, th.clickLo); break;
+      case 'foundation': playDing(ctx, th); break;
+      case 'win':    playWin(ctx, th); break;
+      case 'invalid': playBump(ctx, th); break;
+      case 'autocomplete': playClick(ctx, th, th.clickHi); break;
     }
   } catch (e) { /* audio not available */ }
 }
 
-function playClick(ctx, freq) {
+function tone(ctx, th, freq, startTime, duration, vol) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
-  osc.type = 'sine';
+  osc.type = th.wave;
   osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.12, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+  const t = ctx.currentTime + (startTime || 0);
+  const d = duration || 0.12;
+  gain.gain.setValueAtTime((vol || 0.12) * th.gain, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + d);
   osc.connect(gain).connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.08);
+  osc.start(t);
+  osc.stop(t + d + 0.02);
 }
 
-function playDing(ctx) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(880, ctx.currentTime);
-  osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.06);
-  gain.gain.setValueAtTime(0.15, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.2);
+function playClick(ctx, th, freq) {
+  tone(ctx, th, freq, 0, th.clickDur, 0.12);
 }
 
-function playDeal(ctx) {
-  // Quick ascending ripple of 7 notes (one per tableau pile)
-  const notes = [523, 587, 659, 698, 784, 880, 988];
-  notes.forEach((freq, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-    const t = ctx.currentTime + i * 0.04;
-    gain.gain.setValueAtTime(0.1, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(t);
-    osc.stop(t + 0.1);
+function playDing(ctx, th) {
+  tone(ctx, th, th.dingLo, 0, th.dingDur, 0.14);
+  tone(ctx, th, th.dingHi, 0.04, th.dingDur * 0.85, 0.09);
+}
+
+function playDeal(ctx, th) {
+  th.deal.forEach((freq, i) => {
+    tone(ctx, th, freq, i * th.dealGap, th.dealGap * 1.8, 0.09);
   });
 }
 
-function playBump(ctx) {
+function playBump(ctx, th) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(200, ctx.currentTime);
-  osc.frequency.setValueAtTime(150, ctx.currentTime + 0.05);
-  gain.gain.setValueAtTime(0.1, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+  osc.type = th.wave;
+  osc.frequency.setValueAtTime(th.bump, ctx.currentTime);
+  osc.frequency.setValueAtTime(th.bump * 0.65, ctx.currentTime + th.bumpDur * 0.5);
+  gain.gain.setValueAtTime(0.10 * th.gain, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + th.bumpDur);
   osc.connect(gain).connect(ctx.destination);
   osc.start();
-  osc.stop(ctx.currentTime + 0.12);
+  osc.stop(ctx.currentTime + th.bumpDur + 0.02);
 }
 
-function playWin(ctx) {
-  // Triumphant three-note arpeggio: C-E-G-C
-  const notes = [
-    { freq: 523, time: 0 },
-    { freq: 659, time: 0.12 },
-    { freq: 784, time: 0.24 },
-    { freq: 1047, time: 0.40 }
-  ];
-  notes.forEach(({freq, time}) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-    const t = ctx.currentTime + time;
-    gain.gain.setValueAtTime(0.18, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(t);
-    osc.stop(t + 0.5);
+function playWin(ctx, th) {
+  th.win.forEach(({f, t}) => {
+    tone(ctx, th, f, t, th.winDur, 0.14);
   });
 }
 
