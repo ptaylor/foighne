@@ -1404,7 +1404,7 @@ const EASTER_EGGS = {
   },
   '05-10': {
     name: '💍 Wedding Anniversary',
-    particles: { shape:'sparkle', count:12, colors:['#ffd700','#ffec8b','#c0c0c0','#fff8dc'], size:[10,20], speed:[0.10,0.22], opacity:[0.16,0.28] }
+    particles: { shape:['heart','star'], count:16, colors:['#ffd700','#ffec8b','#fff8dc','#ff6b9d','#ffffff'], size:[14,28], speed:[0.08,0.20], opacity:[0.18,0.30] }
   },
   '06-21': {
     name: '☀️ Mid Summer',
@@ -1486,7 +1486,7 @@ function initEggParticles(cfg) {
       color: cfg.colors[Math.floor(Math.random() * cfg.colors.length)],
       opacity: cfg.opacity[0] + Math.random() * (cfg.opacity[1] - cfg.opacity[0]),
       phase: Math.random() * Math.PI * 2,
-      shape: cfg.shape,
+      shape: Array.isArray(cfg.shape) ? cfg.shape[Math.floor(Math.random() * cfg.shape.length)] : cfg.shape,
       rot: Math.random() * Math.PI * 2,
       rotSpeed: (Math.random() - 0.5) * 0.02
     });
@@ -1634,7 +1634,6 @@ function animateEgg() {
   const h = window.innerHeight;
   if (document.hidden) { eggAnimId = requestAnimationFrame(animateEgg); return; }
   eggCtx.clearRect(0, 0, w, h);
-  const drawFn = DRAW_FNS[eggParticles[0]?.shape] || drawCircle;
   for (const p of eggParticles) {
     p.x += p.vx + Math.sin(p.phase + performance.now() * 0.0005) * 0.15;
     p.y += p.vy;
@@ -1646,6 +1645,7 @@ function animateEgg() {
     if (p.x > w + p.size * 2) p.x = -p.size;
     eggCtx.globalAlpha = p.opacity;
     eggCtx.fillStyle = p.color;
+    const drawFn = DRAW_FNS[p.shape] || drawCircle;
     drawFn(eggCtx, p);
   }
   eggCtx.globalAlpha = 1;
