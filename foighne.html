@@ -154,6 +154,13 @@
     0%, 100% { box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5); }
     50% { box-shadow: 0 0 0 4px #ffd700, 0 0 28px rgba(255,215,0,0.7); }
   }
+  .card-flip {
+    animation: card-reveal 0.35s ease-out;
+  }
+  @keyframes card-reveal {
+    0% { transform: rotateY(90deg) scale(0.85); }
+    100% { transform: rotateY(0deg) scale(1); }
+  }
   @keyframes pulse-gold-btn {
     0%, 100% { box-shadow: 0 0 0 1px #ffd700, 0 0 10px rgba(255,215,0,0.4); }
     50% { box-shadow: 0 0 0 2px #ffd700, 0 0 16px rgba(255,215,0,0.55); }
@@ -822,6 +829,7 @@ let draggedCards = null;
 let dragOffsetX = 0, dragOffsetY = 0;
 let dragStartEl = null;
 let isDragging = false;
+let flippedCards = [];
 
 const SAVE_KEY = 'solitaire_save';
 const STATS_KEY = 'solitaire_stats';
@@ -887,6 +895,9 @@ const THEMES = {
   dark:    { name: 'Midnight',      bg: '#0f0f1a', cardBg: '#1e1e30', red: '#ff6b6b', black: '#d4d4e0', cardBorder: '#2a2a40' },
   forest:  { name: 'Cedar',         bg: '#1e3328', cardBg: '#f0ece4', red: '#a33030', black: '#1c1c1c', cardBorder: '#c4bfb4' },
   clover:  { name: 'Clover',        bg: '#0a2e1f', cardBg: '#f5f0e0', red: '#8b1a1a', black: '#1c1c14', cardBorder: '#c8b898' },
+  sunset:  { name: 'Sunset',        bg: '#3d1b2e', cardBg: '#faf5f0', red: '#b84040', black: '#2c1818', cardBorder: '#d4c0b0' },
+  ocean:   { name: 'Ocean',         bg: '#0a3d3d', cardBg: '#f0f5f5', red: '#b53434', black: '#1a2a2a', cardBorder: '#b8c8c8' },
+  paper:   { name: 'Paper',         bg: '#3d3226', cardBg: '#f5f0e4', red: '#8b4513', black: '#2c1810', cardBorder: '#c4b8a8' },
 };
 
 const CARD_BACKS = {
@@ -1688,6 +1699,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
         render();
         checkWin();
         playSound('foundation');
+        spawnFoundationParticle(f);
         return;
       }
     }
@@ -1720,6 +1732,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
           render();
           checkWin();
           playSound('foundation');
+          spawnFoundationParticle(f);
           return;
         }
       }
@@ -1753,12 +1766,13 @@ function getPile(type, idx) {
 }
 
 function flipTopTableau() {
-  // Flip top card of each tableau pile if face-down
+  flippedCards = [];
   for (let t = 0; t < 7; t++) {
     if (tableau[t].length > 0) {
       const top = tableau[t][tableau[t].length - 1];
       if (!top.faceUp) {
         top.faceUp = true;
+        flippedCards.push({t: t, ci: tableau[t].length - 1});
       }
     }
   }
@@ -1947,12 +1961,8 @@ function autoMoveToFoundation(pileType, pileIdx, cardIdx) {
       render();
       checkWin();
       playSound('foundation');
-      return;
-    }
-  }
-}
-
-document.addEventListener('dblclick', (e) => {
+      spawnFoundationParticle(f);
+      return;, (e) => {
   const cardEl = e.target.closest('.card');
   if (!cardEl) return;
   const pileEl = cardEl.closest('.pile');
@@ -2002,6 +2012,7 @@ function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
     destPile.push(cards[0]);
     flipTopTableau();
     playSound('foundation');
+    spawnFoundationParticle(destIdx);
   } else {
     srcPile.push(...cards);
     playSound('invalid');
@@ -2295,6 +2306,9 @@ function render() {
         const cardEl = createCardElement(card, ci);
         cardEl.style.top = (ci * stackOffset) + 'px';
         cardEl.style.zIndex = ci;
+        if (flippedCards.some(fc => fc.t === t && fc.ci === ci)) {
+          cardEl.classList.add('card-flip');
+        }
         if (selectedCards && selectedCards.pile === 'tableau' && 
             selectedCards.index === t && ci >= selectedCards.cardIndex) {
           cardEl.classList.add('selected');
@@ -2460,6 +2474,7 @@ async function runAutoComplete() {
     render();
     saveGame();
     playSound('foundation');
+    spawnFoundationParticle(destF);
     await new Promise(r => setTimeout(r, GAP_MS));
   }
 
@@ -2539,6 +2554,26 @@ function checkWin() {
   document.getElementById('win-overlay').classList.add('show');
   spawnSparkles();
   playSound('win');
+}
+
+function spawnFoundationParticle(destF) {
+  const el = document.querySelector(`.foundation[data-suit="${destF}"]`);
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const particle = document.createElement('div');
+  particle.style.cssText = `
+    position: fixed; pointer-events: none; z-index: 1001;
+    left: ${rect.left + rect.width/2}px; top: ${rect.top + rect.height/2}px;
+    width: 6px; height: 6px; background: #ffd700; border-radius: 50%;
+    transform: translate(-50%, -50%) scale(1); opacity: 0.9;
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+  `;
+  document.body.appendChild(particle);
+  requestAnimationFrame(() => {
+    particle.style.transform = 'translate(-50%, -50%) scale(4)';
+    particle.style.opacity = '0';
+  });
+  setTimeout(() => particle.remove(), 450);
 }
 
 function spawnSparkles() {
