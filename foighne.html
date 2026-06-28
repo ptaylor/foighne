@@ -743,6 +743,10 @@
       <h3>Draw Count</h3>
       <div class="tile-grid" id="draw-grid"></div>
     </div>
+    <div class="setting-group">
+      <h3>Sound</h3>
+      <div class="tile-grid" id="sound-grid"></div>
+    </div>
     <button class="btn btn-settings-close" onclick="closeSettings()">Done</button>
   </div>
 </div>
@@ -838,7 +842,8 @@ const DEFAULT_SETTINGS = {
   cardBack: 'prism',
   customBackImage: '',
   faceStyle: 'funny',
-  drawCount: 3
+  drawCount: 3,
+  soundEnabled: true
 };
 
 function loadSettings() {
@@ -941,6 +946,16 @@ function populateSettings() {
     tile.onclick = () => selectDrawCount(d.v);
     tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:32px;color:rgba(255,255,255,0.6)">${d.v}</div><div class="tile-label">${d.n}</div>`;
     drawGrid.appendChild(tile);
+  });
+  
+  const soundGrid = document.getElementById('sound-grid');
+  soundGrid.innerHTML = '';
+  [{v:true,n:'On',icon:'🔊'},{v:false,n:'Off',icon:'🔇'}].forEach(d => {
+    const tile = document.createElement('div');
+    tile.className = 'back-tile' + (d.v === settings.soundEnabled ? ' selected' : '');
+    tile.onclick = () => selectSound(d.v);
+    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:24px">${d.icon}</div><div class="tile-label">${d.n}</div>`;
+    soundGrid.appendChild(tile);
   });
 }
 
@@ -1107,6 +1122,20 @@ function selectDrawCount(v) {
   saveSettings(settings);
   document.querySelectorAll('#draw-grid .back-tile').forEach(el => {
     el.classList.toggle('selected', parseInt(el.dataset.draw) === v);
+  });
+}
+
+function selectSound(v) {
+  const settings = loadSettings();
+  settings.soundEnabled = v;
+  saveSettings(settings);
+  document.querySelectorAll('#sound-grid .back-tile').forEach(el => {
+    el.classList.toggle('selected', el.dataset.selected !== undefined ? el.dataset.selected === String(v) : false);
+  });
+  // Refresh tiles
+  const soundGrid = document.getElementById('sound-grid');
+  soundGrid.querySelectorAll('.back-tile').forEach((el, i) => {
+    el.classList.toggle('selected', (i === 0 && v) || (i === 1 && !v));
   });
 }
 
@@ -1487,6 +1516,7 @@ function newGame() {
   dealBoard();
   render();
   saveGame();
+  playSound('deal');
 }
 
 function suitSymbol(s) {
@@ -1541,6 +1571,7 @@ function drawStock() {
   }
   selectedCards = null;
   render();
+  playSound('draw');
 }
 
 function clickCard(e, pileType, pileIdx, cardIdx) {
@@ -1568,6 +1599,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
         flipTopTableau();
         render();
         checkWin();
+        playSound('foundation');
         return;
       }
     }
@@ -1579,11 +1611,13 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
         moved = true;
         flipTopTableau();
         render();
+        playSound('place');
         return;
       }
     }
     if (!moved) {
       showMessage('No valid move for this card');
+      playSound('invalid');
     }
     return;
   }
@@ -1598,6 +1632,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
           flipTopTableau();
           render();
           checkWin();
+          playSound('foundation');
           return;
         }
       }
@@ -1818,6 +1853,7 @@ function autoMoveToFoundation(pileType, pileIdx, cardIdx) {
       if (pileType === 'tableau') flipTopTableau();
       render();
       checkWin();
+      playSound('foundation');
       return;
     }
   }
@@ -1857,21 +1893,25 @@ function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
   
   if (destType === 'tableau') {
     if (!canPlaceOnTableau(cards[0], tableau[destIdx])) {
-      // Revert
       srcPile.push(...cards);
+      playSound('invalid');
       return;
     }
     destPile.push(...cards);
     flipTopTableau();
+    playSound('place');
   } else if (destType === 'foundation' && cards.length === 1) {
     if (!canPlaceOnFoundation(cards[0], foundations[destIdx])) {
       srcPile.push(...cards);
+      playSound('invalid');
       return;
     }
     destPile.push(cards[0]);
     flipTopTableau();
+    playSound('foundation');
   } else {
     srcPile.push(...cards);
+    playSound('invalid');
   }
 }
 
@@ -2403,6 +2443,7 @@ function checkWin() {
   clearSavedGame();
   document.getElementById('win-overlay').classList.add('show');
   spawnSparkles();
+  playSound('win');
 }
 
 function spawnSparkles() {
@@ -2458,8 +2499,10 @@ document.addEventListener('click', (e) => {
       selectedCards = null;
       render();
       checkWin();
+      playSound('place');
     } else {
       showMessage('Only a King can start an empty tableau pile');
+      playSound('invalid');
     }
   } else {
     if (canPlaceOnTableau(cards[0], destPile)) {
@@ -2469,8 +2512,10 @@ document.addEventListener('click', (e) => {
       selectedCards = null;
       render();
       checkWin();
+      playSound('place');
     } else {
       showMessage('Invalid move');
+      playSound('invalid');
     }
   }
 });
@@ -2496,6 +2541,110 @@ document.addEventListener('keydown', (e) => {
 document.getElementById('settings-overlay').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeSettings();
 });
+
+// ── Sound Engine (Web Audio API, no external files) ──
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+function playSound(type) {
+  const settings = loadSettings();
+  if (!settings.soundEnabled) return;
+  try {
+    const ctx = getAudioCtx();
+    switch (type) {
+      case 'deal':   playDeal(ctx); break;
+      case 'draw':   playClick(ctx, 800); break;
+      case 'place':  playClick(ctx, 600); break;
+      case 'foundation': playDing(ctx); break;
+      case 'win':    playWin(ctx); break;
+      case 'invalid': playBump(ctx); break;
+      case 'autocomplete': playClick(ctx, 1000); break;
+    }
+  } catch (e) { /* audio not available */ }
+}
+
+function playClick(ctx, freq) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.12, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.08);
+}
+
+function playDing(ctx) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(880, ctx.currentTime);
+  osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.06);
+  gain.gain.setValueAtTime(0.15, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.2);
+}
+
+function playDeal(ctx) {
+  // Quick ascending ripple of 7 notes (one per tableau pile)
+  const notes = [523, 587, 659, 698, 784, 880, 988];
+  notes.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    const t = ctx.currentTime + i * 0.04;
+    gain.gain.setValueAtTime(0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.1);
+  });
+}
+
+function playBump(ctx) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(200, ctx.currentTime);
+  osc.frequency.setValueAtTime(150, ctx.currentTime + 0.05);
+  gain.gain.setValueAtTime(0.1, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.12);
+}
+
+function playWin(ctx) {
+  // Triumphant three-note arpeggio: C-E-G-C
+  const notes = [
+    { freq: 523, time: 0 },
+    { freq: 659, time: 0.12 },
+    { freq: 784, time: 0.24 },
+    { freq: 1047, time: 0.40 }
+  ];
+  notes.forEach(({freq, time}) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    const t = ctx.currentTime + time;
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.5);
+  });
+}
 
 // Start game — restore saved state or deal fresh
 applySettings();
