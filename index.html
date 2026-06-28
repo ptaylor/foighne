@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="version" content="v1.13">
-<meta name="commit" content="2f65e66">
+<meta name="version" content="v1.14">
+<meta name="commit" content="a138fb2">
 <title>Foighne</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
 <style>
@@ -1658,12 +1658,14 @@ function drawCross(ctx, p) {
   ctx.rotate(p.rot + Math.PI / 4);
   // straw/rush tones
   const strawLight = '#e8d48b';
-  const strawDark = '#c4a23c';
-  const bandColor = '#8b6914';
-  // central woven diamond
-  const ctr = s * 0.18;
+  const strawMid   = '#d4b840';
+  const strawDark  = '#c4a23c';
+  const bandColor  = '#8b6914';
+  // central woven diamond — "God's eye"
+  const ctr = s * 0.16;
   ctx.fillStyle = strawLight;
   ctx.fillRect(-ctr, -ctr, ctr * 2, ctr * 2);
+  // weave detail
   ctx.strokeStyle = strawDark;
   ctx.lineWidth = Math.max(0.6, s * 0.04);
   ctx.beginPath();
@@ -1671,37 +1673,49 @@ function drawCross(ctx, p) {
   ctx.moveTo(-ctr, ctr); ctx.lineTo(ctr, -ctr);
   ctx.stroke();
   ctx.lineWidth = 1;
-  // four offset arms — each starts from a different corner of the centre square
-  // so they don't all converge on one point (woven offset look)
-  const offsets = [
-    { dx: -1, dy: -1, ox: -ctr, oy: -ctr },  // top-left arm
-    { dx:  1, dy: -1, ox:  ctr, oy: -ctr },  // top-right arm
-    { dx:  1, dy:  1, ox:  ctr, oy:  ctr },  // bottom-right arm
-    { dx: -1, dy:  1, ox: -ctr, oy:  ctr },  // bottom-left arm
+  // inner diamond highlight
+  ctx.fillStyle = strawMid;
+  ctx.fillRect(-ctr*0.5, -ctr*0.5, ctr, ctr);
+  // four arms — each starts offset from a different corner of the centre square
+  // like real Brigid's crosses where reeds bend around each other
+  const arms = [
+    { baseX: -ctr, baseY: -ctr, dx: -1, dy: -1 },  // top-left
+    { baseX:  ctr, baseY: -ctr, dx:  1, dy: -1 },  // top-right
+    { baseX:  ctr, baseY:  ctr, dx:  1, dy:  1 },  // bottom-right
+    { baseX: -ctr, baseY:  ctr, dx: -1, dy:  1 },  // bottom-left
   ];
-  for (const arm of offsets) {
-    const { dx, dy, ox, oy } = arm;
-    // arm base at offset corner, arm tip further out
-    const tx = dx * s * 0.58, ty = dy * s * 0.58;
-    // two reed strands per arm, offset slightly for layered look
-    for (let strand = 0; strand < 2; strand++) {
-      const side = (strand - 0.5) * s * 0.1;
-      const bx = ox + dy * side, by = oy + dx * side;
-      const ex = tx + dy * side * 0.5, ey = ty + dx * side * 0.5;
-      ctx.fillStyle = strand === 0 ? strawLight : strawDark;
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.lineTo(ex, ey);
-      ctx.lineWidth = Math.max(1.2, s * 0.09);
-      ctx.strokeStyle = ctx.fillStyle;
-      ctx.stroke();
-      ctx.lineWidth = 1;
-    }
-    // tied band near tip
-    const bx2 = tx, by2 = ty;
-    const px = dy * s * 0.06, py = -dx * s * 0.06;
+  for (const a of arms) {
+    // arm is a flat reed bundle — wider at base, tapering slightly to tip
+    const tipX = a.dx * s * 0.55, tipY = a.dy * s * 0.55;
+    const perpX = a.dy, perpY = -a.dx; // perpendicular direction
+    const baseW = s * 0.14;
+    const tipW  = s * 0.09;
+    // draw arm as filled polygon with straw texture stripes
+    ctx.fillStyle = strawLight;
+    ctx.beginPath();
+    ctx.moveTo(a.baseX + perpX * baseW, a.baseY + perpY * baseW);
+    ctx.lineTo(tipX + perpX * tipW, tipY + perpY * tipW);
+    ctx.lineTo(tipX - perpX * tipW, tipY - perpY * tipW);
+    ctx.lineTo(a.baseX - perpX * baseW, a.baseY - perpY * baseW);
+    ctx.closePath();
+    ctx.fill();
+    // darker stripe through middle of arm for reed texture
+    ctx.fillStyle = strawDark;
+    ctx.beginPath();
+    ctx.moveTo(a.baseX + perpX * baseW * 0.25, a.baseY + perpY * baseW * 0.25);
+    ctx.lineTo(tipX + perpX * tipW * 0.25, tipY + perpY * tipW * 0.25);
+    ctx.lineTo(tipX - perpX * tipW * 0.25, tipY - perpY * tipW * 0.25);
+    ctx.lineTo(a.baseX - perpX * baseW * 0.25, a.baseY - perpY * baseW * 0.25);
+    ctx.closePath();
+    ctx.fill();
+    // tied band at tip
+    const bw = tipW * 1.6;
     ctx.fillStyle = bandColor;
-    ctx.fillRect(bx2 - s * 0.03 - px, by2 - s * 0.03 - py, s * 0.06 + px * 2, s * 0.06 + py * 2);
+    ctx.save();
+    ctx.translate(tipX, tipY);
+    ctx.rotate(Math.atan2(a.dy, a.dx) + Math.PI/2);
+    ctx.fillRect(-bw, -s*0.035, bw*2, s*0.07);
+    ctx.restore();
   }
   ctx.restore();
 }
