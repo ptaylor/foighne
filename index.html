@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="version" content="v1.9">
-<meta name="commit" content="3b9c7c5">
+<meta name="version" content="v1.10">
+<meta name="commit" content="499f9e7">
 <title>Foighne</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23f7f2e8'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23c22' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23c22'/><circle cx='16' cy='9' r='1.5' fill='%23fdd'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23c22'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23c22'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fdd'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c22'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c22'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23c22' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23c22' stroke-width='1.2'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
 <style>
   :root {
     --bg-color: #0d4f7c;
@@ -47,6 +47,8 @@
     align-items: center;
   }
   #game {
+    position: relative;
+    z-index: 1;
     padding: var(--game-pad);
     width: 100%;
     max-width: 1100px;
@@ -76,7 +78,6 @@
     min-width: var(--card-width);
     min-height: var(--card-height);
     border-radius: 8px;
-    border: 2px dashed var(--dashed-border);
   }
   .pile.tableau-pile {
     flex: 1;
@@ -153,6 +154,13 @@
   @keyframes pulse-gold {
     0%, 100% { box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5); }
     50% { box-shadow: 0 0 0 4px #ffd700, 0 0 28px rgba(255,215,0,0.7); }
+  }
+  .card-flip {
+    animation: card-reveal 0.35s ease-out;
+  }
+  @keyframes card-reveal {
+    0% { transform: rotateY(90deg) scale(0.85); }
+    100% { transform: rotateY(0deg) scale(1); }
   }
   @keyframes pulse-gold-btn {
     0%, 100% { box-shadow: 0 0 0 1px #ffd700, 0 0 10px rgba(255,215,0,0.4); }
@@ -355,6 +363,14 @@
     pointer-events: none;
     border-radius: 8px;
     box-shadow: 2px 4px 20px rgba(0,0,0,0.5);
+  }
+  #egg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    display: none;
   }
   .btn {
     padding: 10px 22px;
@@ -775,6 +791,7 @@
   <h1>&#127881; You Win! &#127881;</h1>
   <button onclick="newGame()">Play Again</button>
 </div>
+<canvas id="egg-canvas"></canvas>
 <div id="settings-overlay">
   <div class="settings-panel">
     <h2>Settings</h2>
@@ -822,6 +839,7 @@ let draggedCards = null;
 let dragOffsetX = 0, dragOffsetY = 0;
 let dragStartEl = null;
 let isDragging = false;
+let flippedCards = [];
 
 const SAVE_KEY = 'solitaire_save';
 const STATS_KEY = 'solitaire_stats';
@@ -845,7 +863,7 @@ function loadGame() {
     selectedCards = state.selectedCards || null;
     // Validate loaded state; deal fresh if corrupted
     if (!validateGameState().valid) {
-      console.warn('Loaded state was corrupted — dealing fresh game');
+      console.log('Saved game was incomplete — dealing a fresh one');
       clearSavedGame();
       return false;
     }
@@ -883,6 +901,9 @@ const SETTINGS_KEY = 'solitaire_settings';
 
 const THEMES = {
   azure:   { name: 'Azure',        bg: '#0d4f7c', cardBg: '#f7f2e8', red: '#c0392b', black: '#1a1a2e', cardBorder: '#d4c8b8' },
+  paper:   { name: 'Paper',         bg: '#3d3226', cardBg: '#f5f0e4', red: '#8b4513', black: '#2c1810', cardBorder: '#c4b8a8' },
+  ocean:   { name: 'Ocean',         bg: '#0a3d3d', cardBg: '#f0f5f5', red: '#b53434', black: '#1a2a2a', cardBorder: '#b8c8c8' },
+  sunset:  { name: 'Sunset',        bg: '#3d1b2e', cardBg: '#faf5f0', red: '#b84040', black: '#2c1818', cardBorder: '#d4c0b0' },
   classic: { name: 'Classic Green', bg: '#0d5c28', cardBg: '#fafaf7', red: '#b71c1c', black: '#1b1b1b', cardBorder: '#c8c8c0' },
   dark:    { name: 'Midnight',      bg: '#0f0f1a', cardBg: '#1e1e30', red: '#ff6b6b', black: '#d4d4e0', cardBorder: '#2a2a40' },
   forest:  { name: 'Cedar',         bg: '#1e3328', cardBg: '#f0ece4', red: '#a33030', black: '#1c1c1c', cardBorder: '#c4bfb4' },
@@ -1015,6 +1036,7 @@ function populateSettings() {
   Object.entries(SOUND_THEMES).forEach(([id, st]) => {
     const tile = document.createElement('div');
     tile.className = 'back-tile' + (id === settings.soundTheme ? ' selected' : '');
+    tile.dataset.soundTheme = id;
     tile.onclick = () => selectSoundTheme(id);
     const waveIcon = {sine:'〰️',triangle:'🔺',sawtooth:'📐',square:'👾'}[st.wave] || '🎵';
     tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:16px">${waveIcon}</div><div class="tile-label">${st.name}</div><div style="font-size:8px;color:rgba(255,255,255,0.35)">${st.desc}</div>`;
@@ -1036,12 +1058,6 @@ function updateSoundToggle() {
   if (toggle) {
     toggle.className = 'sound-toggle' + (settings.soundEnabled ? ' on' : '');
   }
-}
-
-function openSettings() {
-  populateSettings();
-  updateSoundToggle();
-  document.getElementById('settings-overlay').classList.add('show');
 }
 
 function facePreviewSVG(style) {
@@ -1110,7 +1126,10 @@ function selectCardBack(id) {
   const customRow = document.getElementById('custom-back-row');
   if (customRow) customRow.style.display = id === 'custom' ? 'block' : 'none';
   const customUrl = document.getElementById('custom-back-url');
-  if (customUrl) customUrl.value = settings.customBackImage || '';
+  if (customUrl) {
+    customUrl.value = '';
+    customUrl.placeholder = settings.customBackImage ? '✅ Image loaded — enter new path to change' : 'images/my-card-back.jpg';
+  }
 }
 
 function saveCustomBackImage(url) {
@@ -1216,9 +1235,8 @@ function selectSoundTheme(id) {
   settings.soundTheme = id;
   saveSettings(settings);
   document.querySelectorAll('#sound-theme-grid .back-tile').forEach(el => {
-    el.classList.toggle('selected', false);
+    el.classList.toggle('selected', el.dataset.soundTheme === id);
   });
-  // Play a sample of the new theme
   playSound('draw');
 }
 
@@ -1366,56 +1384,429 @@ function setupNearlyComplete() {
 // ---- DEBUG MODE ----
 let debugMode = false;
 let activeEgg = null;
+let eggParticles = [];
+let eggAnimId = null;
+let eggCanvas = null;
+let eggCtx = null;
 
 const EASTER_EGGS = {
+  '01-01': {
+    name: '🎉 New Year\'s Day',
+    particles: { shape:['star','star','star','burst'], count:16, colors:['#ffd700','#fff8dc','#ff6347','#00bfff','#ffffff','#ffec8b'], size:[12,24], speed:[0.10,0.25], opacity:[0.18,0.32] }
+  },
+  '02-14': {
+    name: '💕 Valentine\'s Day',
+    particles: { shape:'heart', count:15, colors:['#e63946','#ff1744','#ff4081','#ff6b9d','#ff85b3'], size:[20,36], speed:[0.06,0.16], opacity:[0.20,0.34] }
+  },
+  '03-17': {
+    name: '☘️ St Patrick\'s Day',
+    particles: { shape:'shamrock', count:14, colors:['#6bcb77','#8fd99a','#3da55a','#b8e6c0'], size:[12,22], speed:[0.08,0.20], opacity:[0.15,0.26] }
+  },
+  '05-10': {
+    name: '💍 Wedding Anniversary',
+    particles: { shape:['heart','heart','star'], count:16, colors:['#ffd700','#ffec8b','#fff8dc','#ff6b9d','#ffffff'], size:[14,28], speed:[0.08,0.20], opacity:[0.18,0.30] }
+  },
+  '06-21': {
+    name: '☀️ Mid Summer',
+    particles: { shape:'sun', count:14, colors:['#ffd93d','#ffb347','#ffaa00','#ffec8b','#ffeaa7'], size:[16,30], speed:[0.05,0.15], opacity:[0.18,0.30] }
+  },
   '07-07': {
     name: '🎂 Birthday Celebration',
-    css: `
-      body.egg- { background: linear-gradient(135deg, #0d4f7c 0%, #1a3a6e 30%, #2c1050 50%, #1a3a6e 70%, #0d4f7c 100%); background-size: 400% 400%; animation: bg-party 8s ease infinite; }
-      @keyframes bg-party { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
-      body.egg-::before {
-        content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        pointer-events: none; z-index: 0; opacity: 0.4;
-        background:
-          radial-gradient(2px 2px at 15% 20%, #ffd93d 50%, transparent 50%),
-          radial-gradient(2px 2px at 30% 60%, #ff6b9d 50%, transparent 50%),
-          radial-gradient(2px 2px at 50% 15%, #6bcb77 50%, transparent 50%),
-          radial-gradient(2px 2px at 70% 50%, #4d96ff 50%, transparent 50%),
-          radial-gradient(2px 2px at 85% 30%, #ffd93d 50%, transparent 50%),
-          radial-gradient(3px 3px at 10% 70%, #ff6b9d 50%, transparent 50%),
-          radial-gradient(3px 3px at 40% 85%, #6bcb77 50%, transparent 50%),
-          radial-gradient(3px 3px at 60% 10%, #4d96ff 50%, transparent 50%),
-          radial-gradient(2px 2px at 90% 75%, #ffd93d 50%, transparent 50%),
-          radial-gradient(3px 3px at 20% 40%, #ff6b9d 50%, transparent 50%),
-          radial-gradient(2px 2px at 75% 80%, #6bcb77 50%, transparent 50%),
-          radial-gradient(2px 2px at 45% 55%, #4d96ff 50%, transparent 50%),
-          radial-gradient(3px 3px at 5% 10%, #ffd93d 50%, transparent 50%),
-          radial-gradient(2px 2px at 55% 70%, #ff6b9d 50%, transparent 50%),
-          radial-gradient(3px 3px at 35% 25%, #6bcb77 50%, transparent 50%);
-        animation: confetti 10s linear infinite;
-      }
-      @keyframes confetti {
-        0% { transform: translateY(-10px); opacity: 0.3; }
-        25% { transform: translateY(5px); opacity: 0.5; }
-        50% { transform: translateY(-5px); opacity: 0.35; }
-        75% { transform: translateY(10px); opacity: 0.5; }
-        100% { transform: translateY(-10px); opacity: 0.3; }
-      }
-      body.egg- .card.face-up { border-color: #c9a84c !important; box-shadow: 1px 1px 4px rgba(201,168,76,0.3); }
-      body.egg- .card.face-down { border-color: rgba(201,168,76,0.5) !important; }
-      body.egg- .card.selected { animation: pulse-egg 1.5s ease-in-out infinite; box-shadow: 0 0 0 3px #c9a84c, 0 0 18px rgba(201,168,76,0.5); }
-      @keyframes pulse-egg { 0%,100%{box-shadow:0 0 0 3px #c9a84c,0 0 18px rgba(201,168,76,0.5)} 50%{box-shadow:0 0 0 4px #c9a84c,0 0 28px rgba(201,168,76,0.7)} }
-      body.egg- #game-title { color: rgba(201,168,76,0.25); }
-    `
+    particles: { shape:['balloon','balloon','balloon','sparkle'], count:16, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff','#ffb347'], size:[16,30], speed:[0.08,0.20], opacity:[0.18,0.30] }
+  },
+  '12-21--12-22': {
+    name: '❄️ Mid Winter',
+    particles: { shape:'snowflake', count:16, colors:['#ffffff','#d4e6f1','#e8f4f8','#bdd7ee'], size:[14,26], speed:[0.06,0.16], fall:true, opacity:[0.18,0.30] }
+  },
+  '12-24--01-06': {
+    name: '🎄 Christmas Week',
+    particles: { shape:['santa','santa','tree','star'], count:16, colors:['#e74c3c','#27ae60','#ffffff','#ffd700'], size:[18,34], speed:[0.07,0.18], opacity:[0.18,0.30] }
   }
 };
 
+function eggKeyToDateRange(key) {
+  if (key.includes('--')) {
+    const [s, e] = key.split('--');
+    const [sm, sd] = s.split('-').map(Number);
+    const [em, ed] = e.split('-').map(Number);
+    return { start: sm * 100 + sd, end: em * 100 + ed, isRange: true };
+  }
+  const [m, d] = key.split('-').map(Number);
+  return { start: m * 100 + d, end: m * 100 + d, isRange: false };
+}
+
+function isDateInRange(today, range) {
+  const tv = (today.getMonth() + 1) * 100 + today.getDate();
+  if (!range.isRange) return tv === range.start;
+  if (range.start <= range.end) return tv >= range.start && tv <= range.end;
+  // wraps year boundary (e.g. Dec 24 – Jan 6)
+  return tv >= range.start || tv <= range.end;
+}
+
 function checkEasterEgg() {
   const today = new Date();
-  const key = String(today.getMonth() + 1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-  if (EASTER_EGGS[key]) {
-    activateEgg(key);
+  for (const [key, egg] of Object.entries(EASTER_EGGS)) {
+    if (isDateInRange(today, eggKeyToDateRange(key))) {
+      activateEgg(key);
+      return;
+    }
   }
+}
+
+function initEggCanvas() {
+  if (eggCanvas) return;
+  eggCanvas = document.getElementById('egg-canvas');
+  if (!eggCanvas) return;
+  eggCtx = eggCanvas.getContext('2d');
+}
+
+function resizeEggCanvas() {
+  if (!eggCanvas) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  eggCanvas.width = w * dpr;
+  eggCanvas.height = h * dpr;
+  eggCanvas.style.width = w + 'px';
+  eggCanvas.style.height = h + 'px';
+  if (eggCtx) eggCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function initEggParticles(cfg) {
+  eggParticles = [];
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  for (let i = 0; i < cfg.count; i++) {
+    eggParticles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * cfg.speed[1] * 0.4,
+      vy: (cfg.fall ? 1 : -1) * (cfg.speed[0] + Math.random() * (cfg.speed[1] - cfg.speed[0])),
+      size: cfg.size[0] + Math.random() * (cfg.size[1] - cfg.size[0]),
+      color: cfg.colors[Math.floor(Math.random() * cfg.colors.length)],
+      opacity: cfg.opacity[0] + Math.random() * (cfg.opacity[1] - cfg.opacity[0]),
+      phase: Math.random() * Math.PI * 2,
+      shape: Array.isArray(cfg.shape) ? cfg.shape[Math.floor(Math.random() * cfg.shape.length)] : cfg.shape,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.02
+    });
+  }
+}
+
+function drawCircle(ctx, p) {
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawSparkle(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * s, Math.sin(a) * s);
+    const ba = a + Math.PI / 4;
+    ctx.lineTo(Math.cos(ba) * s * 0.35, Math.sin(ba) * s * 0.35);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawStar(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const outerA = (i * Math.PI * 2) / 5 - Math.PI / 2;
+    const innerA = outerA + Math.PI / 5;
+    const ox = Math.cos(outerA) * s;
+    const oy = Math.sin(outerA) * s;
+    const ix = Math.cos(innerA) * s * 0.38;
+    const iy = Math.sin(innerA) * s * 0.38;
+    if (i === 0) ctx.moveTo(ox, oy);
+    else ctx.lineTo(ox, oy);
+    ctx.lineTo(ix, iy);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBurst(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // central glow
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  // rays
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    ctx.moveTo(Math.cos(a) * s * 0.3, Math.sin(a) * s * 0.3);
+    ctx.lineTo(Math.cos(a) * s, Math.sin(a) * s);
+  }
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = Math.max(1.2, s * 0.12);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
+function drawSun(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // disc
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+  // triangular rays
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = (i * Math.PI * 2) / 10;
+    const r1 = s * 0.5;
+    const r2 = s;
+    ctx.moveTo(Math.cos(a - 0.12) * r1, Math.sin(a - 0.12) * r1);
+    ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+    ctx.lineTo(Math.cos(a + 0.12) * r1, Math.sin(a + 0.12) * r1);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBalloon(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.3);
+  // balloon body — slightly taller ellipse
+  ctx.beginPath();
+  ctx.ellipse(0, -s * 0.1, s * 0.38, s * 0.48, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // knot — tiny triangle
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.08, s * 0.35);
+  ctx.lineTo(s * 0.08, s * 0.35);
+  ctx.lineTo(0, s * 0.48);
+  ctx.closePath();
+  ctx.fill();
+  // string — short curved line
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.46);
+  ctx.quadraticCurveTo(s * 0.15, s * 0.75, -s * 0.05, s * 0.95);
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = Math.max(0.8, s * 0.06);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
+function drawSanta(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.15);
+  // hat — red triangle
+  ctx.fillStyle = '#cc0000';
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.32, -s * 0.15);
+  ctx.lineTo(s * 0.32, -s * 0.15);
+  ctx.lineTo(0, -s * 0.65);
+  ctx.closePath();
+  ctx.fill();
+  // hat brim
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(-s * 0.38, -s * 0.2, s * 0.76, s * 0.12);
+  // hat pompom
+  ctx.beginPath();
+  ctx.arc(0, -s * 0.65, s * 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  // face
+  ctx.fillStyle = '#ffe4c4';
+  ctx.beginPath();
+  ctx.arc(0, s * 0.08, s * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // eyes
+  ctx.fillStyle = '#222';
+  ctx.beginPath();
+  ctx.arc(-s * 0.1, s * 0.02, s * 0.05, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(s * 0.1, s * 0.02, s * 0.05, 0, Math.PI * 2);
+  ctx.fill();
+  // beard
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(0, s * 0.25, s * 0.32, 0, Math.PI);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawTree(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.15);
+  // trunk
+  ctx.fillStyle = '#8b5e3c';
+  ctx.fillRect(-s * 0.1, s * 0.3, s * 0.2, s * 0.25);
+  // tree — three stacked triangles
+  ctx.fillStyle = '#228b22';
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.6);
+  ctx.lineTo(-s * 0.35, s * 0.05);
+  ctx.lineTo(s * 0.35, s * 0.05);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#1a6b1a';
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.35);
+  ctx.lineTo(-s * 0.3, s * 0.2);
+  ctx.lineTo(s * 0.3, s * 0.2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#2ecc40';
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.15);
+  ctx.lineTo(-s * 0.25, s * 0.35);
+  ctx.lineTo(s * 0.25, s * 0.35);
+  ctx.closePath();
+  ctx.fill();
+  // star on top
+  ctx.fillStyle = '#ffd700';
+  ctx.save();
+  ctx.translate(0, -s * 0.58);
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = (i * Math.PI * 2) / 5 - Math.PI / 2;
+    const ia = a + Math.PI / 5;
+    const ox = Math.cos(a) * s * 0.12, oy = Math.sin(a) * s * 0.12;
+    const ix = Math.cos(ia) * s * 0.05, iy = Math.sin(ia) * s * 0.05;
+    if (i === 0) ctx.moveTo(ox, oy); else ctx.lineTo(ox, oy);
+    ctx.lineTo(ix, iy);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawHeart(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y - s * 0.25);
+  ctx.rotate(p.rot * 0.5);
+  ctx.beginPath();
+  const r = s * 0.4;
+  ctx.moveTo(0, s * 0.35);
+  ctx.bezierCurveTo(-s * 0.5, -s * 0.15, -r, -s * 0.55, 0, -s * 0.25);
+  ctx.bezierCurveTo(r, -s * 0.55, s * 0.5, -s * 0.15, 0, s * 0.35);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawShamrock(ctx, p) {
+  const s = p.size * 0.45;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot * 0.5);
+  // three leaves
+  for (let i = 0; i < 3; i++) {
+    const a = (i * Math.PI * 2) / 3 - Math.PI / 2;
+    const cx = Math.cos(a) * s * 0.65;
+    const cy = Math.sin(a) * s * 0.65;
+    ctx.beginPath();
+    ctx.arc(cx, cy, s * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // tiny stem
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.3);
+  ctx.lineTo(0, s * 1.1);
+  ctx.lineWidth = Math.max(0.8, s * 0.25);
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
+function drawSnowflake(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (i * Math.PI) / 3;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * s, Math.sin(a) * s);
+    // small branches
+    const ba = a + Math.PI / 6;
+    const br = s * 0.45;
+    ctx.moveTo(Math.cos(a) * s * 0.5, Math.sin(a) * s * 0.5);
+    ctx.lineTo(Math.cos(a) * s * 0.5 + Math.cos(ba) * br, Math.sin(a) * s * 0.5 + Math.sin(ba) * br);
+    ctx.moveTo(Math.cos(a) * s * 0.5, Math.sin(a) * s * 0.5);
+    ctx.lineTo(Math.cos(a) * s * 0.5 + Math.cos(ba - Math.PI / 3) * br, Math.sin(a) * s * 0.5 + Math.sin(ba - Math.PI / 3) * br);
+  }
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = Math.max(0.6, s * 0.15);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+
+function animateEgg() {
+  if (!eggCtx || !eggCanvas) return;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  if (document.hidden) { eggAnimId = requestAnimationFrame(animateEgg); return; }
+  eggCtx.clearRect(0, 0, w, h);
+  for (const p of eggParticles) {
+    p.x += p.vx + Math.sin(p.phase + performance.now() * 0.0005) * 0.15;
+    p.y += p.vy;
+    p.rot += p.rotSpeed;
+    // wrap around edges
+    if (p.y < -p.size * 2) { p.y = h + p.size; p.x = Math.random() * w; }
+    if (p.y > h + p.size * 2) { p.y = -p.size; p.x = Math.random() * w; }
+    if (p.x < -p.size * 2) p.x = w + p.size;
+    if (p.x > w + p.size * 2) p.x = -p.size;
+    eggCtx.globalAlpha = p.opacity;
+    eggCtx.fillStyle = p.color;
+    const drawFn = DRAW_FNS[p.shape] || drawCircle;
+    drawFn(eggCtx, p);
+  }
+  eggCtx.globalAlpha = 1;
+  eggAnimId = requestAnimationFrame(animateEgg);
+}
+
+function startEggCanvas() {
+  initEggCanvas();
+  if (!eggCanvas) return;
+  resizeEggCanvas();
+  eggCanvas.style.display = 'block';
+  window.addEventListener('resize', resizeEggCanvas);
+  if (!eggAnimId) animateEgg();
+}
+
+function stopEggCanvas() {
+  if (eggAnimId) { cancelAnimationFrame(eggAnimId); eggAnimId = null; }
+  if (eggCanvas) eggCanvas.style.display = 'none';
+  window.removeEventListener('resize', resizeEggCanvas);
+  eggParticles = [];
 }
 
 function activateEgg(key) {
@@ -1423,21 +1814,14 @@ function activateEgg(key) {
   deactivateEgg();
   activeEgg = key;
   const egg = EASTER_EGGS[key];
-  const style = document.createElement('style');
-  style.id = 'egg-style';
-  const cls = 'egg-' + key.replace(/-/g, '');
-  style.textContent = egg.css.replace(/\.egg-/g, '.' + cls + ' ');
-  document.head.appendChild(style);
-  document.body.classList.add(cls);
+  initEggParticles(egg.particles);
+  startEggCanvas();
   renderDebugPanel();
 }
 
 function deactivateEgg() {
   if (activeEgg) {
-    const style = document.getElementById('egg-style');
-    if (style) style.remove();
-    const cls = 'egg-' + activeEgg.replace(/-/g, '');
-    document.body.classList.remove(cls);
+    stopEggCanvas();
     activeEgg = null;
     renderDebugPanel();
   }
@@ -1500,6 +1884,15 @@ function renderDebugPanel() {
     html += '<div class="debug-card black"><span class="debug-idx">' + suitSymbol(f) + '</span>' + foundations[f].length + '/13 — ' + top + '</div>';
   }
   
+  // Stalemate / auto-complete status
+  if (foundations.every(f => f.length === 13)) {
+    html += '<div style="color:#ffd700;text-align:center;margin-top:10px;font-size:11px">🎉 Game Won!</div>';
+  } else if (!hasAnyValidMove()) {
+    html += '<div style="color:#ff6b6b;text-align:center;margin-top:10px;font-size:11px">💀 Deadlocked — no moves possible</div>';
+  } else if (canAutoComplete()) {
+    html += '<div style="color:#6bcb77;text-align:center;margin-top:10px;font-size:11px">✅ Auto-complete available</div>';
+  }
+  
   const allIds = [...stock, ...waste, ...tableau.flat(), ...foundations.flat()].map(c => cardId(c));
   const unique = new Set(allIds);
   if (allIds.length !== unique.size) {
@@ -1511,8 +1904,16 @@ function renderDebugPanel() {
   html += '<h3>🥚 Easter Eggs</h3>';
   html += '<div style="display:flex;flex-direction:column;gap:3px">';
   Object.entries(EASTER_EGGS).forEach(([key, egg]) => {
-    const [m, d] = key.split('-');
-    const dateStr = MONTHS[parseInt(m)-1] + ' ' + parseInt(d);
+    const range = eggKeyToDateRange(key);
+    let dateStr;
+    if (range.isRange) {
+      const sm = Math.floor(range.start / 100), sd = range.start % 100;
+      const em = Math.floor(range.end / 100), ed = range.end % 100;
+      dateStr = MONTHS[sm-1] + ' ' + sd + ' – ' + MONTHS[em-1] + ' ' + ed;
+    } else {
+      const m = Math.floor(range.start / 100), d = range.start % 100;
+      dateStr = MONTHS[m-1] + ' ' + d;
+    }
     const active = activeEgg === key;
     const bg = active ? 'background:rgba(201,168,76,0.18);border:1px solid #c9a84c' : '';
     const action = active ? 'deactivateEgg()' : 'activateEgg(\'' + key + '\')';
@@ -1554,14 +1955,16 @@ function validateGameState() {
         seen.set(ids[i], i);
       }
     }
-    console.error('DUPLICATE CARDS:', dups);
-    dups.forEach(d => console.error('  ' + d.id + ' at ' + d.locA + ' and ' + d.locB));
     return { valid: false, duplicates: dups };
 }
 
 function ensureValidState() {
     const result = validateGameState();
     if (result.valid) return true;
+  
+    // Diagnostic: log what went wrong
+    const all = [...stock, ...waste, ...tableau.flat(), ...foundations.flat()];
+    console.log('State fix: ' + all.length + ' cards, ' + result.duplicates.length + ' dupes, stock=' + stock.length + ' waste=' + waste.length + ' tab=' + tableau.map(p=>p.length).join(',') + ' fdn=' + foundations.map(p=>p.length).join(','));
   
     // Silently fix corrupted state
     clearSavedGame();
@@ -1583,15 +1986,21 @@ function ensureValidState() {
     stock.reverse();
   
     if (!validateGameState().valid) {
-      console.error('CRITICAL: Fresh deal also has duplicates!');
+      console.log('Fresh deal still has card count mismatch — retrying');
+      return false;
     }
-    return false;
+    return true;
 }
+
+let gameWon = false;
 
 function newGame() {
   const stats = loadStats();
   stats.gamesPlayed++;
-  stats.currentStreak = 0;
+  if (!gameWon) {
+    stats.currentStreak = 0;
+  }
+  gameWon = false;
   saveStats(stats);
   updateStatsDisplay(stats);
   
@@ -1683,6 +2092,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
         render();
         checkWin();
         playSound('foundation');
+        spawnFoundationParticle(f);
         return;
       }
     }
@@ -1715,6 +2125,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
           render();
           checkWin();
           playSound('foundation');
+          spawnFoundationParticle(f);
           return;
         }
       }
@@ -1748,12 +2159,13 @@ function getPile(type, idx) {
 }
 
 function flipTopTableau() {
-  // Flip top card of each tableau pile if face-down
+  flippedCards = [];
   for (let t = 0; t < 7; t++) {
     if (tableau[t].length > 0) {
       const top = tableau[t][tableau[t].length - 1];
       if (!top.faceUp) {
         top.faceUp = true;
+        flippedCards.push({t: t, ci: tableau[t].length - 1});
       }
     }
   }
@@ -1767,7 +2179,12 @@ function getEventCoords(ev) {
 }
 
 // Shared drag-start logic for mouse & touch
+let lastTouchEnd = 0;
+
 function startDrag(e) {
+  // Ignore synthetic mouse events that fire after touch
+  if (e.type === 'mousedown' && Date.now() - lastTouchEnd < 500) return;
+
   const cardEl = e.target.closest('.card');
   if (!cardEl) return;
   
@@ -1864,6 +2281,7 @@ function startDrag(e) {
   };
   
   const upHandler = (ev) => {
+    if (ev.type === 'touchend') lastTouchEnd = Date.now();
     document.removeEventListener('mousemove', moveHandler);
     document.removeEventListener('mouseup', upHandler);
     document.removeEventListener('touchmove', moveHandler);
@@ -1936,6 +2354,7 @@ function autoMoveToFoundation(pileType, pileIdx, cardIdx) {
       render();
       checkWin();
       playSound('foundation');
+      spawnFoundationParticle(f);
       return;
     }
   }
@@ -1991,6 +2410,7 @@ function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
     destPile.push(cards[0]);
     flipTopTableau();
     playSound('foundation');
+    spawnFoundationParticle(destIdx);
   } else {
     srcPile.push(...cards);
     playSound('invalid');
@@ -2284,6 +2704,9 @@ function render() {
         const cardEl = createCardElement(card, ci);
         cardEl.style.top = (ci * stackOffset) + 'px';
         cardEl.style.zIndex = ci;
+        if (flippedCards.some(fc => fc.t === t && fc.ci === ci)) {
+          cardEl.classList.add('card-flip');
+        }
         if (selectedCards && selectedCards.pile === 'tableau' && 
             selectedCards.index === t && ci >= selectedCards.cardIndex) {
           cardEl.classList.add('selected');
@@ -2297,6 +2720,7 @@ function render() {
     
     tableauEl.appendChild(pileEl);
   }
+  flippedCards = [];
   
   // Debug panel
   renderDebugPanel();
@@ -2449,6 +2873,7 @@ async function runAutoComplete() {
     render();
     saveGame();
     playSound('foundation');
+    spawnFoundationParticle(destF);
     await new Promise(r => setTimeout(r, GAP_MS));
   }
 
@@ -2524,9 +2949,30 @@ function checkWin() {
   updateStatsDisplay(stats);
   
   clearSavedGame();
+  gameWon = true;
   document.getElementById('win-overlay').classList.add('show');
   spawnSparkles();
   playSound('win');
+}
+
+function spawnFoundationParticle(destF) {
+  const el = document.querySelector(`.foundation[data-suit="${destF}"]`);
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const particle = document.createElement('div');
+  particle.style.cssText = `
+    position: fixed; pointer-events: none; z-index: 1001;
+    left: ${rect.left + rect.width/2}px; top: ${rect.top + rect.height/2}px;
+    width: 6px; height: 6px; background: #ffd700; border-radius: 50%;
+    transform: translate(-50%, -50%) scale(1); opacity: 0.9;
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+  `;
+  document.body.appendChild(particle);
+  requestAnimationFrame(() => {
+    particle.style.transform = 'translate(-50%, -50%) scale(4)';
+    particle.style.opacity = '0';
+  });
+  setTimeout(() => particle.remove(), 450);
 }
 
 function spawnSparkles() {
@@ -2695,6 +3141,45 @@ const SOUND_THEMES = {
     winDur: 0.60,
     gain: 0.70,
     desc: 'Warm & lyrical'
+  },
+  paper: {
+    name: 'Paper',
+    wave: 'triangle',
+    clickHi: 523, clickLo: 392, clickDur: 0.09,
+    dingLo: 494, dingHi: 740, dingDur: 0.22,
+    bump: 156, bumpDur: 0.13,
+    deal: [349, 392, 440, 494, 523, 587, 659],
+    dealGap: 0.06,
+    win: [{f:262,t:0},{f:330,t:0.14},{f:392,t:0.28},{f:523,t:0.44},{f:659,t:0.58}],
+    winDur: 0.55,
+    gain: 0.75,
+    desc: 'Soft & mellow'
+  },
+  ocean: {
+    name: 'Ocean',
+    wave: 'sine',
+    clickHi: 784, clickLo: 587, clickDur: 0.12,
+    dingLo: 698, dingHi: 1047, dingDur: 0.28,
+    bump: 196, bumpDur: 0.16,
+    deal: [440, 494, 554, 622, 698, 784, 880],
+    dealGap: 0.08,
+    win: [{f:330,t:0},{f:440,t:0.18},{f:554,t:0.36},{f:698,t:0.54},{f:880,t:0.72}],
+    winDur: 0.65,
+    gain: 0.65,
+    desc: 'Fluid & rolling'
+  },
+  sunset: {
+    name: 'Sunset',
+    wave: 'triangle',
+    clickHi: 587, clickLo: 440, clickDur: 0.11,
+    dingLo: 554, dingHi: 831, dingDur: 0.30,
+    bump: 165, bumpDur: 0.15,
+    deal: [330, 370, 415, 466, 523, 587, 659],
+    dealGap: 0.07,
+    win: [{f:247,t:0},{f:311,t:0.16},{f:370,t:0.32},{f:466,t:0.50},{f:554,t:0.66}],
+    winDur: 0.62,
+    gain: 0.68,
+    desc: 'Warm & glowing'
   }
 };
 
