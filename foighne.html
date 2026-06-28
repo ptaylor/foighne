@@ -1671,7 +1671,7 @@ function drawCross(ctx, p) {
   ];
   for (const a of arms) {
     const perpX = a.dy, perpY = -a.dx;
-    // arm starts offset from centre, extends out
+    // arm inner end at corner of centre square
     const baseX = a.dx * ctr, baseY = a.dy * ctr;
     const tipX = a.dx * s * 0.58, tipY = a.dy * s * 0.58;
     const baseW = s * 0.20;
