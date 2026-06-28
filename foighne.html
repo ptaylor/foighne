@@ -180,11 +180,12 @@
   #stats-bar {
     display: flex;
     justify-content: center;
-    gap: 12px;
-    color: var(--label-color);
-    font-size: 13px;
-    margin-bottom: 10px;
-    min-height: 20px;
+    gap: 10px;
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+    margin-bottom: 16px;
+    min-height: 18px;
+    letter-spacing: 0.03em;
   }
   #stats-bar b {
     color: rgba(255,255,255,0.85);
@@ -556,7 +557,7 @@
     font-size: 28px;
     font-style: italic;
     letter-spacing: 0.15em;
-    margin-bottom: 10px;
+    margin-bottom: 2px;
     pointer-events: none;
   }
 </style>
@@ -564,6 +565,15 @@
 <body>
 <div id="game">
   <div id="game-title">foighne</div>
+  <div id="stats-bar">
+    <span>Games: <b id="statGames">0</b></span>
+    <span class="sep">|</span>
+    <span>Won: <b id="statWon">0</b></span>
+    <span class="sep">|</span>
+    <span>Streak: <b id="statStreak">0</b></span>
+    <span class="sep">|</span>
+    <span>Best: <b id="statBest">0</b></span>
+  </div>
   <div id="debug-panel" class="debug-hidden"></div>
   <div class="top-row">
     <div class="top-section">
@@ -588,15 +598,6 @@
   </div>
   <button id="debug-btn" onclick="toggleDebug()" title="Debug"></button>
   <div id="message"></div>
-  <div id="stats-bar">
-    <span>Games: <b id="statGames">0</b></span>
-    <span class="sep">|</span>
-    <span>Won: <b id="statWon">0</b></span>
-    <span class="sep">|</span>
-    <span>Streak: <b id="statStreak">0</b></span>
-    <span class="sep">|</span>
-    <span>Best: <b id="statBest">0</b></span>
-  </div>
   <div class="tableau-row" id="tableau"></div>
 </div>
 <div id="win-overlay">
