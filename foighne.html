@@ -1656,27 +1656,36 @@ function drawCross(ctx, p) {
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(p.rot + Math.PI / 4);
-  // diamond-oriented cross — four arms
-  const armW = s * 0.15;
-  const armL = s * 0.45;
-  ctx.beginPath();
-  ctx.moveTo(-armW, -armW);
-  ctx.lineTo(-armW, -armL);
-  ctx.lineTo(armW, -armL);
-  ctx.lineTo(armW, -armW);
-  ctx.lineTo(armL, -armW);
-  ctx.lineTo(armL, armW);
-  ctx.lineTo(armW, armW);
-  ctx.lineTo(armW, armL);
-  ctx.lineTo(-armW, armL);
-  ctx.lineTo(-armW, armW);
-  ctx.lineTo(-armL, armW);
-  ctx.lineTo(-armL, -armW);
-  ctx.closePath();
-  ctx.fill();
-  // centre square knot
+  // central woven square
+  const ctr = s * 0.16;
+  ctx.fillRect(-ctr, -ctr, ctr * 2, ctr * 2);
+  // four radiating arms tapering outward from the centre square corners
+  const armBase = s * 0.13;
+  const armTip = s * 0.06;
+  const armLen = s * 0.42;
+  // draw each arm as a tapered quadrilateral + looped end
+  const dirs = [[-1,-1],[1,-1],[1,1],[-1,1]]; // top-left, top-right, bottom-right, bottom-left
+  for (const [dx, dy] of dirs) {
+    const bx = dx * ctr, by = dy * ctr;          // base at centre square corner
+    const tx = dx * armLen, ty = dy * armLen;    // tip
+    const px = dy * armBase, py = -dx * armBase; // perpendicular offset at base
+    const ptx = dy * armTip, pty = -dx * armTip; // perpendicular offset at tip
+    ctx.beginPath();
+    ctx.moveTo(bx + px, by + py);
+    ctx.lineTo(tx + ptx, ty + pty);
+    ctx.lineTo(tx - ptx, ty - pty);
+    ctx.lineTo(bx - px, by - py);
+    ctx.closePath();
+    ctx.fill();
+    // tied loop at the end of each arm
+    ctx.beginPath();
+    ctx.arc(tx, ty, s * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // centre knot detail — small inner square
   ctx.fillStyle = ctx.fillStyle;
-  ctx.fillRect(-armW * 0.7, -armW * 0.7, armW * 1.4, armW * 1.4);
+  const inner = s * 0.06;
+  ctx.fillRect(-inner, -inner, inner * 2, inner * 2);
   ctx.restore();
 }
 
