@@ -28,10 +28,13 @@ else
   NEXT_VERSION="v1.0"
 fi
 
-# --- Copy game to public/ with version injected ---
+# --- Copy game to public/ with version + commit injected ---
+COMMIT_HASH=$(git rev-parse --short HEAD)
 mkdir -p "$PUB_DIR"
-sed "s/content=\"dev\"/content=\"${NEXT_VERSION}\"/" "$SRC" > "$DEST"
-echo "✔ Copied $SRC → $DEST (version ${NEXT_VERSION})"
+sed -e "s/content=\"VERSION\"/content=\"${NEXT_VERSION}\"/" \
+    -e "s/content=\"COMMIT\"/content=\"${COMMIT_HASH}\"/" \
+    "$SRC" > "$DEST"
+echo "✔ Copied $SRC → $DEST (version ${NEXT_VERSION}, commit ${COMMIT_HASH})"
 
 if $NO_PUSH; then
   echo "✔ Done (no push — run './publish.sh' to push)"
