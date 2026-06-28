@@ -76,7 +76,6 @@
     min-width: var(--card-width);
     min-height: var(--card-height);
     border-radius: 8px;
-    border: 2px dashed var(--dashed-border);
   }
   .pile.tableau-pile {
     flex: 1;
@@ -1506,6 +1505,15 @@ function renderDebugPanel() {
   for (let f = 0; f < 4; f++) {
     const top = foundations[f].length > 0 ? rankStr(foundations[f][foundations[f].length - 1].rank) + suitSymbol(foundations[f][foundations[f].length - 1].suit) : '—';
     html += '<div class="debug-card black"><span class="debug-idx">' + suitSymbol(f) + '</span>' + foundations[f].length + '/13 — ' + top + '</div>';
+  }
+  
+  // Stalemate / auto-complete status
+  if (foundations.every(f => f.length === 13)) {
+    html += '<div style="color:#ffd700;text-align:center;margin-top:10px;font-size:11px">🎉 Game Won!</div>';
+  } else if (!hasAnyValidMove()) {
+    html += '<div style="color:#ff6b6b;text-align:center;margin-top:10px;font-size:11px">💀 Deadlocked — no moves possible</div>';
+  } else if (canAutoComplete()) {
+    html += '<div style="color:#6bcb77;text-align:center;margin-top:10px;font-size:11px">✅ Auto-complete available</div>';
   }
   
   const allIds = [...stock, ...waste, ...tableau.flat(), ...foundations.flat()].map(c => cardId(c));
