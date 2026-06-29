@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
 <meta name="version" content="VERSION">
 <meta name="commit" content="COMMIT">
 <meta name="theme-color" content="#0d4f7c">
@@ -13,7 +14,7 @@
 <title>Foighne</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
-<!-- GoatCounter analytics — replace YOUR-GOATCOUNTER-CODE with your site code -->
+<!-- GoatCounter analytics -->
 <script data-goatcounter="https://foighne.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 <style>
@@ -196,13 +197,6 @@
   .waste-pile .card:not(:last-child) {
     cursor: default;
     opacity: 0.6;
-    pointer-events: none;
-  }
-  .pile-label {
-    text-align: center;
-    color: var(--label-color);
-    font-size: 11px;
-    margin-top: 4px;
     pointer-events: none;
   }
   #message {
@@ -408,10 +402,6 @@
     padding: 10px 12px;
     font-size: 18px;
     line-height: 1;
-  }
-  .btn-debug.active {
-    background: rgba(255,215,0,0.4);
-    box-shadow: 0 0 8px rgba(255,215,0,0.3);
   }
   #debug-btn {
     position: fixed;
@@ -907,7 +897,7 @@ function loadGame() {
     selectedCards = state.selectedCards || null;
     // Validate loaded state; deal fresh if corrupted
     if (!validateGameState().valid) {
-      console.log('Saved game was incomplete — dealing a fresh one');
+      if (debugMode) console.log('Saved game was incomplete — dealing a fresh one');
       clearSavedGame();
       return false;
     }
@@ -2301,7 +2291,7 @@ function ensureValidState() {
   
     // Diagnostic: log what went wrong
     const all = [...stock, ...waste, ...tableau.flat(), ...foundations.flat()];
-    console.log('State fix: ' + all.length + ' cards, ' + result.duplicates.length + ' dupes, stock=' + stock.length + ' waste=' + waste.length + ' tab=' + tableau.map(p=>p.length).join(',') + ' fdn=' + foundations.map(p=>p.length).join(','));
+    if (debugMode) console.log('State fix: ' + all.length + ' cards, ' + result.duplicates.length + ' dupes, stock=' + stock.length + ' waste=' + waste.length + ' tab=' + tableau.map(p=>p.length).join(',') + ' fdn=' + foundations.map(p=>p.length).join(','));
   
     // Silently fix corrupted state
     clearSavedGame();
@@ -2323,7 +2313,7 @@ function ensureValidState() {
     stock.reverse();
   
     if (!validateGameState().valid) {
-      console.log('Fresh deal still has card count mismatch — retrying');
+      if (debugMode) console.log('Fresh deal still has card count mismatch — retrying');
       return false;
     }
     return true;
@@ -3559,7 +3549,6 @@ function playSound(type) {
       case 'foundation': playDing(ctx, th); break;
       case 'win':    playWin(ctx, th); break;
       case 'invalid': playBump(ctx, th); break;
-      case 'autocomplete': playClick(ctx, th, th.clickHi); break;
     }
   } catch (e) { /* audio not available */ }
 }
