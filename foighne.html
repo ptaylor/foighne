@@ -904,6 +904,14 @@ function clearSavedGame() {
   localStorage.removeItem(SAVE_KEY);
 }
 
+function clearSavedData() {
+  if (!confirm('Clear all saved data?\n\nThis resets your game, stats, and settings.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  localStorage.removeItem(STATS_KEY);
+  localStorage.removeItem(SETTINGS_KEY);
+  location.reload();
+}
+
 function loadStats() {
   try {
     const raw = localStorage.getItem(STATS_KEY);
@@ -2132,6 +2140,7 @@ function renderDebugPanel() {
   html += '<div style="text-align:center;font-size:9px;color:rgba(255,255,255,0.25);margin-bottom:8px">' + commit + '</div>';
   
   html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();setupNearlyComplete()" style="background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.3);color:#ffd700;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:bold">🧪 Nearly Complete</button></div>';
+  html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();clearSavedData()" style="background:rgba(255,100,100,0.12);border:1px solid rgba(255,100,100,0.25);color:#ff6b6b;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px">🗑 Clear Saved Data</button></div>';
   
   html += '<h3>📦 Stock (' + stock.length + ')</h3>';
   if (stock.length === 0) {
