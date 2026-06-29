@@ -763,7 +763,7 @@
   <div class="top-row">
     <div class="top-section">
       <div class="pile stock-pile" id="stock">
-        <div class="empty-placeholder">&#9824;</div>
+        <div class="empty-placeholder"><svg viewBox="0 0 60 72" width="32" height="38" fill="none" stroke="currentColor"><circle cx="30" cy="63" r="48" stroke-width="2"/><path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="currentColor" stroke="none"/><circle cx="30" cy="24" r="3" fill="currentColor" stroke="none"/><path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="currentColor" stroke="none"/><path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="currentColor" stroke="none"/><ellipse cx="30" cy="42" rx="16" ry="18" fill="currentColor" stroke="none" opacity="0.4"/><ellipse cx="24" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><ellipse cx="36" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><path d="M27 48 Q30 44 33 48" stroke-width="1.2"/><path d="M16 54 L30 62 L44 54" stroke-width="2"/></svg></div>
       </div>
       <div class="pile waste-pile" id="waste">
         <div class="empty-placeholder"></div>
@@ -2890,7 +2890,7 @@ function render() {
   const stockEl = document.getElementById('stock');
   stockEl.dataset.pileType = 'stock';
   stockEl.dataset.pileIndex = '0';
-  stockEl.innerHTML = '<div class="empty-placeholder">&#9824;</div>';
+  stockEl.innerHTML = '<div class="empty-placeholder"><svg viewBox="0 0 60 72" width="32" height="38" fill="none" stroke="currentColor"><circle cx="30" cy="63" r="48" stroke-width="2"/><path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="currentColor" stroke="none"/><circle cx="30" cy="24" r="3" fill="currentColor" stroke="none"/><path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="currentColor" stroke="none"/><path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="currentColor" stroke="none"/><ellipse cx="30" cy="42" rx="16" ry="18" fill="currentColor" stroke="none" opacity="0.4"/><ellipse cx="24" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><ellipse cx="36" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><path d="M27 48 Q30 44 33 48" stroke-width="1.2"/><path d="M16 54 L30 62 L44 54" stroke-width="2"/></svg></div>';
   if (stock.length > 0) {
     const cardEl = createCardElement(stock[stock.length - 1], stock.length - 1);
     cardEl.style.position = 'relative';
