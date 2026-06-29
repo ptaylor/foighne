@@ -29,13 +29,14 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 
 ### Key functions
 - `dealBoard()` / `newGame()` — shuffle and deal
-- `render()` — full DOM redraw of all piles, debug panel, auto-complete button, stalemate check
-- `runAutoComplete()` — animated card-by-card move to foundations
+- `render()` — full DOM redraw of all piles, debug panel, auto-complete/New Game swap, stalemate check
+- `runAutoComplete()` — animated card-by-card move to foundations; replaces New Game button when available
 - `setupNearlyComplete()` — debug panel preset (random nearly-won state)
 - `validateGameState()` / `ensureValidState()` — duplicate detection and auto-fix
-- `saveGame()` / `loadGame()` — localStorage persistence
-- `createCardElement()` — DOM card rendering with face-card SVGs
-- `playSound(type)` — Web Audio API sound engine with 8 themes (crystal, felt, zen, arcade, clover, paper, ocean, sunset)
+- `saveGame()` / `loadGame()` / `clearSavedGame()` / `clearSavedData()` — localStorage persistence and reset
+- `createCardElement()` — DOM card rendering with face-card SVGs; on mobile centre suit moves to bottom-right
+- `playSound(type)` — Web Audio API sound engine with 6 types (deal, draw, place, foundation, win, invalid)
+- `trackEvent(path)` — GoatCounter custom event tracking (new-game, game-won, auto-complete, etc.)
 
 ### Easter egg system
 - `EASTER_EGGS` — object keyed by `MM-DD` or `MM-DD--MM-DD` (date ranges). Each entry has `name` and `particles` config (shape, count, colors, size range, speed range, opacity range, optional `fall: true`)
@@ -57,10 +58,10 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 ## Versioning
 - Source meta tag: `<meta name="version" content="VERSION">` — replaced by `publish.sh` with the semver tag
 - Source meta tag: `<meta name="commit" content="COMMIT">` — replaced by `publish.sh` with `git rev-parse --short HEAD`
-- Both shown in the debug panel (click top-right corner to open)
+- Both shown in the debug panel (long-press top-right corner to open)
 
 ## Debug panel
-Click the invisible button in the **top-right corner** of the page. Shows stock/waste/foundations state, version/commit, easter eggs, and a **🧪 Nearly Complete** button for testing.
+Long-press (hold ~1.5s) the invisible button in the **top-right corner** of the page — a gold ring expands as visual feedback. Shows stock/waste/foundations state, version/commit, easter eggs, a **🧪 Nearly Complete** button, and a **🗑 Clear Saved Data** button for testing.
 
 ## Publishing
 ```bash

@@ -11,7 +11,7 @@ Open `foighne.html` in any modern browser. The goal is to build all four foundat
 - **Tableau**: Build descending sequences in alternating colors. Drag cards or click to select, then click the destination.
 - **Stock & Waste**: Click the stock (top-left) to flip cards into the waste pile. Drag cards from the waste onto the tableau or foundations.
 - **Foundations**: Start with an Ace, then stack same-suit cards in ascending order.
-- **Auto-complete**: When all cards are face-up, an auto-complete button appears to finish the game automatically.
+- **Auto-complete**: When all cards are face-up, the New Game button becomes an auto-complete button to finish the game automatically.
 
 ## Features
 
@@ -23,8 +23,10 @@ Open `foighne.html` in any modern browser. The goal is to build all four foundat
 - 5 face card styles (Cool, Funky, Cute, Funny, Stupid)
 - 8 sound themes (Crystal, Felt, Zen, Arcade, Clover, Paper, Ocean, Sunset) — Web Audio API, no files needed
 - Single or triple draw from stock
-- Responsive layout for desktop, tablet, and mobile
-- Debug panel (click top-right corner) with game state inspector, easter egg toggles, and a nearly-complete game preset
+- Responsive layout with mobile-optimised card design (simplified, larger rank+suit, tighter spacing)
+- PWA-ready with favicon, apple-touch-icon, and theme colour for home screen install
+- Privacy-friendly GoatCounter analytics (no cookies, no personal data)
+- Debug panel (long-press top-right corner) with game state inspector, easter egg toggles, nearly-complete preset, and clear-saved-data option
 
 ### 🥚 Easter Eggs
 
@@ -33,7 +35,7 @@ The game has **11 date-based easter eggs** that trigger subtle themed background
 | Date | Egg |
 |------|-----|
 | Jan 1 | 🎉 New Year's — stars & bursts |
-| Feb 1 | 🕯️ St Brigid's Day — woven crosses |
+| Feb 1 | 🕯️ St Brigid's Day — woven reed crosses |
 | Feb 14 | 💕 Valentine's — floating hearts |
 | Mar 17 | ☘️ St Patrick's — shamrocks |
 | Apr 1 | 🤡 April Fools — jesters & bananas |
