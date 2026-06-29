@@ -695,14 +695,14 @@
   /* ── Mobile (≤600px) ── */
   @media (max-width: 600px) {
     :root {
-      --card-width: 56px;
-      --card-height: 78px;
-      --stack-offset: 20px;
-      --fan-offset: 13px;
-      --card-font: 13px;
-      --card-center: 26px;
-      --card-pad: 4px;
-      --card-back-sym: 20px;
+      --card-width: 48px;
+      --card-height: 67px;
+      --stack-offset: 18px;
+      --fan-offset: 11px;
+      --card-font: 11px;
+      --card-center: 22px;
+      --card-pad: 3px;
+      --card-back-sym: 17px;
       --game-pad: 8px;
       --pile-gap: 5px;
       --top-row-gap: 6px;
@@ -712,8 +712,8 @@
     #game-title { font-size: 18px; }
     #message { font-size: 13px; min-height: 20px; margin: 4px 0 2px; }
     #stats-bar { font-size: 10px; gap: 6px; margin-bottom: 8px; }
-    .btn { padding: 7px 12px; font-size: 12px; }
-    .btn-icon { padding: 7px 9px; font-size: 14px; }
+    .btn { padding: 5px 8px; font-size: 11px; }
+    .btn-icon { padding: 5px 7px; font-size: 13px; }
     #win-overlay h1 { font-size: 30px; margin-bottom: 12px; }
     #win-overlay button { padding: 10px 24px; font-size: 15px; }
     .settings-panel { padding: 14px; max-height: 92vh; }
@@ -725,24 +725,35 @@
     .tile-grid { gap: 5px; }
     .btn-settings-close { padding: 8px 24px; font-size: 13px; }
     #debug-panel { width: 160px; font-size: 10px; padding: 14px 10px; }
-    /* Stack top-row vertically on mobile */
+    /* Stack top-row on two rows: stock+waste + buttons on top, foundations below */
     .top-row {
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: auto 1fr;
       gap: 6px;
       margin-bottom: 8px;
     }
     .top-row > .top-section:first-child {
-      flex: 1 1 auto;
+      /* row 1, col 1 naturally */
     }
     .top-row > .top-section:nth-child(2) {
-      flex: 1 1 auto;
+      grid-column: 1 / -1;
+      grid-row: 2;
     }
     .top-row > div:last-child {
-      width: 100%;
-      flex-direction: row !important;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 8px !important;
-      margin-top: 4px;
+    }
+    .card .center-suit svg {
+      width: 40px;
+      height: 48px;
+    }
+    .card .rank-suit-bottom {
+      display: none;
+    }
+    .autocomplete-btn {
+      padding-left: 4px;
+      padding-right: 4px;
+      font-size: 10px;
     }
   }
 </style>
@@ -778,7 +789,7 @@
     <div style="display:flex;flex-direction:column;gap:6px;align-self:flex-start;margin-top:8px">
       <div style="display:flex;gap:6px">
         <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
-        <button class="btn" onclick="newGame()">New Game</button>
+        <button class="btn" id="new-game-btn" onclick="newGame()">New Game</button>
       </div>
       <div id="autocomplete-area"></div>
     </div>
@@ -2980,13 +2991,23 @@ function render() {
   // Check for stalemate
   checkStalemate();
 
-  // Auto-complete button
-  const acArea = document.getElementById('autocomplete-area');
-  if (acArea) {
-    if (!autoCompleting && canAutoComplete() && !foundations.every(f => f.length === 13)) {
-      acArea.innerHTML = '<button class="btn autocomplete-btn" onclick="runAutoComplete()" style="background:rgba(255,215,0,0.2);color:#ffd700;animation:pulse-gold-btn 1.5s ease-in-out infinite">✨ Auto-Complete</button>';
-    } else if (!autoCompleting) {
-      acArea.innerHTML = '';
+  // Auto-complete replaces New Game button when available
+  const ngBtn = document.getElementById('new-game-btn');
+  if (ngBtn && !autoCompleting) {
+    if (canAutoComplete() && !foundations.every(f => f.length === 13)) {
+      ngBtn.textContent = '✨ Auto-Complete';
+      ngBtn.onclick = runAutoComplete;
+      ngBtn.className = 'btn autocomplete-btn';
+      ngBtn.style.background = 'rgba(255,215,0,0.2)';
+      ngBtn.style.color = '#ffd700';
+      ngBtn.style.animation = 'pulse-gold-btn 1.5s ease-in-out infinite';
+    } else {
+      ngBtn.textContent = 'New Game';
+      ngBtn.onclick = newGame;
+      ngBtn.className = 'btn';
+      ngBtn.style.background = '';
+      ngBtn.style.color = '';
+      ngBtn.style.animation = '';
     }
   }
 }
