@@ -786,6 +786,7 @@
 </style>
 </head>
 <body>
+<noscript><div style="background:#0d4f7c;color:#fff;text-align:center;padding:40px 20px;font-family:sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;font-size:18px">Foighne requires JavaScript to play.</div></noscript>
 <div id="game">
   <div id="game-title">foighne</div>
   <div id="stats-bar">
@@ -818,7 +819,6 @@
         <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
         <button class="btn" id="new-game-btn" onclick="newGame()">New Game</button>
       </div>
-      <div id="autocomplete-area"></div>
     </div>
   </div>
   <button id="debug-btn" onmousedown="startDebugHold(event)" onmouseup="cancelDebugHold()" onmouseleave="cancelDebugHold()" ontouchstart="startDebugHold(event)" ontouchend="cancelDebugHold()" ontouchcancel="cancelDebugHold()" title="Hold to toggle debug"></button>
@@ -927,6 +927,7 @@ function clearSavedData() {
   localStorage.removeItem(SAVE_KEY);
   localStorage.removeItem(STATS_KEY);
   localStorage.removeItem(SETTINGS_KEY);
+  trackEvent('clear-saved-data');
   location.reload();
 }
 
