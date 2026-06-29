@@ -1861,15 +1861,8 @@ function drawCross(ctx, p) {
   // Woven reed tones — single golden straw colour
   const straw = '#b8953e';
   const band  = '#6b5b4a';
-  const R  = s * 0.48;    // circle radius
+  const R  = s * 0.48;    // arm tip radius
   const sq = s * 0.10;    // half-size of centre square
-  
-  // Outer circle boundary
-  ctx.strokeStyle = straw;
-  ctx.lineWidth = Math.max(0.5, s * 0.025);
-  ctx.beginPath();
-  ctx.arc(0, 0, R, 0, Math.PI * 2);
-  ctx.stroke();
   
   // Four triangular arms — each from centre to circle edge,
   // then to the square corner on the "left" side of that arm's direction.
