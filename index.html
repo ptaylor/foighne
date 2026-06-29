@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="version" content="v1.23">
-<meta name="commit" content="19e9b95">
+<meta name="version" content="v1.24">
+<meta name="commit" content="97254ba">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,6 +13,9 @@
 <title>Foighne</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
+<!-- GoatCounter analytics — replace YOUR-GOATCOUNTER-CODE with your site code -->
+<script data-goatcounter="https://foighne.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 <style>
   :root {
     --bg-color: #0d4f7c;
@@ -422,10 +425,28 @@
     cursor: pointer;
     z-index: 999;
     opacity: 0;
+    -webkit-user-select: none;
+    user-select: none;
   }
-  #debug-btn.active {
-    opacity: 0;
-    background: transparent;
+  #debug-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255,215,0,0.25);
+    transform: translate(-50%, -50%) scale(0);
+    transition: none;
+    pointer-events: none;
+  }
+  #debug-btn.holding::after {
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%) scale(1);
+    transition: width 1.5s linear, height 1.5s linear, background 0.3s;
+    background: rgba(255,215,0,0.45);
   }
   #debug-panel {
     position: fixed;
@@ -800,7 +821,7 @@
       <div id="autocomplete-area"></div>
     </div>
   </div>
-  <button id="debug-btn" onclick="toggleDebug()" title="Debug"></button>
+  <button id="debug-btn" onmousedown="startDebugHold(event)" onmouseup="cancelDebugHold()" onmouseleave="cancelDebugHold()" ontouchstart="startDebugHold(event)" ontouchend="cancelDebugHold()" ontouchcancel="cancelDebugHold()" title="Hold to toggle debug"></button>
   <div id="message"></div>
   <div class="tableau-row" id="tableau"></div>
 </div>
@@ -861,6 +882,12 @@ let flippedCards = [];
 const SAVE_KEY = 'solitaire_save';
 const STATS_KEY = 'solitaire_stats';
 
+function trackEvent(path) {
+  if (typeof window !== 'undefined' && window.goatcounter) {
+    window.goatcounter.count({ path: path, event: true });
+  }
+}
+
 function saveGame() {
   try {
     const state = { stock, waste, tableau, foundations, selectedCards };
@@ -884,6 +911,7 @@ function loadGame() {
       clearSavedGame();
       return false;
     }
+    trackEvent('game-loaded');
     return true;
   } catch (e) {
     return false;
@@ -892,6 +920,14 @@ function loadGame() {
 
 function clearSavedGame() {
   localStorage.removeItem(SAVE_KEY);
+}
+
+function clearSavedData() {
+  if (!confirm('Clear all saved data?\n\nThis resets your game, stats, and settings.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  localStorage.removeItem(STATS_KEY);
+  localStorage.removeItem(SETTINGS_KEY);
+  location.reload();
 }
 
 function loadStats() {
@@ -1065,6 +1101,7 @@ function toggleSound() {
   const settings = loadSettings();
   settings.soundEnabled = !settings.soundEnabled;
   saveSettings(settings);
+  trackEvent(settings.soundEnabled ? 'sound-on' : 'sound-off');
   updateSoundToggle();
   if (settings.soundEnabled) playSound('draw');
 }
@@ -1820,62 +1857,72 @@ function drawCross(ctx, p) {
   const s = p.size;
   ctx.save();
   ctx.translate(p.x, p.y);
-  ctx.rotate(p.rot + Math.PI / 4);
-  // straw/rush tones — green rushes (traditional), tied with twine
-  const rush1 = '#8fbc5e';
-  const rush2 = '#7aad45';
-  const rush3 = '#6b9e38';
-  const band   = '#5c3d1a';
-  const ctr = s * 0.10;
-  // each folded rush forms an L-shape: starts in one arm, bends at centre,
-  // continues into the adjacent arm. Rotate 90° and repeat.
-  // We draw several folded rushes in each orientation.
-  const folds = [
-    { a1: [-1,-1], a2: [ 1,-1] },  // top-left → top-right
-    { a1: [ 1,-1], a2: [ 1, 1] },  // top-right → bottom-right
-    { a1: [ 1, 1], a2: [-1, 1] },  // bottom-right → bottom-left
-    { a1: [-1, 1], a2: [-1,-1] },  // bottom-left → top-left
+  
+  // Woven reed tones — single golden straw colour
+  const straw = '#b8953e';
+  const band  = '#6b5b4a';
+  const R  = s * 0.48;    // arm tip radius
+  const sq = s * 0.10;    // half-size of centre square
+  
+  // Four triangular arms — each from centre to circle edge,
+  // then to the square corner on the "left" side of that arm's direction.
+  // Angles in screen coords: 0=right, π/2=down, π=left, 3π/2=up
+  const arms = [
+    { a: 0,          cx: R, cy: 0,   sx: -sq, sy: -sq },  // right → top-left
+    { a: Math.PI/2,  cx: 0, cy: R,   sx:  sq, sy: -sq },  // down  → top-right
+    { a: Math.PI,    cx:-R, cy: 0,   sx:  sq, sy:  sq },  // left  → bottom-right
+    { a:-Math.PI/2,  cx: 0, cy:-R,   sx: -sq, sy:  sq },  // up    → bottom-left
   ];
-  // each fold orientation gets 3 rushes, stacked slightly offset
-  for (const fold of folds) {
-    for (let r = 0; r < 3; r++) {
-      const off = (r - 1) * s * 0.07; // slight offset for stacked look
-      const px = fold.a1[1] * off, py = -fold.a1[0] * off; // perpendicular
-      // strand from arm1 tip, bending at centre, to arm2 tip
-      const x1 = fold.a1[0] * s * 0.55 + px, y1 = fold.a1[1] * s * 0.55 + py;
-      const x2 = fold.a2[0] * s * 0.55 + px, y2 = fold.a2[1] * s * 0.55 + py;
-      ctx.strokeStyle = [rush1, rush2, rush3][r];
-      ctx.lineWidth = Math.max(1.0, s * 0.07);
+  
+  for (const arm of arms) {
+    // Fill the triangular arm
+    ctx.fillStyle = straw;
+    ctx.globalAlpha = 0.22;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(arm.cx, arm.cy);
+    ctx.lineTo(arm.sx, arm.sy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    
+    // Woven reed lines inside the arm (parallel to centre→circle edge)
+    ctx.strokeStyle = straw;
+    ctx.globalAlpha = 0.6;
+    ctx.lineWidth = Math.max(0.4, s * 0.015);
+    for (let i = 1; i < 4; i++) {
+      const t = i / 4;
+      const x1 = arm.cx * t, y1 = arm.cy * t;
+      const x2 = arm.sx + (arm.cx - arm.sx) * (1 - t);
+      const y2 = arm.sy + (arm.cy - arm.sy) * (1 - t);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
-      // bend through centre with a slight curve (the fold)
-      ctx.quadraticCurveTo(px, py, x2, y2);
+      ctx.lineTo(x2, y2);
       ctx.stroke();
-      ctx.lineWidth = 1;
     }
+    ctx.globalAlpha = 1;
   }
-  // central woven square — where all folds overlap
-  ctx.fillStyle = rush2;
-  ctx.fillRect(-ctr, -ctr, ctr * 2, ctr * 2);
-  // weave detail — tiny cross lines
-  ctx.strokeStyle = rush3;
-  ctx.lineWidth = Math.max(0.5, s * 0.03);
+  
+  // Centre woven square
+  ctx.fillStyle = straw;
+  ctx.fillRect(-sq, -sq, sq * 2, sq * 2);
+  ctx.strokeStyle = straw;
+  ctx.lineWidth = Math.max(0.5, s * 0.025);
   ctx.beginPath();
-  ctx.moveTo(-ctr, -ctr); ctx.lineTo(ctr, ctr);
-  ctx.moveTo(-ctr, ctr); ctx.lineTo(ctr, -ctr);
+  ctx.moveTo(-sq, -sq); ctx.lineTo(sq, sq);
+  ctx.moveTo(-sq, sq);  ctx.lineTo(sq, -sq);
   ctx.stroke();
-  ctx.lineWidth = 1;
-  // tied bands at the four arm tips
-  const tips = [[-1,-1],[1,-1],[1,1],[-1,1]];
-  for (const [dx, dy] of tips) {
-    const tx = dx * s * 0.55, ty = dy * s * 0.55;
-    ctx.fillStyle = band;
+  
+  // Tiny tie bands at the circle-edge tips
+  for (const arm of arms) {
     ctx.save();
-    ctx.translate(tx, ty);
-    ctx.rotate(Math.atan2(dy, dx) + Math.PI/2);
-    ctx.fillRect(-s * 0.12, -s * 0.035, s * 0.24, s * 0.07);
+    ctx.translate(arm.cx, arm.cy);
+    ctx.rotate(arm.a + Math.PI / 2);
+    ctx.fillStyle = band;
+    ctx.fillRect(-s * 0.10, -s * 0.025, s * 0.20, s * 0.05);
     ctx.restore();
   }
+  
   ctx.restore();
 }
 
@@ -2093,6 +2140,28 @@ function deactivateEgg() {
   }
 }
 
+let debugHoldTimer = null;
+
+function startDebugHold(e) {
+  if (e && e.type === 'touchstart') e.preventDefault();
+  const btn = document.getElementById('debug-btn');
+  if (!btn) return;
+  btn.classList.add('holding');
+  debugHoldTimer = setTimeout(() => {
+    btn.classList.remove('holding');
+    toggleDebug();
+  }, 1500);
+}
+
+function cancelDebugHold() {
+  if (debugHoldTimer) {
+    clearTimeout(debugHoldTimer);
+    debugHoldTimer = null;
+  }
+  const btn = document.getElementById('debug-btn');
+  if (btn) btn.classList.remove('holding');
+}
+
 function toggleDebug() {
   debugMode = !debugMode;
   const panel = document.getElementById('debug-panel');
@@ -2121,6 +2190,7 @@ function renderDebugPanel() {
   html += '<div style="text-align:center;font-size:9px;color:rgba(255,255,255,0.25);margin-bottom:8px">' + commit + '</div>';
   
   html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();setupNearlyComplete()" style="background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.3);color:#ffd700;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:bold">🧪 Nearly Complete</button></div>';
+  html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();clearSavedData()" style="background:rgba(255,100,100,0.12);border:1px solid rgba(255,100,100,0.25);color:#ff6b6b;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px">🗑 Clear Saved Data</button></div>';
   
   html += '<h3>📦 Stock (' + stock.length + ')</h3>';
   if (stock.length === 0) {
@@ -2275,6 +2345,7 @@ function newGame() {
   render();
   saveGame();
   playSound('deal');
+  trackEvent('new-game');
 }
 
 function suitSymbol(s) {
@@ -3074,6 +3145,7 @@ function checkStalemate() {
   if (foundations.every(f => f.length === 13)) return;
   
   if (!hasAnyValidMove()) {
+    trackEvent('stalemate');
     document.getElementById('message').innerHTML = 
       '😔 No moves left — this deal is unwinnable. <button class="btn" onclick="newGame()" style="margin:0 0 0 10px;padding:6px 16px;font-size:13px">New Deal</button>';
   }
@@ -3095,6 +3167,7 @@ let autoCompleting = false;
 async function runAutoComplete() {
   if (autoCompleting) return;
   autoCompleting = true;
+  trackEvent('auto-complete');
   document.getElementById('message').innerHTML = '';
 
   const FLY_MS = 200;  // flight duration
@@ -3226,6 +3299,7 @@ function checkWin() {
   
   clearSavedGame();
   gameWon = true;
+  trackEvent('game-won');
   document.getElementById('win-overlay').classList.add('show');
   spawnSparkles();
   playSound('win');
