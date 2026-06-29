@@ -130,6 +130,7 @@
   .card.face-up {
     background: var(--card-bg);
     border: 1px solid var(--card-border-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
   }
   .card.red { color: var(--card-text-red); }
   .card.black { color: var(--card-text-black); }
@@ -714,7 +715,7 @@
     :root {
       --card-width: 48px;
       --card-height: 67px;
-      --stack-offset: 18px;
+      --stack-offset: 14px;
       --fan-offset: 11px;
       --card-font: 11px;
       --card-center: 22px;
@@ -761,17 +762,25 @@
       gap: 8px !important;
     }
     .card .center-suit svg {
-      width: 20px;
-      height: 24px;
+      width: 22px;
+      height: 25px;
     }
     .card .rank-suit-top {
       font-size: 22px;
     }
     .card .center-suit {
-      top: 56%;
+      top: auto;
+      bottom: 2px;
+      right: 2px;
+      left: auto;
+      transform: none;
+      font-size: 18px;
     }
     .card .rank-suit-bottom {
       display: none;
+    }
+    .card.face-up {
+      border-color: rgba(0,0,0,0.10);
     }
     .autocomplete-btn {
       padding-left: 4px;
