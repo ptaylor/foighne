@@ -425,10 +425,28 @@
     cursor: pointer;
     z-index: 999;
     opacity: 0;
+    -webkit-user-select: none;
+    user-select: none;
   }
-  #debug-btn.active {
-    opacity: 0;
-    background: transparent;
+  #debug-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255,215,0,0.25);
+    transform: translate(-50%, -50%) scale(0);
+    transition: none;
+    pointer-events: none;
+  }
+  #debug-btn.holding::after {
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%) scale(1);
+    transition: width 1.5s linear, height 1.5s linear, background 0.3s;
+    background: rgba(255,215,0,0.45);
   }
   #debug-panel {
     position: fixed;
@@ -803,7 +821,7 @@
       <div id="autocomplete-area"></div>
     </div>
   </div>
-  <button id="debug-btn" onclick="toggleDebug()" title="Debug"></button>
+  <button id="debug-btn" onmousedown="startDebugHold(event)" onmouseup="cancelDebugHold()" onmouseleave="cancelDebugHold()" ontouchstart="startDebugHold(event)" ontouchend="cancelDebugHold()" ontouchcancel="cancelDebugHold()" title="Hold to toggle debug"></button>
   <div id="message"></div>
   <div class="tableau-row" id="tableau"></div>
 </div>
@@ -2110,6 +2128,28 @@ function deactivateEgg() {
     activeEgg = null;
     renderDebugPanel();
   }
+}
+
+let debugHoldTimer = null;
+
+function startDebugHold(e) {
+  if (e && e.type === 'touchstart') e.preventDefault();
+  const btn = document.getElementById('debug-btn');
+  if (!btn) return;
+  btn.classList.add('holding');
+  debugHoldTimer = setTimeout(() => {
+    btn.classList.remove('holding');
+    toggleDebug();
+  }, 1500);
+}
+
+function cancelDebugHold() {
+  if (debugHoldTimer) {
+    clearTimeout(debugHoldTimer);
+    debugHoldTimer = null;
+  }
+  const btn = document.getElementById('debug-btn');
+  if (btn) btn.classList.remove('holding');
 }
 
 function toggleDebug() {
