@@ -1857,62 +1857,80 @@ function drawCross(ctx, p) {
   const s = p.size;
   ctx.save();
   ctx.translate(p.x, p.y);
-  ctx.rotate(p.rot + Math.PI / 4);
-  // straw/rush tones — green rushes (traditional), tied with twine
-  const rush1 = '#8fbc5e';
-  const rush2 = '#7aad45';
-  const rush3 = '#6b9e38';
-  const band   = '#5c3d1a';
-  const ctr = s * 0.10;
-  // each folded rush forms an L-shape: starts in one arm, bends at centre,
-  // continues into the adjacent arm. Rotate 90° and repeat.
-  // We draw several folded rushes in each orientation.
-  const folds = [
-    { a1: [-1,-1], a2: [ 1,-1] },  // top-left → top-right
-    { a1: [ 1,-1], a2: [ 1, 1] },  // top-right → bottom-right
-    { a1: [ 1, 1], a2: [-1, 1] },  // bottom-right → bottom-left
-    { a1: [-1, 1], a2: [-1,-1] },  // bottom-left → top-left
+  
+  // Woven reed tones — traditional green rushes
+  const reed1 = '#8fbc5e';
+  const reed2 = '#7aad45';
+  const reed3 = '#6b9e38';
+  const reed4 = '#5c8a2e';
+  const band  = '#5c3d1a';
+  const R  = s * 0.48;    // circle radius
+  const sq = s * 0.10;    // half-size of centre square
+  
+  // Outer circle boundary
+  ctx.strokeStyle = reed4;
+  ctx.lineWidth = Math.max(0.5, s * 0.025);
+  ctx.beginPath();
+  ctx.arc(0, 0, R, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Four triangular arms — each from centre to circle edge,
+  // then to the square corner on the "left" side of that arm's direction.
+  // Angles in screen coords: 0=right, π/2=down, π=left, 3π/2=up
+  const arms = [
+    { a: 0,          cx: R, cy: 0,   sx: -sq, sy: -sq },  // right → top-left
+    { a: Math.PI/2,  cx: 0, cy: R,   sx:  sq, sy: -sq },  // down  → top-right
+    { a: Math.PI,    cx:-R, cy: 0,   sx:  sq, sy:  sq },  // left  → bottom-right
+    { a:-Math.PI/2,  cx: 0, cy:-R,   sx: -sq, sy:  sq },  // up    → bottom-left
   ];
-  // each fold orientation gets 3 rushes, stacked slightly offset
-  for (const fold of folds) {
-    for (let r = 0; r < 3; r++) {
-      const off = (r - 1) * s * 0.07; // slight offset for stacked look
-      const px = fold.a1[1] * off, py = -fold.a1[0] * off; // perpendicular
-      // strand from arm1 tip, bending at centre, to arm2 tip
-      const x1 = fold.a1[0] * s * 0.55 + px, y1 = fold.a1[1] * s * 0.55 + py;
-      const x2 = fold.a2[0] * s * 0.55 + px, y2 = fold.a2[1] * s * 0.55 + py;
-      ctx.strokeStyle = [rush1, rush2, rush3][r];
-      ctx.lineWidth = Math.max(1.0, s * 0.07);
+  
+  for (const arm of arms) {
+    // Fill the triangular arm
+    ctx.fillStyle = reed1;
+    ctx.globalAlpha = 0.22;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(arm.cx, arm.cy);
+    ctx.lineTo(arm.sx, arm.sy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    
+    // Woven reed lines inside the arm (parallel to centre→circle edge)
+    ctx.strokeStyle = reed3;
+    ctx.lineWidth = Math.max(0.4, s * 0.015);
+    for (let i = 1; i < 4; i++) {
+      const t = i / 4;
+      const x1 = arm.cx * t, y1 = arm.cy * t;
+      const x2 = arm.sx + (arm.cx - arm.sx) * (1 - t);
+      const y2 = arm.sy + (arm.cy - arm.sy) * (1 - t);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
-      // bend through centre with a slight curve (the fold)
-      ctx.quadraticCurveTo(px, py, x2, y2);
+      ctx.lineTo(x2, y2);
       ctx.stroke();
-      ctx.lineWidth = 1;
     }
   }
-  // central woven square — where all folds overlap
-  ctx.fillStyle = rush2;
-  ctx.fillRect(-ctr, -ctr, ctr * 2, ctr * 2);
-  // weave detail — tiny cross lines
-  ctx.strokeStyle = rush3;
-  ctx.lineWidth = Math.max(0.5, s * 0.03);
+  
+  // Centre woven square
+  ctx.fillStyle = reed2;
+  ctx.fillRect(-sq, -sq, sq * 2, sq * 2);
+  ctx.strokeStyle = reed4;
+  ctx.lineWidth = Math.max(0.5, s * 0.025);
   ctx.beginPath();
-  ctx.moveTo(-ctr, -ctr); ctx.lineTo(ctr, ctr);
-  ctx.moveTo(-ctr, ctr); ctx.lineTo(ctr, -ctr);
+  ctx.moveTo(-sq, -sq); ctx.lineTo(sq, sq);
+  ctx.moveTo(-sq, sq);  ctx.lineTo(sq, -sq);
   ctx.stroke();
-  ctx.lineWidth = 1;
-  // tied bands at the four arm tips
-  const tips = [[-1,-1],[1,-1],[1,1],[-1,1]];
-  for (const [dx, dy] of tips) {
-    const tx = dx * s * 0.55, ty = dy * s * 0.55;
-    ctx.fillStyle = band;
+  
+  // Tiny tie bands at the circle-edge tips
+  for (const arm of arms) {
     ctx.save();
-    ctx.translate(tx, ty);
-    ctx.rotate(Math.atan2(dy, dx) + Math.PI/2);
-    ctx.fillRect(-s * 0.12, -s * 0.035, s * 0.24, s * 0.07);
+    ctx.translate(arm.cx, arm.cy);
+    ctx.rotate(arm.a + Math.PI / 2);
+    ctx.fillStyle = band;
+    ctx.fillRect(-s * 0.10, -s * 0.025, s * 0.20, s * 0.05);
     ctx.restore();
   }
+  
   ctx.restore();
 }
 
