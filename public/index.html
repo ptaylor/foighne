@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.25">
-<meta name="commit" content="77aa6f2">
+<meta name="version" content="v1.26">
+<meta name="commit" content="3f21b8e">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Foighne">
 <title>Foighne</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23c0392b'/><circle cx='16' cy='25' r='21' fill='none' stroke='%23fff' stroke-width='1.2'/><path d='M4 13 L7 8 L16 9 L25 8 L28 13 Q25 10 16 10 Q7 10 4 13Z' fill='%23fff'/><circle cx='16' cy='9' r='1.5' fill='%23fff'/><path d='M5 13 L5 17 L10 15 Q11 13 13 13' fill='%23fff'/><path d='M27 13 L27 17 L22 15 Q21 13 19 13' fill='%23fff'/><ellipse cx='16' cy='17' rx='9' ry='9' fill='%23fff'/><ellipse cx='13' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><ellipse cx='19' cy='16' rx='1.3' ry='1.5' fill='%23c0392b'/><path d='M14.5 19.5 Q16 18 17.5 19.5' fill='none' stroke='%23fff' stroke-width='.7'/><path d='M8 22 L16 26 L24 22' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
+<link rel="apple-touch-icon" sizes="192x192" href="images/icon.png">
 <!-- GoatCounter analytics -->
 <script data-goatcounter="https://foighne.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
@@ -130,6 +130,7 @@
   .card.face-up {
     background: var(--card-bg);
     border: 1px solid var(--card-border-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
   }
   .card.red { color: var(--card-text-red); }
   .card.black { color: var(--card-text-black); }
@@ -714,7 +715,7 @@
     :root {
       --card-width: 48px;
       --card-height: 67px;
-      --stack-offset: 18px;
+      --stack-offset: 14px;
       --fan-offset: 11px;
       --card-font: 11px;
       --card-center: 22px;
@@ -761,11 +762,25 @@
       gap: 8px !important;
     }
     .card .center-suit svg {
-      width: 40px;
-      height: 48px;
+      width: 22px;
+      height: 25px;
+    }
+    .card .rank-suit-top {
+      font-size: 22px;
+    }
+    .card .center-suit {
+      top: auto;
+      bottom: 2px;
+      right: 2px;
+      left: auto;
+      transform: none;
+      font-size: 18px;
     }
     .card .rank-suit-bottom {
       display: none;
+    }
+    .card.face-up {
+      border-color: rgba(0,0,0,0.10);
     }
     .autocomplete-btn {
       padding-left: 4px;
