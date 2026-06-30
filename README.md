@@ -18,11 +18,11 @@ Open `foighne.html` in any modern browser. The goal is to build all four foundat
 - Drag-and-drop and click-to-move with touch support
 - Game state persists across page reloads via `localStorage` (saves on every move and when page is hidden)
 - Win stats tracking (games played, won, current streak, best streak)
-- Optional 💡 hint system (on by default) — suggests foundation, tableau, or stock draw moves
-- Volume slider (0–10, Mute to Max) with 8 sound themes (Crystal, Felt, Zen, Arcade, Clover, Paper, Ocean, Sunset) — Web Audio API, no files needed
-- 8 color themes (Azure, Paper, Ocean, Sunset, Classic Green, Midnight, Cedar, Clover)
-- 6 card back styles + custom image upload
-- 5 face card styles (Cool, Funky, Cute, Funny, Stupid)
+- Optional 💡 hint system (always on) — suggests foundation, tableau, or stock draw moves
+- Volume slider (0–10, Mute to Max) with 3 sound themes (Zen, Crystal, Arcade) — Web Audio API, no files needed
+- 4 color themes (Azure, Midnight, Ocean, Paper)
+- 2 card back styles (Prism, Classic)
+- 2 face card styles (Funny, Stupid)
 - Single or triple draw from stock
 - Responsive layout with mobile-optimised card design (simplified, larger rank+suit, tighter spacing)
 - PWA-ready with favicon, apple-touch-icon, and theme colour for home screen install

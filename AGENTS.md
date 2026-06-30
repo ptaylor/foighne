@@ -48,11 +48,11 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 - Debug panel lists all eggs with date and active status; click to manually toggle any egg for testing
 
 ### Settings system
-- `DEFAULT_SETTINGS` — object with all setting defaults (`theme`, `cardBack`, `faceStyle`, `drawCount`, `volume`, `soundTheme`, `hintEnabled`, `customBackImage`)
+- `DEFAULT_SETTINGS` — object with all setting defaults (`theme`, `cardBack`, `faceStyle`, `drawCount`, `volume`, `soundTheme`)
 - `loadSettings()` / `saveSettings(s)` — read/write to `localStorage` (key: `SETTINGS_KEY`). Includes migration logic for old key names
 - **`updateSetting(key, value)`** — reusable helper: loads settings, sets the key, saves, and fires `trackEvent('setting-' + key + '-' + value)`. Always use this when a user changes a setting — never call `saveSettings` directly for user-triggered changes
 - To **add a new setting**: (1) add default to `DEFAULT_SETTINGS`, (2) add UI control in the settings overlay HTML, (3) write a short handler that calls `updateSetting('newKey', val)` plus any side effects (re-render, apply theme, etc.). Tracking is automatic — no need to add a separate `trackEvent` call
-- Settings are tracked via GoatCounter as `setting-{key}-{value}` events (e.g. `setting-theme-azure`, `setting-volume-5`, `hints-on`/`hints-off`)
+- Settings are tracked via GoatCounter as `setting-{key}-{value}` events (e.g. `setting-theme-azure`, `setting-volume-5`)
 
 ### Card object shape
 ```js
