@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.27">
-<meta name="commit" content="af45cd6">
+<meta name="version" content="v1.28">
+<meta name="commit" content="ac212fe">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,8 +24,6 @@
     --card-text-red: #c0392b;
     --card-text-black: #1a1a2e;
     --card-border-color: #d4c8b8;
-    --label-color: rgba(255,255,255,0.55);
-    --border-color: rgba(255,255,255,0.2);
     --dashed-border: rgba(255,255,255,0.10);
     --empty-placeholder-color: rgba(255,255,255,0.15);
     --message-color: #ffd700;
@@ -240,65 +238,6 @@
   body[data-card-back="prism"] .card.face-down::after {
     content: '◆'; font-size: calc(var(--card-back-sym) * 0.72); color: rgba(255,255,255,0.12);
   }
-  
-  body[data-card-back="circuit"] .card.face-down {
-    background-color: #0c1a35;
-    background-image: 
-      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-  body[data-card-back="circuit"] .card.face-down::after {
-    content: '⬡'; font-size: calc(var(--card-back-sym) * 0.83); color: rgba(255,255,255,0.17);
-  }
-  
-  body[data-card-back="carbon"] .card.face-down {
-    background: repeating-linear-gradient(
-      135deg,
-      #0d1a35 0px, #0d1a35 2px,
-      #13264a 2px, #13264a 4px,
-      #0f1e3d 4px, #0f1e3d 6px,
-      #152b52 6px, #152b52 8px
-    );
-  }
-  body[data-card-back="carbon"] .card.face-down::after {
-    content: '◈'; font-size: calc(var(--card-back-sym) * 0.89); color: rgba(255,255,255,0.13);
-  }
-  
-  body[data-card-back="minimal"] .card.face-down {
-    background: #0d1b3e;
-    box-shadow: inset 0 0 0 3px rgba(255,255,255,0.08);
-  }
-  body[data-card-back="minimal"] .card.face-down::after {
-    content: ''; 
-    width: 40px; height: 40px;
-    border: 2px solid rgba(255,255,255,0.1);
-    border-radius: 50%;
-  }
-  body[data-card-back="celtic"] .card.face-down {
-    background-color: #0a2e1f;
-    background-image:
-      repeating-linear-gradient(30deg, transparent, transparent 8px, rgba(180,160,100,0.08) 8px, rgba(180,160,100,0.08) 9px),
-      repeating-linear-gradient(-30deg, transparent, transparent 8px, rgba(180,160,100,0.06) 8px, rgba(180,160,100,0.06) 9px),
-      repeating-linear-gradient(90deg, transparent, transparent 14px, rgba(180,160,100,0.05) 14px, rgba(180,160,100,0.05) 15px);
-    border-color: rgba(180,160,100,0.3);
-  }
-  body[data-card-back="celtic"] .card.face-down::after {
-    content: '☘'; font-size: calc(var(--card-back-sym) * 0.8); color: rgba(180,160,100,0.2);
-  }
-  /* Custom image card back */
-  body[data-card-back="custom"] .card.face-down {
-    background-color: #0d1b3e;
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-image: var(--custom-back-image, none);
-    border: 3px solid rgba(255,255,255,0.5);
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
-  }
-  body[data-card-back="custom"] .card.face-down::after {
-    content: '';
-  }
   #win-overlay {
     display: none;
     position: fixed;
@@ -403,6 +342,9 @@
     padding: 10px 12px;
     font-size: 18px;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   #debug-btn {
     position: fixed;
@@ -526,26 +468,57 @@
   .settings-panel {
     background: #1e3a5f;
     border-radius: 14px;
-    padding: 22px 24px;
-    max-width: 460px;
+    padding: 16px 18px;
+    max-width: 420px;
     width: 92%;
     max-height: 88vh;
     overflow-y: auto;
     color: #fff;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   }
-  .settings-panel h2 {
-    text-align: center;
-    font-size: 22px;
-    margin-bottom: 16px;
-    color: #fff;
+  .settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
   }
+  .settings-header h2 {
+    font-size: 20px;
+    color: #fff;
+    margin: 0;
+    text-align: left;
+  }
+  .settings-header-btns {
+    display: flex;
+    gap: 6px;
+  }
+  .btn-icon-sm {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.7);
+    transition: background 0.2s;
+  }
+  .btn-icon-sm:hover { background: rgba(255,255,255,0.2); }
+  .btn-save {
+    background: rgba(100,200,150,0.3);
+    color: #6bcb77;
+  }
+  .btn-save:hover { background: rgba(100,200,150,0.5); }
   .setting-group {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
   .setting-group h3 {
-    font-size: 12px;
-    margin-bottom: 7px;
+    font-size: 11px;
+    margin-bottom: 5px;
     color: rgba(255,255,255,0.55);
     font-weight: 600;
     text-transform: uppercase;
@@ -553,18 +526,18 @@
   }
   .tile-grid {
     display: flex;
-    gap: 7px;
+    gap: 6px;
     flex-wrap: wrap;
   }
   .theme-tile, .back-tile {
     cursor: pointer;
     border-radius: 8px;
-    padding: 6px 6px 5px;
+    padding: 4px 4px 3px;
     background: rgba(255,255,255,0.08);
     border: 2px solid transparent;
     text-align: center;
     transition: border-color 0.2s, background 0.2s, transform 0.15s;
-    width: 78px;
+    width: 66px;
   }
   .theme-tile:hover, .back-tile:hover {
     background: rgba(255,255,255,0.14);
@@ -575,8 +548,8 @@
     background: rgba(255,215,0,0.12);
   }
   .theme-tile .preview, .back-tile .preview {
-    width: 64px;
-    height: 44px;
+    width: 54px;
+    height: 36px;
     border-radius: 5px;
     display: flex;
     align-items: center;
@@ -615,10 +588,10 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     background: rgba(255,255,255,0.05);
     border-radius: 8px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
   .volume-row span {
     font-size: 13px;
@@ -660,24 +633,47 @@
     min-width: 32px;
     text-align: right;
   }
-  .btn-settings-close {
-    display: block;
-    margin: 4px auto 0;
-    padding: 10px 36px;
-    font-size: 14px;
-    background: #ffd700;
-    color: #000;
-    font-weight: bold;
-    border: none;
+  /* Draw count radio-style buttons */
+  .draw-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.05);
     border-radius: 8px;
+  }
+  .draw-row span {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+  }
+  .draw-btns {
+    display: flex;
+    gap: 0;
+  }
+  .draw-btn {
+    padding: 4px 14px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: transparent;
+    color: rgba(255,255,255,0.55);
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+    transition: background 0.2s, color 0.2s;
   }
-  .btn-settings-close:hover {
-    background: #ffed4a;
-    transform: scale(1.05);
-    box-shadow: 0 6px 24px rgba(255,215,0,0.4);
+  .draw-btn:first-child {
+    border-radius: 5px 0 0 5px;
   }
+  .draw-btn:last-child {
+    border-radius: 0 5px 5px 0;
+  }
+  .draw-btn.selected {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  .draw-btn:hover:not(.selected) {
+    background: rgba(255,255,255,0.07);
+  }
+
   #game-title {
     text-align: center;
     color: rgba(255,255,255,0.18);
@@ -713,9 +709,9 @@
     .btn-icon { padding: 8px 10px; font-size: 16px; }
     #win-overlay h1 { font-size: 42px; }
     #win-overlay button { padding: 12px 32px; font-size: 17px; }
-    .settings-panel h2 { font-size: 20px; }
-    .settings-panel { padding: 16px 18px; }
-    .theme-tile, .back-tile { width: 64px; }
+    .settings-panel { padding: 14px 16px; }
+    .settings-header h2 { font-size: 18px; }
+    .theme-tile, .back-tile { width: 58px; }
     #debug-panel { width: 190px; font-size: 11px; }
   }
 
@@ -743,14 +739,14 @@
     .btn-icon { padding: 4px 6px; font-size: 13px; margin-top: 0; }
     #win-overlay h1 { font-size: 30px; margin-bottom: 12px; }
     #win-overlay button { padding: 10px 24px; font-size: 15px; }
-    .settings-panel { padding: 14px; max-height: 92vh; }
-    .settings-panel h2 { font-size: 17px; margin-bottom: 12px; }
-    .setting-group { margin-bottom: 12px; }
-    .setting-group h3 { font-size: 11px; }
-    .theme-tile, .back-tile { width: 56px; padding: 5px 4px 4px; }
-    .theme-tile .preview, .back-tile .preview { width: 46px; height: 32px; }
-    .tile-grid { gap: 5px; }
-    .btn-settings-close { padding: 8px 24px; font-size: 13px; }
+    .settings-panel { padding: 12px; max-height: 92vh; }
+    .settings-header { margin-bottom: 8px; }
+    .settings-header h2 { font-size: 16px; }
+    .setting-group { margin-bottom: 8px; }
+    .setting-group h3 { font-size: 10px; }
+    .theme-tile, .back-tile { width: 52px; padding: 3px 3px 2px; }
+    .theme-tile .preview, .back-tile .preview { width: 42px; height: 28px; }
+    .tile-grid { gap: 4px; }
     #debug-panel { width: 160px; font-size: 10px; padding: 14px 10px; }
     /* Stack top-row on two rows: stock+waste + buttons on top, foundations below */
     .top-row {
@@ -770,6 +766,7 @@
       justify-content: flex-start;
       gap: 8px !important;
       margin-top: 2px !important;
+      margin-left: auto;
     }
     .card .center-suit svg {
       width: 22px;
@@ -796,6 +793,10 @@
       padding-left: 4px;
       padding-right: 4px;
       font-size: 10px;
+    }
+    #hint-btn {
+      padding: 4px 6px;
+      font-size: 13px;
     }
   }
 </style>
@@ -831,8 +832,9 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:6px;align-self:flex-start;margin-top:8px">
       <div style="display:flex;gap:6px">
-        <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
+        <button class="btn btn-icon" id="hint-btn" onclick="showHint()" title="Hint">&#128161;</button>
         <button class="btn" id="new-game-btn" onclick="newGame()">New Game</button>
+        <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
       </div>
     </div>
   </div>
@@ -847,15 +849,24 @@
 <canvas id="egg-canvas"></canvas>
 <div id="settings-overlay">
   <div class="settings-panel">
-    <h2>Settings</h2>
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <div class="settings-header-btns">
+        <button class="btn-icon-sm" onclick="cancelSettings()" title="Cancel">✕</button>
+        <button class="btn-icon-sm btn-save" onclick="closeSettings()" title="Save">✓</button>
+      </div>
+    </div>
     <div class="volume-row">
       <span>🔊</span>
-      <input type="range" id="volume-slider" min="0" max="200" value="100" oninput="setVolume(this.value)">
-      <span class="volume-val" id="volume-val">Max</span>
+      <input type="range" id="volume-slider" min="0" max="10" step="1" value="5" oninput="setVolume(this.value)">
+      <span class="volume-val" id="volume-val">5</span>
     </div>
-    <div class="setting-group">
-      <h3>Draw Count</h3>
-      <div class="tile-grid" id="draw-grid"></div>
+    <div class="draw-row">
+      <span>Draw</span>
+      <div class="draw-btns">
+        <button class="draw-btn" data-draw="1" onclick="selectDrawCount(1)">1</button>
+        <button class="draw-btn selected" data-draw="3" onclick="selectDrawCount(3)">3</button>
+      </div>
     </div>
     <div class="setting-group">
       <h3>Color Theme</h3>
@@ -864,20 +875,15 @@
     <div class="setting-group">
       <h3>Card Back</h3>
       <div class="tile-grid" id="back-grid"></div>
-      <div id="custom-back-row" style="display:none;margin-top:6px">
-        <input id="custom-back-url" type="text" placeholder="images/my-card-back.jpg" style="width:100%;padding:7px 9px;border-radius:5px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:12px" onchange="saveCustomBackImage(this.value)">
-        <div style="font-size:9px;color:rgba(255,255,255,0.35);margin-top:3px">Enter an image URL or local path. The image will be automatically resized and processed for use as a card back.</div>
-      </div>
     </div>
     <div class="setting-group">
-      <h3>Face Card Style</h3>
+      <h3>Face Cards</h3>
       <div class="tile-grid" id="face-grid"></div>
     </div>
     <div class="setting-group">
       <h3>Sound Theme</h3>
       <div class="tile-grid" id="sound-theme-grid"></div>
     </div>
-    <button class="btn btn-settings-close" onclick="closeSettings()">Done</button>
   </div>
 </div>
 <script>
@@ -971,31 +977,22 @@ const SETTINGS_KEY = 'solitaire_settings';
 
 const THEMES = {
   azure:   { name: 'Azure',        bg: '#0d4f7c', cardBg: '#f7f2e8', red: '#c0392b', black: '#1a1a2e', cardBorder: '#d4c8b8' },
-  paper:   { name: 'Paper',         bg: '#3d3226', cardBg: '#f5f0e4', red: '#8b4513', black: '#2c1810', cardBorder: '#c4b8a8' },
-  ocean:   { name: 'Ocean',         bg: '#0a3d3d', cardBg: '#f0f5f5', red: '#b53434', black: '#1a2a2a', cardBorder: '#b8c8c8' },
-  sunset:  { name: 'Sunset',        bg: '#3d1b2e', cardBg: '#faf5f0', red: '#b84040', black: '#2c1818', cardBorder: '#d4c0b0' },
-  classic: { name: 'Classic Green', bg: '#0d5c28', cardBg: '#fafaf7', red: '#b71c1c', black: '#1b1b1b', cardBorder: '#c8c8c0' },
-  dark:    { name: 'Midnight',      bg: '#0f0f1a', cardBg: '#1e1e30', red: '#ff6b6b', black: '#d4d4e0', cardBorder: '#2a2a40' },
-  forest:  { name: 'Cedar',         bg: '#1e3328', cardBg: '#f0ece4', red: '#a33030', black: '#1c1c1c', cardBorder: '#c4bfb4' },
-  clover:  { name: 'Clover',        bg: '#0a2e1f', cardBg: '#f5f0e0', red: '#8b1a1a', black: '#1c1c14', cardBorder: '#c8b898' },
+  midnight:{ name: 'Midnight',     bg: '#0f0f1a', cardBg: '#1e1e30', red: '#ff6b6b', black: '#d4d4e0', cardBorder: '#2a2a40' },
+  ocean:   { name: 'Ocean',        bg: '#0a3d3d', cardBg: '#f0f5f5', red: '#b53434', black: '#1a2a2a', cardBorder: '#b8c8c8' },
+  paper:   { name: 'Paper',        bg: '#c4b8a8', cardBg: '#f5f0e4', red: '#8b4513', black: '#2c1810', cardBorder: '#b8a898' },
 };
 
 const CARD_BACKS = {
-  classic: { name: 'Classic', css: 'linear-gradient(135deg, #0d1b3e, #1a357c)', border: '#0d1b3e', symbol: '✦', symbolSize: '30px' },
   prism:   { name: 'Prism',   css: 'repeating-linear-gradient(30deg, #0f2044 0px, #1a3a6e 6px, #0d1f45 6px, #162d5a 12px)', border: '#0d1f45', symbol: '◆', symbolSize: '22px' },
-  circuit: { name: 'Circuit', css: '#0c1a35', border: '#0c1a35', symbol: '⬡', symbolSize: '24px' },
-  carbon:  { name: 'Carbon',  css: 'repeating-linear-gradient(135deg, #0d1a35 0px, #0d1a35 2px, #13264a 2px, #13264a 4px, #0f1e3d 4px, #0f1e3d 6px, #152b52 6px, #152b52 8px)', border: '#0d1a35', symbol: '◈', symbolSize: '26px' },
-  minimal: { name: 'Minimal', css: '#0d1b3e', border: '#0d1b3e', symbol: '○', symbolSize: '18px' },
-  celtic:  { name: 'Celtic',  css: 'repeating-linear-gradient(45deg, #0a2e1f 0px, #0a2e1f 3px, #0d3826 3px, #0d3826 6px, #0a2e1f 6px, #0a2e1f 9px, #0c3322 9px, #0c3322 15px)', border: '#0a2e1f', symbol: '☘', symbolSize: '22px' },
+  classic: { name: 'Classic', css: 'linear-gradient(135deg, #0d1b3e, #1a357c)', border: '#0d1b3e', symbol: '✦', symbolSize: '30px' },
 };
 
 const DEFAULT_SETTINGS = {
   theme: 'azure',
   cardBack: 'prism',
-  customBackImage: '',
   faceStyle: 'funny',
   drawCount: 3,
-  volume: 100,
+  volume: 5,
   soundTheme: 'zen'
 };
 
@@ -1004,11 +1001,18 @@ function loadSettings() {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      // Migrate old volume (0–200 scale) to new 0–10 stepped scale
+      if (typeof parsed.volume === 'number' && parsed.volume > 10) {
+        parsed.volume = Math.round(parsed.volume / 20);
+      }
       // Migrate old soundEnabled boolean to volume number
       if (typeof parsed.volume === 'undefined' && typeof parsed.soundEnabled !== 'undefined') {
-        parsed.volume = parsed.soundEnabled ? 100 : 0;
+        parsed.volume = parsed.soundEnabled ? 5 : 0;
         delete parsed.soundEnabled;
       }
+      // Remove deprecated settings
+      delete parsed.hintEnabled;
+      delete parsed.customBackImage;
       return { ...DEFAULT_SETTINGS, ...parsed };
     }
   } catch (e) {}
@@ -1021,7 +1025,7 @@ function saveSettings(s) {
 
 function applySettings() {
   const settings = loadSettings();
-  const theme = THEMES[settings.theme] || THEMES.classic;
+  const theme = THEMES[settings.theme] || THEMES.azure;
   const root = document.documentElement;
   root.style.setProperty('--bg-color', theme.bg);
   root.style.setProperty('--card-bg', theme.cardBg);
@@ -1031,13 +1035,6 @@ function applySettings() {
   
   // Card back pattern
   document.body.dataset.cardBack = settings.cardBack;
-  
-  // Custom card back image
-  if (settings.cardBack === 'custom' && settings.customBackImage) {
-    document.documentElement.style.setProperty('--custom-back-image', `url(${settings.customBackImage})`);
-  } else {
-    document.documentElement.style.setProperty('--custom-back-image', 'none');
-  }
 }
 
 function populateSettings() {
@@ -1067,28 +1064,8 @@ function populateSettings() {
     backGrid.appendChild(tile);
   });
   
-  // Custom image tile
-  {
-    const tile = document.createElement('div');
-    tile.className = 'back-tile' + (settings.cardBack === 'custom' ? ' selected' : '');
-    tile.dataset.back = 'custom';
-    tile.onclick = () => selectCardBack('custom');
-    tile.innerHTML = `<div class="preview" style="background:#1a2a4a;border:2px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px">🖼️</div><div class="tile-label">Custom</div>`;
-    backGrid.appendChild(tile);
-  }
-  
-  // Show/hide URL input for custom
-  const customRow = document.getElementById('custom-back-row');
-  const customUrl = document.getElementById('custom-back-url');
-  customRow.style.display = settings.cardBack === 'custom' ? 'block' : 'none';
-  // Don't show the processed data URL — keep input clean
-  if (customUrl) {
-    customUrl.value = '';
-    customUrl.placeholder = settings.customBackImage ? '✅ Image loaded — enter new path to change' : 'images/my-card-back.jpg';
-  }
-  
   faceGrid.innerHTML = '';
-  ['cool','funky','cute','funny','stupid'].forEach(id => {
+  ['funny','stupid'].forEach(id => {
     const tile = document.createElement('div');
     tile.className = 'back-tile' + (id === settings.faceStyle ? ' selected' : '');
     tile.dataset.face = id;
@@ -1098,17 +1075,6 @@ function populateSettings() {
     faceGrid.appendChild(tile);
   });
   
-  const drawGrid = document.getElementById('draw-grid');
-  drawGrid.innerHTML = '';
-  [{v:1,n:'Single'},{v:3,n:'Triple'}].forEach(d => {
-    const tile = document.createElement('div');
-    tile.className = 'back-tile' + (d.v === settings.drawCount ? ' selected' : '');
-    tile.dataset.draw = d.v;
-    tile.onclick = () => selectDrawCount(d.v);
-    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:32px;color:rgba(255,255,255,0.6)">${d.v}</div><div class="tile-label">${d.n}</div>`;
-    drawGrid.appendChild(tile);
-  });
-  
   const soundThemeGrid = document.getElementById('sound-theme-grid');
   soundThemeGrid.innerHTML = '';
   Object.entries(SOUND_THEMES).forEach(([id, st]) => {
@@ -1116,8 +1082,8 @@ function populateSettings() {
     tile.className = 'back-tile' + (id === settings.soundTheme ? ' selected' : '');
     tile.dataset.soundTheme = id;
     tile.onclick = () => selectSoundTheme(id);
-    const waveIcon = {sine:'〰️',triangle:'🔺',sawtooth:'📐',square:'👾'}[st.wave] || '🎵';
-    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:16px">${waveIcon}</div><div class="tile-label">${st.name}</div><div style="font-size:8px;color:rgba(255,255,255,0.35)">${st.desc}</div>`;
+    const waveIcon = {sine:'〰️',triangle:'🔺',square:'👾'}[st.wave] || '🎵';
+    tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:16px">${waveIcon}</div><div class="tile-label">${st.name}</div>`;
     soundThemeGrid.appendChild(tile);
   });
 }
@@ -1126,8 +1092,7 @@ function setVolume(val) {
   const v = Math.round(Number(val));
   const settings = loadSettings();
   const wasOff = settings.volume === 0;
-  settings.volume = v;
-  saveSettings(settings);
+  updateSetting('volume', v);
   updateVolumeSlider();
   if (wasOff && v > 0) playSound('draw');
 }
@@ -1140,8 +1105,8 @@ function updateVolumeSlider() {
   if (label) {
     const v = settings.volume;
     if (v === 0) label.textContent = 'Mute';
-    else if (v >= 200) label.textContent = 'Max';
-    else label.textContent = v + '%';
+    else if (v >= 10) label.textContent = 'Max';
+    else label.textContent = v;
   }
 }
 
@@ -1150,17 +1115,6 @@ function facePreviewSVG(style) {
   const f = '#334', l = '#556', a = '#ccd';
   const svg = (s) => `<svg viewBox="0 0 40 48" width="36" height="43">${s}</svg>`;
   switch (style) {
-    case 'funky': return svg(`<rect x="1" y="1" width="38" height="46" rx="4" fill="none" stroke="${f}" stroke-width="1.5" stroke-dasharray="4 2"/>
-      <polygon points="20,5 8,20 14,18 5,22 12,23 20,37 28,23 35,22 26,18 32,20" fill="${f}" opacity="0.8"/>
-      <ellipse cx="20" cy="28" rx="14" ry="11" fill="${f}"/><ellipse cx="15" cy="26" rx="3.5" ry="5" fill="${a}"/><ellipse cx="25" cy="26" rx="3.5" ry="5" fill="${a}"/>
-      <circle cx="15" cy="25" r="2" fill="#f0f"/><circle cx="25" cy="25" r="2" fill="#f0f"/>
-      <path d="M15 34 Q20 40 25 34" fill="none" stroke="#f0f" stroke-width="2"/>`);
-    case 'cute': return svg(`<circle cx="20" cy="27" r="16" fill="${f}"/>
-      <path d="M6 22 L11 12 L17 20 L20 8 L23 20 L29 12 L34 22 L6 22Z" fill="${f}"/>
-      <circle cx="20" cy="8" r="2.5" fill="${a}"/><circle cx="14" cy="26" r="3.5" fill="${a}"/><circle cx="26" cy="26" r="3.5" fill="${a}"/>
-      <circle cx="15" cy="25" r="2" fill="${f}"/><circle cx="25" cy="25" r="2" fill="${f}"/><circle cx="14.5" cy="24.5" r="1" fill="#fff"/><circle cx="24.5" cy="24.5" r="1" fill="#fff"/>
-      <ellipse cx="15" cy="29" rx="3" ry="2" fill="rgba(255,150,150,0.4)"/><ellipse cx="25" cy="29" rx="3" ry="2" fill="rgba(255,150,150,0.4)"/>
-      <path d="M18 32 Q20 35 22 32" fill="none" stroke="${f}" stroke-width="1"/>`);
     case 'funny': return svg(`<ellipse cx="20" cy="26" rx="15" ry="13" fill="${f}"/>
       <path d="M0 21 L7 12 L13 18 L20 6 L27 18 L33 12 L40 21 Z" fill="${f}"/>
       <circle cx="14" cy="24" r="5.5" fill="#fff"/><circle cx="26" cy="24" r="5.5" fill="#fff"/>
@@ -1179,146 +1133,130 @@ function facePreviewSVG(style) {
 }
 
 function openSettings() {
+  settingsSnapshot = { ...loadSettings() };
   populateSettings();
   updateVolumeSlider();
+  updateDrawButtons();
   document.getElementById('settings-overlay').classList.add('show');
+}
+
+function cancelSettings() {
+  if (settingsSnapshot) {
+    saveSettings(settingsSnapshot);
+    applySettings();
+  }
+  closeSettings();
 }
 
 function closeSettings() {
   document.getElementById('settings-overlay').classList.remove('show');
 }
 
-function selectTheme(id) {
+// ── Draw count ──
+
+function selectDrawCount(v) {
+  updateSetting('drawCount', v);
+  updateDrawButtons();
+}
+
+function updateDrawButtons() {
   const settings = loadSettings();
-  settings.theme = id;
+  document.querySelectorAll('.draw-btn').forEach(btn => {
+    const val = parseInt(btn.dataset.draw);
+    btn.classList.toggle('selected', val === settings.drawCount);
+  });
+}
+
+// ── Hint system ──
+
+function getNextMove() {
+  // 1. Move to foundation (waste first, then tableau tops)
+  for (let f = 0; f < 4; f++) {
+    if (waste.length > 0) {
+      const w = waste[waste.length - 1];
+      if (canPlaceOnFoundation(w, foundations[f], f)) {
+        return { type: 'foundation', from: 'waste', to: f, card: w };
+      }
+    }
+    for (let t = 0; t < 7; t++) {
+      if (tableau[t].length > 0) {
+        const card = tableau[t][tableau[t].length - 1];
+        if (canPlaceOnFoundation(card, foundations[f], f)) {
+          return { type: 'foundation', from: 'tableau', idx: t, to: f, card: card };
+        }
+      }
+    }
+  }
+  // 2. Tableau move (try moving a card between piles)
+  for (let src = 0; src < 7; src++) {
+    if (tableau[src].length === 0) continue;
+    // Try moving the top face-up card (or a run of face-up cards)
+    const pile = tableau[src];
+    let ci = pile.length - 1;
+    while (ci >= 0 && pile[ci].faceUp) ci--;
+    ci++; // first face-up card
+    if (ci >= pile.length) continue;
+    const card = pile[ci];
+    for (let dest = 0; dest < 7; dest++) {
+      if (src === dest) continue;
+      if (canPlaceOnTableau(card, tableau[dest])) {
+        return { type: 'tableau', from: src, to: dest, card: card };
+      }
+    }
+  }
+  // 3. Draw from stock
+  return { type: 'draw' };
+}
+
+function showHint() {
+  const hint = getNextMove();
+  if (hint.type === 'foundation') {
+    const suitSym = SUITS[hint.to];
+    const rank = RANKS[hint.card.rank];
+    showMessage('💡 Move ' + rank + suitSym + ' to foundation');
+  } else if (hint.type === 'tableau') {
+    const rank = RANKS[hint.card.rank];
+    showMessage('💡 Move ' + rank + ' to another tableau pile');
+  } else {
+    showMessage('💡 Draw from the stock');
+  }
+}
+
+// Reusable helper: persist a setting, track it, return updated settings object
+function updateSetting(key, value) {
+  const settings = loadSettings();
+  settings[key] = value;
   saveSettings(settings);
+  trackEvent('setting-' + key + '-' + value);
+  return settings;
+}
+
+function selectTheme(id) {
+  updateSetting('theme', id);
   applySettings();
-  // Update tile visuals
   document.querySelectorAll('.theme-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.theme === id);
   });
 }
 
 function selectCardBack(id) {
-  const settings = loadSettings();
-  settings.cardBack = id;
-  saveSettings(settings);
+  updateSetting('cardBack', id);
   applySettings();
   document.querySelectorAll('.back-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.back === id);
   });
-  // Show/hide custom URL input
-  const customRow = document.getElementById('custom-back-row');
-  if (customRow) customRow.style.display = id === 'custom' ? 'block' : 'none';
-  const customUrl = document.getElementById('custom-back-url');
-  if (customUrl) {
-    customUrl.value = '';
-    customUrl.placeholder = settings.customBackImage ? '✅ Image loaded — enter new path to change' : 'images/my-card-back.jpg';
-  }
-}
-
-function saveCustomBackImage(url) {
-  const raw = url.trim();
-  if (!raw) {
-    const settings = loadSettings();
-    settings.customBackImage = '';
-    saveSettings(settings);
-    applySettings();
-    return;
-  }
-  
-  const input = document.getElementById('custom-back-url');
-  if (input) {
-    input.disabled = true;
-    input.style.opacity = '0.5';
-  }
-  showMessage('🖼️ Processing image…');
-  
-  // Load image, resize via canvas, store as data URL
-  const img = new Image();
-  img.onload = () => {
-    // Canvas: 200×280 (2× card size for retina, maintains 5:7 ratio)
-    const cw = 200, ch = 280;
-    const canvas = document.createElement('canvas');
-    canvas.width = cw;
-    canvas.height = ch;
-    const ctx = canvas.getContext('2d');
-    
-    // Scale to fill, center-crop (matching CSS cover behavior)
-    const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
-    const sw = img.naturalWidth * scale;
-    const sh = img.naturalHeight * scale;
-    const sx = (cw - sw) / 2;
-    const sy = (ch - sh) / 2;
-    
-    // Dark background behind image (matches fallback)
-    ctx.fillStyle = '#0d1b3e';
-    ctx.fillRect(0, 0, cw, ch);
-    ctx.drawImage(img, sx, sy, sw, sh);
-    
-    let dataUrl;
-    try {
-      dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    } catch (e) {
-      // Canvas tainted by cross-origin image — store the raw URL instead
-      if (input) {
-        input.disabled = false;
-        input.style.opacity = '';
-      }
-      showMessage('⚠️ Cannot process cross-origin images — storing raw URL');
-      const settings = loadSettings();
-      settings.customBackImage = raw;
-      saveSettings(settings);
-      applySettings();
-      return;
-    }
-    
-    const settings = loadSettings();
-    settings.customBackImage = dataUrl;
-    saveSettings(settings);
-    applySettings();
-    
-    if (input) {
-      input.disabled = false;
-      input.style.opacity = '';
-      input.value = '';
-      input.placeholder = '✅ Image loaded — enter new path to change';
-    }
-    showMessage('✅ Card back updated!');
-  };
-  img.onerror = () => {
-    if (input) {
-      input.disabled = false;
-      input.style.opacity = '';
-    }
-    showMessage('❌ Could not load image — check the path');
-  };
-  img.src = raw;
 }
 
 function selectFaceStyle(id) {
-  const settings = loadSettings();
-  settings.faceStyle = id;
-  saveSettings(settings);
+  updateSetting('faceStyle', id);
   render();
   document.querySelectorAll('#face-grid .back-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.face === id);
   });
 }
 
-function selectDrawCount(v) {
-  const settings = loadSettings();
-  settings.drawCount = v;
-  saveSettings(settings);
-  document.querySelectorAll('#draw-grid .back-tile').forEach(el => {
-    el.classList.toggle('selected', parseInt(el.dataset.draw) === v);
-  });
-}
-
 function selectSoundTheme(id) {
-  const settings = loadSettings();
-  settings.soundTheme = id;
-  saveSettings(settings);
+  updateSetting('soundTheme', id);
   document.querySelectorAll('#sound-theme-grid .back-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.soundTheme === id);
   });
@@ -2362,6 +2300,7 @@ function ensureValidState() {
 }
 
 let gameWon = false;
+let settingsSnapshot = null;
 
 function newGame() {
   const stats = loadStats();
@@ -2407,9 +2346,9 @@ function canPlaceOnTableau(card, destPile) {
   return (top.rank === card.rank + 1) && (cardColor(top.suit) !== cardColor(card.suit));
 }
 
-function canPlaceOnFoundation(card, destPile) {
+function canPlaceOnFoundation(card, destPile, foundationIndex) {
   if (destPile.length === 0) {
-    return card.rank === 0; // Ace
+    return card.rank === 0 && card.suit === foundationIndex;
   }
   const top = destPile[destPile.length - 1];
   return top.suit === card.suit && top.rank === card.rank - 1;
@@ -2455,7 +2394,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
     // Try foundations first, then tableau
     let moved = false;
     for (let f = 0; f < 4; f++) {
-      if (canPlaceOnFoundation(card, foundations[f])) {
+      if (canPlaceOnFoundation(card, foundations[f], f)) {
         waste.pop();
         foundations[f].push(card);
         moved = true;
@@ -2489,7 +2428,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
     // Check if it's a single card going to foundation
     if (cardIdx === pile.length - 1) {
       for (let f = 0; f < 4; f++) {
-        if (canPlaceOnFoundation(card, foundations[f])) {
+        if (canPlaceOnFoundation(card, foundations[f], f)) {
           pile.pop();
           foundations[f].push(card);
           flipTopTableau();
@@ -2718,7 +2657,7 @@ function autoMoveToFoundation(pileType, pileIdx, cardIdx) {
   // Only auto-move single top card of tableau or waste
   if (!((pileType === 'tableau' || pileType === 'waste') && cardIdx === pile.length - 1)) return;
   for (let f = 0; f < 4; f++) {
-    if (canPlaceOnFoundation(card, foundations[f])) {
+    if (canPlaceOnFoundation(card, foundations[f], f)) {
       pile.pop();
       foundations[f].push(card);
       if (pileType === 'tableau') flipTopTableau();
@@ -2753,7 +2692,7 @@ function isValidDrop(pileEl) {
   if (t === 'tableau') {
     return canPlaceOnTableau(sourceCard, tableau[i]);
   } else if (t === 'foundation' && draggedCards.cards.length === 1) {
-    return canPlaceOnFoundation(sourceCard, foundations[i]);
+    return canPlaceOnFoundation(sourceCard, foundations[i], i);
   }
   return false;
 }
@@ -2773,7 +2712,7 @@ function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
     flipTopTableau();
     playSound('place');
   } else if (destType === 'foundation' && cards.length === 1) {
-    if (!canPlaceOnFoundation(cards[0], foundations[destIdx])) {
+    if (!canPlaceOnFoundation(cards[0], foundations[destIdx], destIdx)) {
       srcPile.push(...cards);
       playSound('invalid');
       return;
@@ -2794,114 +2733,9 @@ function faceCardSVG(rank, suitColor, style) {
   const accent = suitColor === 'red' ? '#fdd' : '#ddd';
   
   switch (style) {
-    case 'funky': return faceFunky(rank, fill, light, accent, suitColor);
-    case 'cute':  return faceCute(rank, fill, light, accent);
-    case 'funny': return faceFunny(rank, fill, light, accent);
     case 'stupid':return faceStupid(rank, fill, light, accent);
-    default:      return faceCool(rank, fill, light, accent);
+    default:      return faceFunny(rank, fill, light, accent);
   }
-}
-
-function faceCool(rank, fill, light, accent) {
-  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
-    <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
-    <path d="M2 32 L10 20 L18 28 L30 12 L42 28 L50 20 L58 32 L2 32Z" fill="${fill}"/>
-    <circle cx="30" cy="12" r="3" fill="${accent}"/><circle cx="18" cy="25" r="2" fill="${accent}"/><circle cx="42" cy="25" r="2" fill="${accent}"/>
-    <ellipse cx="30" cy="42" rx="18" ry="20" fill="${fill}"/>
-    <path d="M12 32 Q12 20 30 20 Q48 20 48 32" fill="${fill}"/>
-    <path d="M18 52 Q30 68 42 52" fill="${fill}"/>
-    <ellipse cx="22" cy="40" rx="3" ry="4" fill="${accent}"/>
-  </svg>`;
-  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
-    <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
-    <path d="M6 30 L14 18 L22 26 L30 10 L38 26 L46 18 L54 30 L6 30Z" fill="${fill}"/>
-    <circle cx="30" cy="10" r="2.5" fill="${accent}"/>
-    <path d="M10 32 Q10 22 20 24 Q24 18 30 26 Q36 18 40 24 Q50 22 50 32 L50 58 Q42 62 30 60 Q18 62 10 58Z" fill="${fill}"/>
-    <ellipse cx="30" cy="38" rx="16" ry="18" fill="${accent}"/>
-    <ellipse cx="24" cy="36" rx="2.5" ry="3" fill="${fill}"/><ellipse cx="36" cy="36" rx="2.5" ry="3" fill="${fill}"/>
-    <path d="M27 44 Q30 47 33 44" fill="none" stroke="${fill}" stroke-width="1.2"/>
-    <path d="M18 50 Q30 56 42 50" fill="none" stroke="${light}" stroke-width="1.5"/>
-    <circle cx="30" cy="54" r="2" fill="${accent}"/>
-  </svg>`;
-  return `<svg viewBox="0 0 60 72" width="54" height="65">
-    <circle cx="30" cy="63" r="48" fill="none" stroke="${fill}" stroke-width="2"/>
-    <path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="${fill}"/>
-    <circle cx="30" cy="24" r="3" fill="${accent}"/>
-    <path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="${fill}"/><path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="${fill}"/>
-    <ellipse cx="30" cy="42" rx="16" ry="18" fill="${accent}"/>
-    <ellipse cx="24" cy="40" rx="2.5" ry="3" fill="${fill}"/><ellipse cx="36" cy="40" rx="2.5" ry="3" fill="${fill}"/>
-    <path d="M27 48 Q30 44 33 48" fill="none" stroke="${fill}" stroke-width="1.2"/>
-    <path d="M16 54 L30 62 L44 54" fill="none" stroke="${fill}" stroke-width="2"/>
-  </svg>`;
-}
-
-function faceFunky(rank, fill, light, accent, suitColor) {
-  const f2 = suitColor === 'red' ? '#f0f' : '#0ff'; // neon accent
-  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
-    <rect x="2" y="2" width="56" height="68" rx="6" fill="none" stroke="${fill}" stroke-width="2" stroke-dasharray="6 3"/>
-    <polygon points="30,8 12,30 20,28 8,32 18,33 30,55 42,33 52,32 40,28 48,30" fill="${fill}" opacity="0.8"/>
-    <ellipse cx="30" cy="40" rx="20" ry="16" fill="${fill}"/>
-    <ellipse cx="22" cy="38" rx="5" ry="7" fill="${accent}"/><ellipse cx="38" cy="38" rx="5" ry="7" fill="${accent}"/>
-    <circle cx="22" cy="37" r="3" fill="${f2}"/><circle cx="38" cy="37" r="3" fill="${f2}"/>
-    <path d="M22 50 Q30 58 38 50" fill="none" stroke="${f2}" stroke-width="2.5" stroke-linecap="round"/>
-    <path d="M12 56 L22 52 L30 58 L38 52 L48 56" fill="none" stroke="${light}" stroke-width="1.5"/>
-  </svg>`;
-  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
-    <rect x="2" y="2" width="56" height="68" rx="6" fill="none" stroke="${fill}" stroke-width="2" stroke-dasharray="6 3"/>
-    <polygon points="30,6 10,26 22,24 6,28 20,30 30,52 40,30 54,28 38,24 50,26" fill="${fill}" opacity="0.8"/>
-    <ellipse cx="30" cy="38" rx="18" ry="16" fill="${accent}"/>
-    <ellipse cx="23" cy="36" rx="5" ry="6" fill="${f2}"/><ellipse cx="37" cy="36" rx="5" ry="6" fill="${f2}"/>
-    <circle cx="23" cy="35" r="2" fill="${fill}"/><circle cx="37" cy="35" r="2" fill="${fill}"/>
-    <path d="M25 46 Q30 50 35 46" fill="none" stroke="${fill}" stroke-width="1.5"/>
-    <circle cx="22" cy="52" r="3" fill="${f2}"/><circle cx="30" cy="55" r="3" fill="${f2}"/><circle cx="38" cy="52" r="3" fill="${f2}"/>
-  </svg>`;
-  return `<svg viewBox="0 0 60 72" width="54" height="65">
-    <rect x="2" y="2" width="56" height="68" rx="6" fill="none" stroke="${fill}" stroke-width="2" stroke-dasharray="6 3"/>
-    <ellipse cx="30" cy="38" rx="19" ry="18" fill="${accent}"/>
-    <ellipse cx="22" cy="34" rx="6" ry="8" fill="${f2}"/><ellipse cx="38" cy="34" rx="6" ry="8" fill="${f2}"/>
-    <circle cx="22" cy="33" r="3" fill="${fill}"/><circle cx="38" cy="33" r="3" fill="${fill}"/>
-    <polygon points="30,18 22,28 30,26 38,28" fill="${fill}"/>
-    <path d="M18 48 Q30 56 42 48" fill="none" stroke="${f2}" stroke-width="3" stroke-linecap="round"/>
-    <path d="M10 58 L18 54 L30 60 L42 54 L50 58" fill="none" stroke="${light}" stroke-width="1.5"/>
-  </svg>`;
-}
-
-function faceCute(rank, fill, light, accent) {
-  const blush = 'rgba(255,150,150,0.5)';
-  if (rank === 12) return `<svg viewBox="0 0 60 72" width="54" height="65">
-    <circle cx="30" cy="40" r="24" fill="${fill}"/>
-    <path d="M8 32 L16 18 L24 28 L30 12 L36 28 L44 18 L52 32 L8 32Z" fill="${fill}"/>
-    <circle cx="30" cy="12" r="4" fill="${accent}"/><circle cx="18" cy="23" r="2.5" fill="${accent}"/><circle cx="42" cy="23" r="2.5" fill="${accent}"/>
-    <circle cx="22" cy="38" r="5" fill="${accent}"/><circle cx="38" cy="38" r="5" fill="${accent}"/>
-    <circle cx="22" cy="37" r="3" fill="${fill}"/><circle cx="38" cy="37" r="3" fill="${fill}"/>
-    <circle cx="21" cy="36" r="1.5" fill="#fff"/><circle cx="37" cy="36" r="1.5" fill="#fff"/>
-    <ellipse cx="22" cy="42" rx="5" ry="3" fill="${blush}"/><ellipse cx="38" cy="42" rx="5" ry="3" fill="${blush}"/>
-    <path d="M27 47 Q30 51 33 47" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M14 54 Q30 64 46 54" fill="none" stroke="${light}" stroke-width="2"/>
-  </svg>`;
-  if (rank === 11) return `<svg viewBox="0 0 60 72" width="54" height="65">
-    <ellipse cx="30" cy="42" rx="22" ry="22" fill="${fill}"/>
-    <path d="M10 34 L18 22 L26 30 L30 14 L34 30 L42 22 L50 34 L10 34Z" fill="${fill}"/>
-    <circle cx="30" cy="14" r="3.5" fill="${accent}"/>
-    <circle cx="22" cy="40" r="4" fill="${accent}"/><circle cx="38" cy="40" r="4" fill="${accent}"/>
-    <circle cx="22" cy="39" r="2.5" fill="${fill}"/><circle cx="38" cy="39" r="2.5" fill="${fill}"/>
-    <circle cx="21" cy="38" r="1.2" fill="#fff"/><circle cx="37" cy="38" r="1.2" fill="#fff"/>
-    <ellipse cx="22" cy="44" rx="4.5" ry="2.5" fill="${blush}"/><ellipse cx="38" cy="44" rx="4.5" ry="2.5" fill="${blush}"/>
-    <path d="M27 48 Q30 44 33 48" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M16 56 Q30 64 44 56" fill="none" stroke="${light}" stroke-width="2"/>
-    <circle cx="30" cy="60" r="2.5" fill="${accent}"/>
-  </svg>`;
-  return `<svg viewBox="0 0 60 72" width="54" height="65">
-    <ellipse cx="30" cy="44" rx="22" ry="22" fill="${fill}"/>
-    <path d="M10 34 L18 20 L30 26 L42 20 L50 34 Q40 28 30 28 Q20 28 10 34Z" fill="${fill}"/>
-    <circle cx="30" cy="22" r="3" fill="${accent}"/>
-    <circle cx="21" cy="42" r="5" fill="${accent}"/><circle cx="39" cy="42" r="5" fill="${accent}"/>
-    <circle cx="21" cy="41" r="3" fill="${fill}"/><circle cx="39" cy="41" r="3" fill="${fill}"/>
-    <circle cx="20" cy="40" r="1.5" fill="#fff"/><circle cx="38" cy="40" r="1.5" fill="#fff"/>
-    <ellipse cx="21" cy="47" rx="5" ry="3" fill="${blush}"/><ellipse cx="39" cy="47" rx="5" ry="3" fill="${blush}"/>
-    <path d="M27 50 Q30 47 33 50" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M16 58 L30 64 L44 58" fill="none" stroke="${light}" stroke-width="2"/>
-  </svg>`;
 }
 
 function faceFunny(rank, fill, light, accent) {
@@ -2983,7 +2817,7 @@ function createCardElement(card, index) {
   const rank = RANKS[card.rank];
   const suit = SUITS[card.suit];
   const isFace = card.rank >= 10;
-  const style = loadSettings().faceStyle || 'cool';
+  const style = loadSettings().faceStyle || 'funny';
   
   div.innerHTML = `
     <div class="rank-suit-top">${rank}${suit}</div>
@@ -3124,9 +2958,9 @@ function render() {
 }
 
 function showMessage(msg) {
-  document.getElementById('message').textContent = msg;
+  document.getElementById('message').innerHTML = msg;
   setTimeout(() => {
-    document.getElementById('message').textContent = '';
+    document.getElementById('message').innerHTML = '';
   }, 1500);
 }
 
@@ -3135,7 +2969,7 @@ function hasAnyValidMove() {
   if (waste.length > 0) {
     const w = waste[waste.length - 1];
     for (let f = 0; f < 4; f++) {
-      if (canPlaceOnFoundation(w, foundations[f])) return true;
+      if (canPlaceOnFoundation(w, foundations[f], f)) return true;
     }
     for (let t = 0; t < 7; t++) {
       if (canPlaceOnTableau(w, tableau[t])) return true;
@@ -3153,7 +2987,7 @@ function hasAnyValidMove() {
       // Only top card goes to foundation
       if (ci === pile.length - 1) {
         for (let f = 0; f < 4; f++) {
-          if (canPlaceOnFoundation(pile[ci], foundations[f])) return true;
+          if (canPlaceOnFoundation(pile[ci], foundations[f], f)) return true;
         }
       }
       // Any face-up card (with all cards above it) can move to another tableau
@@ -3216,7 +3050,7 @@ async function runAutoComplete() {
     if (waste.length > 0) {
       const w = waste[waste.length - 1];
       for (let f = 0; f < 4; f++) {
-        if (canPlaceOnFoundation(w, foundations[f])) {
+        if (canPlaceOnFoundation(w, foundations[f], f)) {
           srcType = 'waste'; srcIdx = 0; destF = f; break;
         }
       }
@@ -3228,7 +3062,7 @@ async function runAutoComplete() {
         if (tableau[t].length === 0) continue;
         const top = tableau[t][tableau[t].length - 1];
         for (let f = 0; f < 4; f++) {
-          if (canPlaceOnFoundation(top, foundations[f])) {
+          if (canPlaceOnFoundation(top, foundations[f], f)) {
             srcType = 'tableau'; srcIdx = t; destF = f; break;
           }
         }
@@ -3461,6 +3295,19 @@ document.getElementById('settings-overlay').addEventListener('click', (e) => {
 let audioCtx = null;
 
 const SOUND_THEMES = {
+  zen: {
+    name: 'Zen',
+    wave: 'sine',
+    clickHi: 330, clickLo: 247, clickDur: 0.14,
+    dingLo: 294, dingHi: 440, dingDur: 0.35,
+    bump: 147, bumpDur: 0.18,
+    deal: [147, 196, 247, 294, 370, 440, 523],
+    dealGap: 0.10,
+    win: [{f:196,t:0},{f:247,t:0.20},{f:294,t:0.40},{f:370,t:0.62},{f:440,t:0.84}],
+    winDur: 0.70,
+    gain: 0.55,
+    desc: 'Deep & resonant'
+  },
   crystal: {
     name: 'Crystal',
     wave: 'sine',
@@ -3474,33 +3321,6 @@ const SOUND_THEMES = {
     gain: 1.0,
     desc: 'Bright & sparkling'
   },
-  felt: {
-    name: 'Felt',
-    wave: 'triangle',
-    clickHi: 698, clickLo: 554, clickDur: 0.07,
-    dingLo: 659, dingHi: 988, dingDur: 0.20,
-    bump: 185, bumpDur: 0.12,
-    deal: [392, 440, 494, 554, 622, 698, 784],
-    dealGap: 0.065,
-    win: [{f:349,t:0},{f:466,t:0.14},{f:587,t:0.28},{f:784,t:0.42}],
-    winDur: 0.55,
-    gain: 0.85,
-    desc: 'Warm & classic'
-  },
-  zen: {
-    name: 'Zen',
-    wave: 'sine',
-    clickHi: 330, clickLo: 247, clickDur: 0.14,
-    dingLo: 294, dingHi: 440, dingDur: 0.35,
-    bump: 147, bumpDur: 0.18,
-    // Pentatonic: D F G A C — deep, widely spaced
-    deal: [147, 196, 247, 294, 370, 440, 523],
-    dealGap: 0.10,
-    win: [{f:196,t:0},{f:247,t:0.20},{f:294,t:0.40},{f:370,t:0.62},{f:440,t:0.84}],
-    winDur: 0.70,
-    gain: 0.55,
-    desc: 'Deep & resonant'
-  },
   arcade: {
     name: 'Arcade',
     wave: 'square',
@@ -3513,59 +3333,6 @@ const SOUND_THEMES = {
     winDur: 0.35,
     gain: 0.5,
     desc: 'Retro & snappy'
-  },
-  clover: {
-    name: 'Clover',
-    wave: 'triangle',
-    clickHi: 660, clickLo: 523, clickDur: 0.10,
-    dingLo: 587, dingHi: 880, dingDur: 0.25,
-    bump: 175, bumpDur: 0.14,
-    // D major scale (common Irish trad key)
-    deal: [294, 330, 370, 392, 440, 494, 587],
-    dealGap: 0.07,
-    win: [{f:294,t:0},{f:370,t:0.16},{f:440,t:0.32},{f:587,t:0.50},{f:740,t:0.66}],
-    winDur: 0.60,
-    gain: 0.70,
-    desc: 'Warm & lyrical'
-  },
-  paper: {
-    name: 'Paper',
-    wave: 'triangle',
-    clickHi: 523, clickLo: 392, clickDur: 0.09,
-    dingLo: 494, dingHi: 740, dingDur: 0.22,
-    bump: 156, bumpDur: 0.13,
-    deal: [349, 392, 440, 494, 523, 587, 659],
-    dealGap: 0.06,
-    win: [{f:262,t:0},{f:330,t:0.14},{f:392,t:0.28},{f:523,t:0.44},{f:659,t:0.58}],
-    winDur: 0.55,
-    gain: 0.75,
-    desc: 'Soft & mellow'
-  },
-  ocean: {
-    name: 'Ocean',
-    wave: 'sine',
-    clickHi: 784, clickLo: 587, clickDur: 0.12,
-    dingLo: 698, dingHi: 1047, dingDur: 0.28,
-    bump: 196, bumpDur: 0.16,
-    deal: [440, 494, 554, 622, 698, 784, 880],
-    dealGap: 0.08,
-    win: [{f:330,t:0},{f:440,t:0.18},{f:554,t:0.36},{f:698,t:0.54},{f:880,t:0.72}],
-    winDur: 0.65,
-    gain: 0.65,
-    desc: 'Fluid & rolling'
-  },
-  sunset: {
-    name: 'Sunset',
-    wave: 'triangle',
-    clickHi: 587, clickLo: 440, clickDur: 0.11,
-    dingLo: 554, dingHi: 831, dingDur: 0.30,
-    bump: 165, bumpDur: 0.15,
-    deal: [330, 370, 415, 466, 523, 587, 659],
-    dealGap: 0.07,
-    win: [{f:247,t:0},{f:311,t:0.16},{f:370,t:0.32},{f:466,t:0.50},{f:554,t:0.66}],
-    winDur: 0.62,
-    gain: 0.68,
-    desc: 'Warm & glowing'
   }
 };
 
@@ -3606,7 +3373,8 @@ function tone(ctx, th, freq, startTime, duration, vol) {
   const t = ctx.currentTime + (startTime || 0);
   const d = duration || 0.12;
   const settings = loadSettings();
-  const masterVol = (settings.volume || 0) / 100;
+  const step = settings.volume || 0;
+  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 5) * 0.12);
   gain.gain.setValueAtTime((vol || 0.12) * th.gain * masterVol, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + d);
   osc.connect(gain).connect(ctx.destination);
@@ -3615,17 +3383,17 @@ function tone(ctx, th, freq, startTime, duration, vol) {
 }
 
 function playClick(ctx, th, freq) {
-  tone(ctx, th, freq, 0, th.clickDur, 0.12);
+  tone(ctx, th, freq, 0, th.clickDur, 0.24);
 }
 
 function playDing(ctx, th) {
-  tone(ctx, th, th.dingLo, 0, th.dingDur, 0.14);
-  tone(ctx, th, th.dingHi, 0.04, th.dingDur * 0.85, 0.09);
+  tone(ctx, th, th.dingLo, 0, th.dingDur, 0.28);
+  tone(ctx, th, th.dingHi, 0.04, th.dingDur * 0.85, 0.18);
 }
 
 function playDeal(ctx, th) {
   th.deal.forEach((freq, i) => {
-    tone(ctx, th, freq, i * th.dealGap, th.dealGap * 1.8, 0.09);
+    tone(ctx, th, freq, i * th.dealGap, th.dealGap * 1.8, 0.18);
   });
 }
 
@@ -3633,11 +3401,12 @@ function playBump(ctx, th) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   const settings = loadSettings();
-  const masterVol = (settings.volume || 0) / 100;
+  const step = settings.volume || 0;
+  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 5) * 0.12);
   osc.type = th.wave;
   osc.frequency.setValueAtTime(th.bump, ctx.currentTime);
   osc.frequency.setValueAtTime(th.bump * 0.65, ctx.currentTime + th.bumpDur * 0.5);
-  gain.gain.setValueAtTime(0.10 * th.gain * masterVol, ctx.currentTime);
+  gain.gain.setValueAtTime(0.20 * th.gain * masterVol, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + th.bumpDur);
   osc.connect(gain).connect(ctx.destination);
   osc.start();
@@ -3646,7 +3415,7 @@ function playBump(ctx, th) {
 
 function playWin(ctx, th) {
   th.win.forEach(({f, t}) => {
-    tone(ctx, th, f, t, th.winDur, 0.14);
+    tone(ctx, th, f, t, th.winDur, 0.28);
   });
 }
 
@@ -3666,6 +3435,14 @@ render();
 if (foundations.every(f => f.length === 13)) {
   document.getElementById('win-overlay').classList.add('show');
 }
+
+// Persist game state when page is hidden/suspended (critical for mobile)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) saveGame();
+});
+window.addEventListener('pagehide', () => {
+  saveGame();
+});
 </script>
 </body>
 </html>
