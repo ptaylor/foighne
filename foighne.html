@@ -1185,8 +1185,7 @@ function setVolume(val) {
   const v = Math.round(Number(val));
   const settings = loadSettings();
   const wasOff = settings.volume === 0;
-  settings.volume = v;
-  saveSettings(settings);
+  updateSetting('volume', v);
   updateVolumeSlider();
   if (wasOff && v > 0) playSound('draw');
 }
@@ -1252,11 +1251,11 @@ function closeSettings() {
 
 function toggleHints() {
   const settings = loadSettings();
-  settings.hintEnabled = !settings.hintEnabled;
-  saveSettings(settings);
+  const newVal = !settings.hintEnabled;
+  updateSetting('hintEnabled', newVal);
   updateHintToggle();
   updateHintButton();
-  if (settings.hintEnabled) showHint();
+  if (newVal) showHint();
 }
 
 function updateHintToggle() {
@@ -1328,21 +1327,25 @@ function showHint() {
   }
 }
 
-function selectTheme(id) {
+// Reusable helper: persist a setting, track it, return updated settings object
+function updateSetting(key, value) {
   const settings = loadSettings();
-  settings.theme = id;
+  settings[key] = value;
   saveSettings(settings);
+  trackEvent('setting-' + key + '-' + value);
+  return settings;
+}
+
+function selectTheme(id) {
+  updateSetting('theme', id);
   applySettings();
-  // Update tile visuals
   document.querySelectorAll('.theme-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.theme === id);
   });
 }
 
 function selectCardBack(id) {
-  const settings = loadSettings();
-  settings.cardBack = id;
-  saveSettings(settings);
+  updateSetting('cardBack', id);
   applySettings();
   document.querySelectorAll('.back-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.back === id);
@@ -1437,9 +1440,7 @@ function saveCustomBackImage(url) {
 }
 
 function selectFaceStyle(id) {
-  const settings = loadSettings();
-  settings.faceStyle = id;
-  saveSettings(settings);
+  updateSetting('faceStyle', id);
   render();
   document.querySelectorAll('#face-grid .back-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.face === id);
@@ -1447,18 +1448,14 @@ function selectFaceStyle(id) {
 }
 
 function selectDrawCount(v) {
-  const settings = loadSettings();
-  settings.drawCount = v;
-  saveSettings(settings);
+  updateSetting('drawCount', v);
   document.querySelectorAll('#draw-grid .back-tile').forEach(el => {
     el.classList.toggle('selected', parseInt(el.dataset.draw) === v);
   });
 }
 
 function selectSoundTheme(id) {
-  const settings = loadSettings();
-  settings.soundTheme = id;
-  saveSettings(settings);
+  updateSetting('soundTheme', id);
   document.querySelectorAll('#sound-theme-grid .back-tile').forEach(el => {
     el.classList.toggle('selected', el.dataset.soundTheme === id);
   });

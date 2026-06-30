@@ -47,13 +47,20 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 - Shapes support multi-shape arrays per egg (particle picks randomly), and use internal hardcoded colors for complex shapes (santa, tree, skull, witch, pumpkin, jester, cross) while simpler shapes use the particle's color
 - Debug panel lists all eggs with date and active status; click to manually toggle any egg for testing
 
+### Settings system
+- `DEFAULT_SETTINGS` — object with all setting defaults (`theme`, `cardBack`, `faceStyle`, `drawCount`, `volume`, `soundTheme`, `hintEnabled`, `customBackImage`)
+- `loadSettings()` / `saveSettings(s)` — read/write to `localStorage` (key: `SETTINGS_KEY`). Includes migration logic for old key names
+- **`updateSetting(key, value)`** — reusable helper: loads settings, sets the key, saves, and fires `trackEvent('setting-' + key + '-' + value)`. Always use this when a user changes a setting — never call `saveSettings` directly for user-triggered changes
+- To **add a new setting**: (1) add default to `DEFAULT_SETTINGS`, (2) add UI control in the settings overlay HTML, (3) write a short handler that calls `updateSetting('newKey', val)` plus any side effects (re-render, apply theme, etc.). Tracking is automatic — no need to add a separate `trackEvent` call
+- Settings are tracked via GoatCounter as `setting-{key}-{value}` events (e.g. `setting-theme-azure`, `setting-volume-5`, `hints-on`/`hints-off`)
+
 ### Card object shape
 ```js
 { suit: 0–3, rank: 0–12, faceUp: Boolean }
 ```
 - `cardColor(suit)` → `'red'` (♥♦) or `'black'` (♠♣)
 - `canPlaceOnTableau(card, pile)` — descending rank, alternating colour
-- `canPlaceOnFoundation(card, pile)` — ascending rank, same suit
+- `canPlaceOnFoundation(card, pile, foundationIndex)` — ascending rank, same suit; Aces must match foundation index
 
 ## Versioning
 - Source meta tag: `<meta name="version" content="VERSION">` — replaced by `publish.sh` with the semver tag
