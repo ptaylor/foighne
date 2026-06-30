@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.26">
-<meta name="commit" content="3f21b8e">
+<meta name="version" content="v1.27">
+<meta name="commit" content="af45cd6">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -610,46 +610,55 @@
     font-size: 10px;
     color: rgba(255,255,255,0.6);
   }
-  /* Sound toggle switch */
-  .sound-toggle-row {
+  /* Volume slider */
+  .volume-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
     padding: 8px 12px;
     background: rgba(255,255,255,0.05);
     border-radius: 8px;
     margin-bottom: 14px;
   }
-  .sound-toggle-row span {
+  .volume-row span {
     font-size: 13px;
     color: rgba(255,255,255,0.75);
+    white-space: nowrap;
   }
-  .sound-toggle {
-    position: relative;
-    width: 44px;
-    height: 26px;
+  .volume-row input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 6px;
     background: rgba(255,255,255,0.15);
-    border-radius: 13px;
+    border-radius: 3px;
+    outline: none;
     cursor: pointer;
-    transition: background 0.25s;
-    flex-shrink: 0;
   }
-  .sound-toggle.on {
-    background: rgba(100,200,150,0.5);
-  }
-  .sound-toggle::after {
-    content: '';
-    position: absolute;
-    top: 3px;
-    left: 3px;
+  .volume-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
     width: 20px;
     height: 20px;
-    background: #fff;
     border-radius: 50%;
-    transition: transform 0.2s ease;
+    background: #fff;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   }
-  .sound-toggle.on::after {
-    transform: translateX(18px);
+  .volume-row input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .volume-val {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    min-width: 32px;
+    text-align: right;
   }
   .btn-settings-close {
     display: block;
@@ -715,23 +724,23 @@
     :root {
       --card-width: 48px;
       --card-height: 67px;
-      --stack-offset: 14px;
+      --stack-offset: 22px;
       --fan-offset: 11px;
       --card-font: 11px;
       --card-center: 22px;
       --card-pad: 3px;
       --card-back-sym: 17px;
-      --game-pad: 8px;
+      --game-pad: 4px;
       --pile-gap: 5px;
-      --top-row-gap: 6px;
+      --top-row-gap: 4px;
       --top-row-min-h: auto;
     }
     #game { max-width: 600px; }
-    #game-title { font-size: 18px; }
-    #message { font-size: 13px; min-height: 20px; margin: 4px 0 2px; }
-    #stats-bar { font-size: 10px; gap: 6px; margin-bottom: 8px; }
-    .btn { padding: 5px 8px; font-size: 11px; }
-    .btn-icon { padding: 5px 7px; font-size: 13px; }
+    #game-title { font-size: 16px; margin-bottom: 2px; }
+    #message { font-size: 12px; min-height: 16px; margin: 2px 0 0; }
+    #stats-bar { font-size: 10px; gap: 6px; margin-bottom: 2px; }
+    .btn { padding: 4px 7px; font-size: 11px; margin-top: 0; }
+    .btn-icon { padding: 4px 6px; font-size: 13px; margin-top: 0; }
     #win-overlay h1 { font-size: 30px; margin-bottom: 12px; }
     #win-overlay button { padding: 10px 24px; font-size: 15px; }
     .settings-panel { padding: 14px; max-height: 92vh; }
@@ -747,8 +756,8 @@
     .top-row {
       display: grid;
       grid-template-columns: auto 1fr;
-      gap: 6px;
-      margin-bottom: 8px;
+      gap: 4px;
+      margin-bottom: 4px;
     }
     .top-row > .top-section:first-child {
       /* row 1, col 1 naturally */
@@ -760,6 +769,7 @@
     .top-row > div:last-child {
       justify-content: flex-start;
       gap: 8px !important;
+      margin-top: 2px !important;
     }
     .card .center-suit svg {
       width: 22px;
@@ -838,9 +848,10 @@
 <div id="settings-overlay">
   <div class="settings-panel">
     <h2>Settings</h2>
-    <div class="sound-toggle-row">
-      <span>🔊 Sound</span>
-      <div id="sound-toggle" class="sound-toggle on" onclick="toggleSound()"></div>
+    <div class="volume-row">
+      <span>🔊</span>
+      <input type="range" id="volume-slider" min="0" max="200" value="100" oninput="setVolume(this.value)">
+      <span class="volume-val" id="volume-val">Max</span>
     </div>
     <div class="setting-group">
       <h3>Draw Count</h3>
@@ -984,14 +995,22 @@ const DEFAULT_SETTINGS = {
   customBackImage: '',
   faceStyle: 'funny',
   drawCount: 3,
-  soundEnabled: true,
+  volume: 100,
   soundTheme: 'zen'
 };
 
 function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Migrate old soundEnabled boolean to volume number
+      if (typeof parsed.volume === 'undefined' && typeof parsed.soundEnabled !== 'undefined') {
+        parsed.volume = parsed.soundEnabled ? 100 : 0;
+        delete parsed.soundEnabled;
+      }
+      return { ...DEFAULT_SETTINGS, ...parsed };
+    }
   } catch (e) {}
   return { ...DEFAULT_SETTINGS };
 }
@@ -1103,20 +1122,26 @@ function populateSettings() {
   });
 }
 
-function toggleSound() {
+function setVolume(val) {
+  const v = Math.round(Number(val));
   const settings = loadSettings();
-  settings.soundEnabled = !settings.soundEnabled;
+  const wasOff = settings.volume === 0;
+  settings.volume = v;
   saveSettings(settings);
-  trackEvent(settings.soundEnabled ? 'sound-on' : 'sound-off');
-  updateSoundToggle();
-  if (settings.soundEnabled) playSound('draw');
+  updateVolumeSlider();
+  if (wasOff && v > 0) playSound('draw');
 }
 
-function updateSoundToggle() {
+function updateVolumeSlider() {
   const settings = loadSettings();
-  const toggle = document.getElementById('sound-toggle');
-  if (toggle) {
-    toggle.className = 'sound-toggle' + (settings.soundEnabled ? ' on' : '');
+  const slider = document.getElementById('volume-slider');
+  const label = document.getElementById('volume-val');
+  if (slider) slider.value = settings.volume;
+  if (label) {
+    const v = settings.volume;
+    if (v === 0) label.textContent = 'Mute';
+    else if (v >= 200) label.textContent = 'Max';
+    else label.textContent = v + '%';
   }
 }
 
@@ -1155,7 +1180,7 @@ function facePreviewSVG(style) {
 
 function openSettings() {
   populateSettings();
-  updateSoundToggle();
+  updateVolumeSlider();
   document.getElementById('settings-overlay').classList.add('show');
 }
 
@@ -1439,10 +1464,12 @@ function setupNearlyComplete() {
   clearSavedGame();
   render();
   saveGame();
+  debugGame = true;
 }
 
 // ---- DEBUG MODE ----
 let debugMode = false;
+let debugGame = false;
 let activeEgg = null;
 let eggParticles = [];
 let eggAnimId = null;
@@ -2343,6 +2370,7 @@ function newGame() {
     stats.currentStreak = 0;
   }
   gameWon = false;
+  debugGame = false;
   saveStats(stats);
   updateStatsDisplay(stats);
   
@@ -3294,18 +3322,20 @@ function checkWin() {
     if (foundations[f].length !== 13) return;
   }
   
-  const stats = loadStats();
-  stats.gamesWon++;
-  stats.currentStreak++;
-  if (stats.currentStreak > stats.bestStreak) {
-    stats.bestStreak = stats.currentStreak;
+  if (!debugGame) {
+    const stats = loadStats();
+    stats.gamesWon++;
+    stats.currentStreak++;
+    if (stats.currentStreak > stats.bestStreak) {
+      stats.bestStreak = stats.currentStreak;
+    }
+    saveStats(stats);
+    updateStatsDisplay(stats);
+    
+    clearSavedGame();
+    gameWon = true;
+    trackEvent('game-won');
   }
-  saveStats(stats);
-  updateStatsDisplay(stats);
-  
-  clearSavedGame();
-  gameWon = true;
-  trackEvent('game-won');
   document.getElementById('win-overlay').classList.add('show');
   spawnSparkles();
   playSound('win');
@@ -3553,7 +3583,7 @@ function getSoundTheme() {
 
 function playSound(type) {
   const settings = loadSettings();
-  if (!settings.soundEnabled) return;
+  if (!settings.volume) return;
   try {
     const ctx = getAudioCtx();
     const th = getSoundTheme();
@@ -3575,7 +3605,9 @@ function tone(ctx, th, freq, startTime, duration, vol) {
   osc.frequency.value = freq;
   const t = ctx.currentTime + (startTime || 0);
   const d = duration || 0.12;
-  gain.gain.setValueAtTime((vol || 0.12) * th.gain, t);
+  const settings = loadSettings();
+  const masterVol = (settings.volume || 0) / 100;
+  gain.gain.setValueAtTime((vol || 0.12) * th.gain * masterVol, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + d);
   osc.connect(gain).connect(ctx.destination);
   osc.start(t);
@@ -3600,10 +3632,12 @@ function playDeal(ctx, th) {
 function playBump(ctx, th) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
+  const settings = loadSettings();
+  const masterVol = (settings.volume || 0) / 100;
   osc.type = th.wave;
   osc.frequency.setValueAtTime(th.bump, ctx.currentTime);
   osc.frequency.setValueAtTime(th.bump * 0.65, ctx.currentTime + th.bumpDur * 0.5);
-  gain.gain.setValueAtTime(0.10 * th.gain, ctx.currentTime);
+  gain.gain.setValueAtTime(0.10 * th.gain * masterVol, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + th.bumpDur);
   osc.connect(gain).connect(ctx.destination);
   osc.start();
