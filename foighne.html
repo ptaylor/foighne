@@ -403,6 +403,9 @@
     padding: 10px 12px;
     font-size: 18px;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   #debug-btn {
     position: fixed;
@@ -660,6 +663,47 @@
     min-width: 32px;
     text-align: right;
   }
+  /* Generic toggle switch */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+  .toggle-row span {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+  }
+  .toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 26px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 13px;
+    cursor: pointer;
+    transition: background 0.25s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.on {
+    background: rgba(100,200,150,0.5);
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+  .toggle-switch.on::after {
+    transform: translateX(18px);
+  }
   .btn-settings-close {
     display: block;
     margin: 4px auto 0;
@@ -798,6 +842,10 @@
       padding-right: 4px;
       font-size: 10px;
     }
+    #hint-btn {
+      padding: 4px 6px;
+      font-size: 13px;
+    }
   }
 </style>
 </head>
@@ -832,8 +880,9 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:6px;align-self:flex-start;margin-top:8px">
       <div style="display:flex;gap:6px">
-        <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
+        <button class="btn btn-icon" id="hint-btn" onclick="showHint()" title="Hint" style="display:none">&#128161;</button>
         <button class="btn" id="new-game-btn" onclick="newGame()">New Game</button>
+        <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
       </div>
     </div>
   </div>
@@ -853,6 +902,10 @@
       <span>🔊</span>
       <input type="range" id="volume-slider" min="0" max="10" step="1" value="5" oninput="setVolume(this.value)">
       <span class="volume-val" id="volume-val">5</span>
+    </div>
+    <div class="toggle-row">
+      <span>💡 Hints</span>
+      <div id="hint-toggle" class="toggle-switch" onclick="toggleHints()"></div>
     </div>
     <div class="setting-group">
       <h3>Draw Count</h3>
@@ -997,7 +1050,8 @@ const DEFAULT_SETTINGS = {
   faceStyle: 'funny',
   drawCount: 3,
   volume: 5,
-  soundTheme: 'zen'
+  soundTheme: 'zen',
+  hintEnabled: true
 };
 
 function loadSettings() {
@@ -1186,11 +1240,92 @@ function facePreviewSVG(style) {
 function openSettings() {
   populateSettings();
   updateVolumeSlider();
+  updateHintToggle();
   document.getElementById('settings-overlay').classList.add('show');
 }
 
 function closeSettings() {
   document.getElementById('settings-overlay').classList.remove('show');
+}
+
+// ── Hint system ──
+
+function toggleHints() {
+  const settings = loadSettings();
+  settings.hintEnabled = !settings.hintEnabled;
+  saveSettings(settings);
+  updateHintToggle();
+  updateHintButton();
+  if (settings.hintEnabled) showHint();
+}
+
+function updateHintToggle() {
+  const settings = loadSettings();
+  const toggle = document.getElementById('hint-toggle');
+  if (toggle) {
+    toggle.className = 'toggle-switch' + (settings.hintEnabled ? ' on' : '');
+  }
+}
+
+function updateHintButton() {
+  const settings = loadSettings();
+  const btn = document.getElementById('hint-btn');
+  if (btn) btn.style.display = settings.hintEnabled ? '' : 'none';
+}
+
+function getNextMove() {
+  // 1. Move to foundation (waste first, then tableau tops)
+  for (let f = 0; f < 4; f++) {
+    if (waste.length > 0) {
+      const w = waste[waste.length - 1];
+      if (canPlaceOnFoundation(w, foundations[f], f)) {
+        return { type: 'foundation', from: 'waste', to: f, card: w };
+      }
+    }
+    for (let t = 0; t < 7; t++) {
+      if (tableau[t].length > 0) {
+        const card = tableau[t][tableau[t].length - 1];
+        if (canPlaceOnFoundation(card, foundations[f], f)) {
+          return { type: 'foundation', from: 'tableau', idx: t, to: f, card: card };
+        }
+      }
+    }
+  }
+  // 2. Tableau move (try moving a card between piles)
+  for (let src = 0; src < 7; src++) {
+    if (tableau[src].length === 0) continue;
+    // Try moving the top face-up card (or a run of face-up cards)
+    const pile = tableau[src];
+    let ci = pile.length - 1;
+    while (ci >= 0 && pile[ci].faceUp) ci--;
+    ci++; // first face-up card
+    if (ci >= pile.length) continue;
+    const card = pile[ci];
+    for (let dest = 0; dest < 7; dest++) {
+      if (src === dest) continue;
+      if (canPlaceOnTableau(card, tableau[dest])) {
+        return { type: 'tableau', from: src, to: dest, card: card };
+      }
+    }
+  }
+  // 3. Draw from stock
+  return { type: 'draw' };
+}
+
+function showHint() {
+  const settings = loadSettings();
+  if (!settings.hintEnabled) return;
+  const hint = getNextMove();
+  if (hint.type === 'foundation') {
+    const suitSym = SUITS[hint.to];
+    const rank = RANKS[hint.card.rank];
+    showMessage('💡 Move ' + rank + suitSym + ' to foundation');
+  } else if (hint.type === 'tableau') {
+    const rank = RANKS[hint.card.rank];
+    showMessage('💡 Move ' + rank + ' to another tableau pile');
+  } else {
+    showMessage('💡 Draw from the stock');
+  }
 }
 
 function selectTheme(id) {
@@ -3129,9 +3264,9 @@ function render() {
 }
 
 function showMessage(msg) {
-  document.getElementById('message').textContent = msg;
+  document.getElementById('message').innerHTML = msg;
   setTimeout(() => {
-    document.getElementById('message').textContent = '';
+    document.getElementById('message').innerHTML = '';
   }, 1500);
 }
 
@@ -3660,6 +3795,7 @@ function playWin(ctx, th) {
 // Start game — restore saved state or deal fresh
 applySettings();
 checkEasterEgg();
+updateHintButton();
 const savedStats = loadStats();
 updateStatsDisplay(savedStats);
 if (!loadGame()) {
