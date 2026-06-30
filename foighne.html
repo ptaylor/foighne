@@ -851,8 +851,8 @@
     <h2>Settings</h2>
     <div class="volume-row">
       <span>🔊</span>
-      <input type="range" id="volume-slider" min="0" max="200" value="100" oninput="setVolume(this.value)">
-      <span class="volume-val" id="volume-val">Max</span>
+      <input type="range" id="volume-slider" min="0" max="10" step="1" value="5" oninput="setVolume(this.value)">
+      <span class="volume-val" id="volume-val">5</span>
     </div>
     <div class="setting-group">
       <h3>Draw Count</h3>
@@ -996,7 +996,7 @@ const DEFAULT_SETTINGS = {
   customBackImage: '',
   faceStyle: 'funny',
   drawCount: 3,
-  volume: 100,
+  volume: 5,
   soundTheme: 'zen'
 };
 
@@ -1005,9 +1005,13 @@ function loadSettings() {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      // Migrate old volume (0–200 scale) to new 0–10 stepped scale
+      if (typeof parsed.volume === 'number' && parsed.volume > 10) {
+        parsed.volume = Math.round(parsed.volume / 20);
+      }
       // Migrate old soundEnabled boolean to volume number
       if (typeof parsed.volume === 'undefined' && typeof parsed.soundEnabled !== 'undefined') {
-        parsed.volume = parsed.soundEnabled ? 100 : 0;
+        parsed.volume = parsed.soundEnabled ? 5 : 0;
         delete parsed.soundEnabled;
       }
       return { ...DEFAULT_SETTINGS, ...parsed };
@@ -1141,8 +1145,8 @@ function updateVolumeSlider() {
   if (label) {
     const v = settings.volume;
     if (v === 0) label.textContent = 'Mute';
-    else if (v >= 200) label.textContent = 'Max';
-    else label.textContent = v + '%';
+    else if (v >= 10) label.textContent = 'Max';
+    else label.textContent = v;
   }
 }
 
@@ -3607,7 +3611,8 @@ function tone(ctx, th, freq, startTime, duration, vol) {
   const t = ctx.currentTime + (startTime || 0);
   const d = duration || 0.12;
   const settings = loadSettings();
-  const masterVol = (settings.volume || 0) / 100;
+  const step = settings.volume || 0;
+  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 5) * 0.12);
   gain.gain.setValueAtTime((vol || 0.12) * th.gain * masterVol, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + d);
   osc.connect(gain).connect(ctx.destination);
@@ -3616,17 +3621,17 @@ function tone(ctx, th, freq, startTime, duration, vol) {
 }
 
 function playClick(ctx, th, freq) {
-  tone(ctx, th, freq, 0, th.clickDur, 0.12);
+  tone(ctx, th, freq, 0, th.clickDur, 0.24);
 }
 
 function playDing(ctx, th) {
-  tone(ctx, th, th.dingLo, 0, th.dingDur, 0.14);
-  tone(ctx, th, th.dingHi, 0.04, th.dingDur * 0.85, 0.09);
+  tone(ctx, th, th.dingLo, 0, th.dingDur, 0.28);
+  tone(ctx, th, th.dingHi, 0.04, th.dingDur * 0.85, 0.18);
 }
 
 function playDeal(ctx, th) {
   th.deal.forEach((freq, i) => {
-    tone(ctx, th, freq, i * th.dealGap, th.dealGap * 1.8, 0.09);
+    tone(ctx, th, freq, i * th.dealGap, th.dealGap * 1.8, 0.18);
   });
 }
 
@@ -3634,11 +3639,12 @@ function playBump(ctx, th) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   const settings = loadSettings();
-  const masterVol = (settings.volume || 0) / 100;
+  const step = settings.volume || 0;
+  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 5) * 0.12);
   osc.type = th.wave;
   osc.frequency.setValueAtTime(th.bump, ctx.currentTime);
   osc.frequency.setValueAtTime(th.bump * 0.65, ctx.currentTime + th.bumpDur * 0.5);
-  gain.gain.setValueAtTime(0.10 * th.gain * masterVol, ctx.currentTime);
+  gain.gain.setValueAtTime(0.20 * th.gain * masterVol, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + th.bumpDur);
   osc.connect(gain).connect(ctx.destination);
   osc.start();
@@ -3647,7 +3653,7 @@ function playBump(ctx, th) {
 
 function playWin(ctx, th) {
   th.win.forEach(({f, t}) => {
-    tone(ctx, th, f, t, th.winDur, 0.14);
+    tone(ctx, th, f, t, th.winDur, 0.28);
   });
 }
 
@@ -3667,6 +3673,14 @@ render();
 if (foundations.every(f => f.length === 13)) {
   document.getElementById('win-overlay').classList.add('show');
 }
+
+// Persist game state when page is hidden/suspended (critical for mobile)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) saveGame();
+});
+window.addEventListener('pagehide', () => {
+  saveGame();
+});
 </script>
 </body>
 </html>
