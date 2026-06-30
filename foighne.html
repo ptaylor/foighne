@@ -715,23 +715,23 @@
     :root {
       --card-width: 48px;
       --card-height: 67px;
-      --stack-offset: 14px;
+      --stack-offset: 22px;
       --fan-offset: 11px;
       --card-font: 11px;
       --card-center: 22px;
       --card-pad: 3px;
       --card-back-sym: 17px;
-      --game-pad: 8px;
+      --game-pad: 4px;
       --pile-gap: 5px;
-      --top-row-gap: 6px;
+      --top-row-gap: 4px;
       --top-row-min-h: auto;
     }
     #game { max-width: 600px; }
-    #game-title { font-size: 18px; }
-    #message { font-size: 13px; min-height: 20px; margin: 4px 0 2px; }
-    #stats-bar { font-size: 10px; gap: 6px; margin-bottom: 8px; }
-    .btn { padding: 5px 8px; font-size: 11px; }
-    .btn-icon { padding: 5px 7px; font-size: 13px; }
+    #game-title { font-size: 16px; margin-bottom: 2px; }
+    #message { font-size: 12px; min-height: 16px; margin: 2px 0 0; }
+    #stats-bar { font-size: 10px; gap: 6px; margin-bottom: 2px; }
+    .btn { padding: 4px 7px; font-size: 11px; margin-top: 0; }
+    .btn-icon { padding: 4px 6px; font-size: 13px; margin-top: 0; }
     #win-overlay h1 { font-size: 30px; margin-bottom: 12px; }
     #win-overlay button { padding: 10px 24px; font-size: 15px; }
     .settings-panel { padding: 14px; max-height: 92vh; }
@@ -747,8 +747,8 @@
     .top-row {
       display: grid;
       grid-template-columns: auto 1fr;
-      gap: 6px;
-      margin-bottom: 8px;
+      gap: 4px;
+      margin-bottom: 4px;
     }
     .top-row > .top-section:first-child {
       /* row 1, col 1 naturally */
@@ -760,6 +760,7 @@
     .top-row > div:last-child {
       justify-content: flex-start;
       gap: 8px !important;
+      margin-top: 2px !important;
     }
     .card .center-suit svg {
       width: 22px;
@@ -1439,10 +1440,12 @@ function setupNearlyComplete() {
   clearSavedGame();
   render();
   saveGame();
+  debugGame = true;
 }
 
 // ---- DEBUG MODE ----
 let debugMode = false;
+let debugGame = false;
 let activeEgg = null;
 let eggParticles = [];
 let eggAnimId = null;
@@ -2343,6 +2346,7 @@ function newGame() {
     stats.currentStreak = 0;
   }
   gameWon = false;
+  debugGame = false;
   saveStats(stats);
   updateStatsDisplay(stats);
   
@@ -3294,18 +3298,20 @@ function checkWin() {
     if (foundations[f].length !== 13) return;
   }
   
-  const stats = loadStats();
-  stats.gamesWon++;
-  stats.currentStreak++;
-  if (stats.currentStreak > stats.bestStreak) {
-    stats.bestStreak = stats.currentStreak;
+  if (!debugGame) {
+    const stats = loadStats();
+    stats.gamesWon++;
+    stats.currentStreak++;
+    if (stats.currentStreak > stats.bestStreak) {
+      stats.bestStreak = stats.currentStreak;
+    }
+    saveStats(stats);
+    updateStatsDisplay(stats);
+    
+    clearSavedGame();
+    gameWon = true;
+    trackEvent('game-won');
   }
-  saveStats(stats);
-  updateStatsDisplay(stats);
-  
-  clearSavedGame();
-  gameWon = true;
-  trackEvent('game-won');
   document.getElementById('win-overlay').classList.add('show');
   spawnSparkles();
   playSound('win');
