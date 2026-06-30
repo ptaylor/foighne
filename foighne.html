@@ -2408,9 +2408,9 @@ function canPlaceOnTableau(card, destPile) {
   return (top.rank === card.rank + 1) && (cardColor(top.suit) !== cardColor(card.suit));
 }
 
-function canPlaceOnFoundation(card, destPile) {
+function canPlaceOnFoundation(card, destPile, foundationIndex) {
   if (destPile.length === 0) {
-    return card.rank === 0; // Ace
+    return card.rank === 0 && card.suit === foundationIndex;
   }
   const top = destPile[destPile.length - 1];
   return top.suit === card.suit && top.rank === card.rank - 1;
@@ -2456,7 +2456,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
     // Try foundations first, then tableau
     let moved = false;
     for (let f = 0; f < 4; f++) {
-      if (canPlaceOnFoundation(card, foundations[f])) {
+      if (canPlaceOnFoundation(card, foundations[f], f)) {
         waste.pop();
         foundations[f].push(card);
         moved = true;
@@ -2490,7 +2490,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
     // Check if it's a single card going to foundation
     if (cardIdx === pile.length - 1) {
       for (let f = 0; f < 4; f++) {
-        if (canPlaceOnFoundation(card, foundations[f])) {
+        if (canPlaceOnFoundation(card, foundations[f], f)) {
           pile.pop();
           foundations[f].push(card);
           flipTopTableau();
@@ -2719,7 +2719,7 @@ function autoMoveToFoundation(pileType, pileIdx, cardIdx) {
   // Only auto-move single top card of tableau or waste
   if (!((pileType === 'tableau' || pileType === 'waste') && cardIdx === pile.length - 1)) return;
   for (let f = 0; f < 4; f++) {
-    if (canPlaceOnFoundation(card, foundations[f])) {
+    if (canPlaceOnFoundation(card, foundations[f], f)) {
       pile.pop();
       foundations[f].push(card);
       if (pileType === 'tableau') flipTopTableau();
@@ -2754,7 +2754,7 @@ function isValidDrop(pileEl) {
   if (t === 'tableau') {
     return canPlaceOnTableau(sourceCard, tableau[i]);
   } else if (t === 'foundation' && draggedCards.cards.length === 1) {
-    return canPlaceOnFoundation(sourceCard, foundations[i]);
+    return canPlaceOnFoundation(sourceCard, foundations[i], i);
   }
   return false;
 }
@@ -2774,7 +2774,7 @@ function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
     flipTopTableau();
     playSound('place');
   } else if (destType === 'foundation' && cards.length === 1) {
-    if (!canPlaceOnFoundation(cards[0], foundations[destIdx])) {
+    if (!canPlaceOnFoundation(cards[0], foundations[destIdx], destIdx)) {
       srcPile.push(...cards);
       playSound('invalid');
       return;
@@ -3136,7 +3136,7 @@ function hasAnyValidMove() {
   if (waste.length > 0) {
     const w = waste[waste.length - 1];
     for (let f = 0; f < 4; f++) {
-      if (canPlaceOnFoundation(w, foundations[f])) return true;
+      if (canPlaceOnFoundation(w, foundations[f], f)) return true;
     }
     for (let t = 0; t < 7; t++) {
       if (canPlaceOnTableau(w, tableau[t])) return true;
@@ -3154,7 +3154,7 @@ function hasAnyValidMove() {
       // Only top card goes to foundation
       if (ci === pile.length - 1) {
         for (let f = 0; f < 4; f++) {
-          if (canPlaceOnFoundation(pile[ci], foundations[f])) return true;
+          if (canPlaceOnFoundation(pile[ci], foundations[f], f)) return true;
         }
       }
       // Any face-up card (with all cards above it) can move to another tableau
@@ -3217,7 +3217,7 @@ async function runAutoComplete() {
     if (waste.length > 0) {
       const w = waste[waste.length - 1];
       for (let f = 0; f < 4; f++) {
-        if (canPlaceOnFoundation(w, foundations[f])) {
+        if (canPlaceOnFoundation(w, foundations[f], f)) {
           srcType = 'waste'; srcIdx = 0; destF = f; break;
         }
       }
@@ -3229,7 +3229,7 @@ async function runAutoComplete() {
         if (tableau[t].length === 0) continue;
         const top = tableau[t][tableau[t].length - 1];
         for (let f = 0; f < 4; f++) {
-          if (canPlaceOnFoundation(top, foundations[f])) {
+          if (canPlaceOnFoundation(top, foundations[f], f)) {
             srcType = 'tableau'; srcIdx = t; destF = f; break;
           }
         }
