@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.30">
-<meta name="commit" content="191b6bd">
+<meta name="version" content="v1.31">
+<meta name="commit" content="841113d">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1222,6 +1222,8 @@ function getNextMove() {
     for (let dest = 0; dest < 7; dest++) {
       if (src === dest) continue;
       if (canPlaceOnTableau(card, tableau[dest])) {
+        // Don't suggest moving a bottom-card King to an empty column (pointless)
+        if (ci === 0 && tableau[dest].length === 0) continue;
         return { type: 'tableau', from: src, to: dest, card: card };
       }
     }
@@ -1232,15 +1234,21 @@ function getNextMove() {
 
 function showHint() {
   const hint = getNextMove();
+  let msg;
   if (hint.type === 'foundation') {
     const suitSym = SUITS[hint.to];
     const rank = RANKS[hint.card.rank];
-    showMessage('💡 Move ' + rank + suitSym + ' to foundation');
+    msg = '💡 Move ' + rank + suitSym + ' to foundation';
   } else if (hint.type === 'tableau') {
     const rank = RANKS[hint.card.rank];
-    showMessage('💡 Move ' + rank + ' to another tableau pile');
+    msg = '💡 Move ' + rank + ' to another tableau pile';
   } else {
-    showMessage('💡 Draw from the stock');
+    msg = '💡 Draw from the stock';
+  }
+  if (alwaysShowHints) {
+    document.getElementById('message').innerHTML = msg;
+  } else {
+    showMessage(msg);
   }
 }
 
@@ -1430,6 +1438,7 @@ function setupNearlyComplete() {
 // ---- DEBUG MODE ----
 let debugMode = false;
 let debugGame = false;
+let alwaysShowHints = false;
 let activeEgg = null;
 let eggParticles = [];
 let eggAnimId = null;
@@ -2185,6 +2194,10 @@ function renderDebugPanel() {
   html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();setupNearlyComplete()" style="background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.3);color:#ffd700;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:bold">🧪 Nearly Complete</button></div>';
   html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();clearSavedData()" style="background:rgba(255,100,100,0.12);border:1px solid rgba(255,100,100,0.25);color:#ff6b6b;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px">🗑 Clear Saved Data</button></div>';
   
+  // Always show hints toggle
+  const hintOn = alwaysShowHints;
+  html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();alwaysShowHints=!alwaysShowHints;renderDebugPanel();if(alwaysShowHints)showHint();else document.getElementById(\'message\').innerHTML=\'\'" style="background:' + (hintOn ? 'rgba(100,200,255,0.18)' : 'rgba(255,255,255,0.06)') + ';border:1px solid ' + (hintOn ? 'rgba(100,200,255,0.4)' : 'rgba(255,255,255,0.15)') + ';color:' + (hintOn ? '#8cf' : 'rgba(255,255,255,0.55)') + ';padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px">💡 Always Show Hints ' + (hintOn ? '✓' : '') + '</button></div>';
+  
   html += '<h3>📦 Stock (' + stock.length + ')</h3>';
   if (stock.length === 0) {
     html += '<div class="debug-empty">empty</div>';
@@ -2865,7 +2878,7 @@ function createCardElement(card, index) {
 }
 
 function render() {
-  if (foundations.every(f => f.length === 13)) {
+  if (gameWon) {
     // Game already won — keep overlay up during re-renders
     document.getElementById('win-overlay').classList.add('show');
   }
@@ -2971,6 +2984,9 @@ function render() {
   
   // Check for stalemate
   checkStalemate();
+
+  // Always-show hint (debug toggle)
+  if (alwaysShowHints) { showHint(); }
 
   // Auto-complete replaces New Game button when available
   const ngBtn = document.getElementById('new-game-btn');
@@ -3191,6 +3207,8 @@ function checkWin() {
   for (let f = 0; f < 4; f++) {
     if (foundations[f].length !== 13) return;
   }
+  // Guard against double-triggering (e.g. auto-complete calls checkWin after loop)
+  if (gameWon) return;
   
   if (!debugGame) {
     const stats = loadStats();
@@ -3206,9 +3224,14 @@ function checkWin() {
     gameWon = true;
     trackEvent('game-won');
   }
-  document.getElementById('win-overlay').classList.add('show');
-  spawnSparkles();
+  
+  // Play win sound and sparkles immediately, then pause before showing overlay
   playSound('win');
+  spawnSparkles();
+  
+  setTimeout(() => {
+    document.getElementById('win-overlay').classList.add('show');
+  }, 1200);
 }
 
 function spawnFoundationParticle(destF) {
