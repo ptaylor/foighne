@@ -2878,7 +2878,7 @@ function createCardElement(card, index) {
 }
 
 function render() {
-  if (foundations.every(f => f.length === 13)) {
+  if (gameWon) {
     // Game already won — keep overlay up during re-renders
     document.getElementById('win-overlay').classList.add('show');
   }
@@ -3207,6 +3207,8 @@ function checkWin() {
   for (let f = 0; f < 4; f++) {
     if (foundations[f].length !== 13) return;
   }
+  // Guard against double-triggering (e.g. auto-complete calls checkWin after loop)
+  if (gameWon) return;
   
   if (!debugGame) {
     const stats = loadStats();
@@ -3222,9 +3224,14 @@ function checkWin() {
     gameWon = true;
     trackEvent('game-won');
   }
-  document.getElementById('win-overlay').classList.add('show');
-  spawnSparkles();
+  
+  // Play win sound and sparkles immediately, then pause before showing overlay
   playSound('win');
+  spawnSparkles();
+  
+  setTimeout(() => {
+    document.getElementById('win-overlay').classList.add('show');
+  }, 1200);
 }
 
 function spawnFoundationParticle(destF) {
