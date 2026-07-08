@@ -47,20 +47,12 @@ if $NO_PUSH; then
   exit 0
 fi
 
-# --- Commit, tag & push main ---
-git add "$PUB_DIR"
-if git diff --cached --quiet; then
-  echo "✔ No changes to commit"
-else
-  git commit -m "Publish ${NEXT_VERSION}"
-  echo "✔ Committed: Publish ${NEXT_VERSION}"
-fi
-
+# --- Tag release on current branch (no file changes committed) ---
 git tag -a "$NEXT_VERSION" -m "Release ${NEXT_VERSION}"
 echo "✔ Tagged ${NEXT_VERSION}"
 
-git push origin main --tags
-echo "✔ Pushed main + tags"
+git push origin --tags
+echo "✔ Pushed tags"
 
 # --- Push public/ subtree to pages branch ---
 git subtree push --prefix="$PUB_DIR" origin "$TARGET_BRANCH"
