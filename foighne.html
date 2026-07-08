@@ -338,6 +338,11 @@
     transform: translateY(0);
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
+  .btn:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+    cursor: default;
+  }
   .btn-icon {
     padding: 10px 12px;
     font-size: 18px;
@@ -633,6 +638,56 @@
     min-width: 32px;
     text-align: right;
   }
+  /* Undo depth slider */
+  .undo-depth-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .undo-depth-row span {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    white-space: nowrap;
+  }
+  .undo-depth-row input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  .undo-depth-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .undo-depth-row input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .undo-depth-val {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    min-width: 32px;
+    text-align: right;
+  }
   /* Draw count radio-style buttons */
   .draw-row {
     display: flex;
@@ -833,6 +888,7 @@
     <div style="display:flex;flex-direction:column;gap:6px;align-self:flex-start;margin-top:8px">
       <div style="display:flex;gap:6px">
         <button class="btn btn-icon" id="hint-btn" onclick="showHint()" title="Hint">&#128161;</button>
+        <button class="btn btn-icon" id="undo-btn" onclick="performUndo()" title="Undo" disabled>&#8617;</button>
         <button class="btn" id="new-game-btn" onclick="newGame()">New Game</button>
         <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
       </div>
@@ -881,6 +937,11 @@
       <h3>Face Cards</h3>
       <div class="tile-grid" id="face-grid"></div>
     </div>
+    <div class="undo-depth-row">
+      <span>↩ Undo Depth</span>
+      <input type="range" id="undo-depth-slider" min="0" max="50" step="1" value="10" oninput="selectUndoDepth(this.value)">
+      <span class="undo-depth-val" id="undo-depth-val">10</span>
+    </div>
     <div class="setting-group">
       <h3>Sound Theme</h3>
       <div class="tile-grid" id="sound-theme-grid"></div>
@@ -901,6 +962,7 @@ let dragOffsetX = 0, dragOffsetY = 0;
 let dragStartEl = null;
 let isDragging = false;
 let flippedCards = [];
+let undoStack = [];
 
 const SAVE_KEY = 'solitaire_save';
 const STATS_KEY = 'solitaire_stats';
@@ -928,6 +990,7 @@ function loadGame() {
     tableau = state.tableau || [[], [], [], [], [], [], []];
     foundations = state.foundations || [[], [], [], []];
     selectedCards = state.selectedCards || null;
+    undoStack = [];
     // Validate loaded state; deal fresh if corrupted
     if (!validateGameState().valid) {
       if (debugMode) console.log('Saved game was incomplete — dealing a fresh one');
@@ -947,6 +1010,7 @@ function clearSavedGame() {
 
 function clearSavedData() {
   if (!confirm('Clear all saved data?\n\nThis resets your game, stats, and settings.')) return;
+  undoStack = [];
   localStorage.removeItem(SAVE_KEY);
   localStorage.removeItem(STATS_KEY);
   localStorage.removeItem(SETTINGS_KEY);
@@ -995,7 +1059,8 @@ const DEFAULT_SETTINGS = {
   drawCount: 3,
   dealOrder: 'standard',
   volume: 5,
-  soundTheme: 'zen'
+  soundTheme: 'zen',
+  undoDepth: 10
 };
 
 function loadSettings() {
@@ -1011,6 +1076,10 @@ function loadSettings() {
       if (typeof parsed.volume === 'undefined' && typeof parsed.soundEnabled !== 'undefined') {
         parsed.volume = parsed.soundEnabled ? 5 : 0;
         delete parsed.soundEnabled;
+      }
+      // Migrate old undoDepth to default if missing
+      if (typeof parsed.undoDepth !== 'number' || parsed.undoDepth < 0) {
+        parsed.undoDepth = DEFAULT_SETTINGS.undoDepth;
       }
       // Remove deprecated settings
       delete parsed.hintEnabled;
@@ -1088,6 +1157,17 @@ function populateSettings() {
     tile.innerHTML = `<div class="preview" style="background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:16px">${waveIcon}</div><div class="tile-label">${st.name}</div>`;
     soundThemeGrid.appendChild(tile);
   });
+  
+  // Undo depth slider
+  updateUndoDepthSlider();
+}
+
+function updateUndoDepthSlider() {
+  const settings = loadSettings();
+  const slider = document.getElementById('undo-depth-slider');
+  const display = document.getElementById('undo-depth-val');
+  if (slider) slider.value = settings.undoDepth || 10;
+  if (display) display.textContent = settings.undoDepth || 10;
 }
 
 function setVolume(val) {
@@ -1261,6 +1341,52 @@ function updateSetting(key, value) {
   return settings;
 }
 
+// ---- Undo System ----
+function snapshotState() {
+  return JSON.parse(JSON.stringify({ stock, waste, tableau, foundations, selectedCards, gameWon }));
+}
+
+function pushUndo() {
+  if (autoCompleting) return;
+  const settings = loadSettings();
+  const maxDepth = settings.undoDepth != null ? settings.undoDepth : 10;
+  if (maxDepth === 0) return;
+  undoStack.push(snapshotState());
+  while (undoStack.length > maxDepth) {
+    undoStack.shift();
+  }
+}
+
+function performUndo() {
+  if (undoStack.length === 0 || autoCompleting) return;
+  const snapshot = undoStack.pop();
+  stock = snapshot.stock;
+  waste = snapshot.waste;
+  tableau = snapshot.tableau;
+  foundations = snapshot.foundations;
+  selectedCards = snapshot.selectedCards;
+  gameWon = snapshot.gameWon;
+  if (!gameWon) {
+    document.getElementById('win-overlay').classList.remove('show');
+  }
+  render();
+  saveGame();
+  playSound('place');
+  trackEvent('undo');
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById('undo-btn');
+  if (!btn) return;
+  const settings = loadSettings();
+  if (undoStack.length === 0 || autoCompleting || settings.undoDepth === 0) {
+    btn.disabled = true;
+  } else {
+    btn.disabled = false;
+  }
+}
+
 function selectTheme(id) {
   updateSetting('theme', id);
   applySettings();
@@ -1291,6 +1417,18 @@ function selectSoundTheme(id) {
     el.classList.toggle('selected', el.dataset.soundTheme === id);
   });
   playSound('draw');
+}
+
+function selectUndoDepth(val) {
+  const depth = parseInt(val);
+  updateSetting('undoDepth', depth);
+  const display = document.getElementById('undo-depth-val');
+  if (display) display.textContent = depth;
+  // Trim existing undo stack to new depth
+  while (undoStack.length > depth) {
+    undoStack.shift();
+  }
+  updateUndoButton();
 }
 
 function createDeck() {
@@ -1428,6 +1566,7 @@ function setupNearlyComplete() {
   // 5. Stock
   stock = [finalCard];
   selectedCards = null;
+  undoStack = [];
 
   clearSavedGame();
   render();
@@ -2198,6 +2337,7 @@ function renderDebugPanel() {
   const hintOn = alwaysShowHints;
   html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();alwaysShowHints=!alwaysShowHints;renderDebugPanel();if(alwaysShowHints)showHint();else document.getElementById(\'message\').innerHTML=\'\'" style="background:' + (hintOn ? 'rgba(100,200,255,0.18)' : 'rgba(255,255,255,0.06)') + ';border:1px solid ' + (hintOn ? 'rgba(100,200,255,0.4)' : 'rgba(255,255,255,0.15)') + ';color:' + (hintOn ? '#8cf' : 'rgba(255,255,255,0.55)') + ';padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px">💡 Always Show Hints ' + (hintOn ? '✓' : '') + '</button></div>';
   
+  html += '<div style="text-align:center;font-size:11px;color:rgba(255,255,255,0.45);margin-bottom:6px">Undo stack: ' + undoStack.length + '</div>';
   html += '<h3>📦 Stock (' + stock.length + ')</h3>';
   if (stock.length === 0) {
     html += '<div class="debug-empty">empty</div>';
@@ -2348,6 +2488,7 @@ function newGame() {
   saveStats(stats);
   updateStatsDisplay(stats);
   
+  undoStack = [];
   clearSavedGame();
   dealBoard();
   render();
@@ -2395,6 +2536,7 @@ function drawStock() {
   const order = settings.dealOrder || 'standard';
   if (stock.length === 0) {
     if (waste.length === 0) return;
+    pushUndo();
     while (waste.length > 0) {
       const card = waste.pop();
       card.faceUp = false;
@@ -2403,6 +2545,7 @@ function drawStock() {
     render();
     return;
   }
+  pushUndo();
   if (order === 'reversed' && count > 1) {
     const drawn = [];
     for (let k = 0; k < count && stock.length > 0; k++) {
@@ -2444,6 +2587,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
     let moved = false;
     for (let f = 0; f < 4; f++) {
       if (canPlaceOnFoundation(card, foundations[f], f)) {
+        pushUndo();
         waste.pop();
         foundations[f].push(card);
         moved = true;
@@ -2458,6 +2602,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
     // Try tableau
     for (let t = 0; t < 7; t++) {
       if (canPlaceOnTableau(card, tableau[t])) {
+        pushUndo();
         waste.pop();
         tableau[t].push(card);
         moved = true;
@@ -2478,6 +2623,7 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
     if (cardIdx === pile.length - 1) {
       for (let f = 0; f < 4; f++) {
         if (canPlaceOnFoundation(card, foundations[f], f)) {
+          pushUndo();
           pile.pop();
           foundations[f].push(card);
           flipTopTableau();
@@ -2707,6 +2853,7 @@ function autoMoveToFoundation(pileType, pileIdx, cardIdx) {
   if (!((pileType === 'tableau' || pileType === 'waste') && cardIdx === pile.length - 1)) return;
   for (let f = 0; f < 4; f++) {
     if (canPlaceOnFoundation(card, foundations[f], f)) {
+      pushUndo();
       pile.pop();
       foundations[f].push(card);
       if (pileType === 'tableau') flipTopTableau();
@@ -2749,6 +2896,7 @@ function isValidDrop(pileEl) {
 function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
   const srcPile = getPile(srcType, srcIdx);
   const destPile = getPile(destType, destIdx);
+  pushUndo();
   const cards = srcPile.splice(cardIdx);
   
   if (destType === 'tableau') {
@@ -2988,6 +3136,9 @@ function render() {
   // Always-show hint (debug toggle)
   if (alwaysShowHints) { showHint(); }
 
+  // Update undo button state
+  updateUndoButton();
+
   // Auto-complete replaces New Game button when available
   const ngBtn = document.getElementById('new-game-btn');
   if (ngBtn && !autoCompleting) {
@@ -3087,8 +3238,11 @@ let autoCompleting = false;
 async function runAutoComplete() {
   if (autoCompleting) return;
   autoCompleting = true;
+  // Save pre-auto-complete state for one-shot undo
+  pushUndo();
   trackEvent('auto-complete');
   document.getElementById('message').innerHTML = '';
+  updateUndoButton();
 
   const FLY_MS = 200;  // flight duration
   const GAP_MS  = 80;  // pause between flights
@@ -3147,6 +3301,7 @@ async function runAutoComplete() {
   }
 
   autoCompleting = false;
+  updateUndoButton();
   await new Promise(r => setTimeout(r, 500));
   checkWin();
 }
@@ -3301,6 +3456,7 @@ document.addEventListener('click', (e) => {
   
   if (destPile.length === 0) {
     if (cards[0].rank === 12) { // King
+      pushUndo();
       srcPile.splice(cardIdx);
       destPile.push(...cards);
       flipTopTableau();
@@ -3314,6 +3470,7 @@ document.addEventListener('click', (e) => {
     }
   } else {
     if (canPlaceOnTableau(cards[0], destPile)) {
+      pushUndo();
       srcPile.splice(cardIdx);
       destPile.push(...cards);
       flipTopTableau();
