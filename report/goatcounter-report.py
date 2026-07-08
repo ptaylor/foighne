@@ -2,21 +2,23 @@
 """
 goatcounter-report.py
 
-Fetch GoatCounter export for a date range, compute KPIs, generate charts (PNG),
-and write a self-contained HTML report with embedded images.
+Fetch GoatCounter stats via the stats API for a date range, compute KPIs,
+generate charts (PNG), and write a self-contained HTML report with embedded images.
 
 Usage:
-  GOATCOUNTER_API_TOKEN=... python3 report/goatcounter-report.py --period "this month"
+  python3 report/goatcounter-report.py --period "this month"
   python3 report/goatcounter-report.py --site foighne --period "last month"
   python3 report/goatcounter-report.py --start 2026-07-01 --end 2026-07-07
 
 Notes:
-  - Calls GoatCounter API v0 export endpoint (preferred) per https://www.goatcounter.com/api.html
-  - If the export needs HTTP Basic auth, set GOAT_USER and GOAT_PASS or pass --user/--pass.
-  - Produces:
-      - report-<start>-<end>.json
-      - report-<start>-<end>.html (self-contained)
-      - charts/ (PNG files)
+  - Calls GoatCounter API v0 stats endpoints per https://www.goatcounter.com/api.html
+  - API token is read from the GOATCOUNTER_API_TOKEN environment variable.
+    The script auto-loads .env.sh from the project root if present.
+  - Produces a timestamped directory under reports/:
+      reports/<timestamp>_<start>_<end>/
+        index.html   (self-contained HTML report)
+        data.json    (raw metrics & breakdown)
+        charts/      (PNG chart images)
 
 Defaults:
   - GOAT_SITE defaults to "foighne".
@@ -32,11 +34,7 @@ import argparse
 import requests
 import io
 import json
-import re
 import datetime as dt
-import time
-import gzip
-import duckdb
 import pandas as pd
 import base64
 
@@ -48,109 +46,109 @@ import seaborn as sns
 
 sns.set(style="whitegrid", palette="muted", font_scale=1.0)
 
+# Resolve project root (where .env.sh lives) so output paths are always absolute
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
-def fetch_export(site, start, end, user=None, passwd=None, timeout=60):
+# ---------------------------------------------------------------------------
+# .env.sh auto-loading
+# ---------------------------------------------------------------------------
+
+def load_dotenv_sh():
+    """Load environment variables from .env.sh in the project root (if present).
+    Only sets vars that aren't already in the environment.
     """
-    Use GoatCounter API v0 to create an export, wait for it to finish,
-    download the gzipped CSV, convert to JSON-lines, and return that text.
+    env_file = os.path.join(PROJECT_ROOT, ".env.sh")
+    if not os.path.exists(env_file):
+        return
+    with open(env_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            # Strip 'export ' prefix
+            if line.startswith("export "):
+                line = line[7:]
+            if "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = val
 
-    Auth:
-      - Preferred: set GOATCOUNTER_API_TOKEN to your API key (Bearer).
-      - Fallback: HTTP Basic auth with empty username and key as password (user arg blank, passwd set).
+
+# ---------------------------------------------------------------------------
+# API helpers
+# ---------------------------------------------------------------------------
+
+def get_api_base(site):
+    """Build the API base URL from a site identifier."""
+    if site.startswith("http://") or site.startswith("https://"):
+        return site.rstrip("/") + "/api/v0"
+    return f"https://{site}.goatcounter.com/api/v0"
+
+
+def api_get(api_base, path, params=None, timeout=60):
+    """Make an authenticated GET request to the GoatCounter API.
+    Returns the parsed JSON response.
     """
     token = os.getenv("GOATCOUNTER_API_TOKEN")
-    # Build API base. Accept either 'foighne' or a full host 'https://...' or 'foighne.goatcounter.com'
-    if site.startswith("http://") or site.startswith("https://"):
-        host = site.rstrip("/")
-        api_base = f"{host}/api/v0"
-    else:
-        # regular hosted site at site.goatcounter.com
-        api_base = f"https://{site}.goatcounter.com/api/v0"
-
-    headers = {"Content-Type": "application/json"}
-    auth = None
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    elif user is not None and passwd is not None:
-        auth = (user, passwd)
-
-    # Start export (POST /api/v0/export)
-    create_url = f"{api_base}/export"
-    payload = {"start": start, "end": end}
-    try:
-        resp = requests.post(create_url, headers=headers, json=payload, auth=auth, timeout=timeout)
-    except requests.RequestException as e:
-        raise RuntimeError(f"Failed to start export: {e}")
-    # If unauthorized, give clear message
+    if not token:
+        raise RuntimeError(
+            "GOATCOUNTER_API_TOKEN not set. "
+            "Source .env.sh or set the env var before running."
+        )
+    headers = {"Authorization": f"Bearer {token}"}
+    url = f"{api_base}/{path.lstrip('/')}"
+    resp = requests.get(url, headers=headers, params=params, timeout=timeout)
     if resp.status_code in (401, 403):
-        raise RuntimeError(f"Export creation failed: {resp.status_code} {resp.text.strip()[:300]}. Check GOATCOUNTER_API_TOKEN and permissions.")
+        raise RuntimeError(
+            f"Auth error ({resp.status_code}) for {url}. "
+            "Check GOATCOUNTER_API_TOKEN."
+        )
     resp.raise_for_status()
+    return resp.json()
 
-    data = resp.json()
-    export_id = data.get("id")
-    if not export_id:
-        raise RuntimeError(f"Export creation returned unexpected response: {data}")
 
-    # Poll export status GET /api/v0/export/{id} until finished_at is non-null or error
-    status_url = f"{api_base}/export/{export_id}"
-    finished = False
-    poll_start = time.time()
-    while True:
-        try:
-            sresp = requests.get(status_url, headers=headers, auth=auth, timeout=timeout)
-        except requests.RequestException as e:
-            raise RuntimeError(f"Failed to poll export status: {e}")
-        if sresp.status_code in (401, 403):
-            raise RuntimeError(f"Export status check unauthorized: {sresp.status_code} {sresp.text.strip()[:300]}")
-        sresp.raise_for_status()
-        status_data = sresp.json()
-        if status_data.get("finished_at"):
-            finished = True
-            break
-        # If API returned an error field, surface it
-        if status_data.get("error") or status_data.get("errors"):
-            raise RuntimeError(f"Export failed: {status_data.get('error') or status_data.get('errors')}")
-        # rate-limit friendly: sleep 1s
-        time.sleep(1)
-        # safety timeout (5 minutes)
-        if time.time() - poll_start > 300:
-            raise RuntimeError("Timed out waiting for GoatCounter export to finish (5m)")
+def fetch_stats_data(site, start, end):
+    """Fetch all relevant stats from the GoatCounter stats API.
 
-    # Download the export: GET /api/v0/export/{id}/download
-    dl_url = f"{api_base}/export/{export_id}/download"
+    Returns a dict with keys: total, hits, browsers, systems.
+    """
+    api_base = get_api_base(site)
+    params = {"start": start, "end": end}
+
+    # Total pageviews + events with daily breakdown
+    total = api_get(api_base, "stats/total", params)
+
+    # Top hits (paths + events), up to 100
+    hits_params = {**params, "limit": 100}
+    hits = api_get(api_base, "stats/hits", hits_params)
+
+    # Optional: browser and system stats (best-effort)
+    browsers = None
+    systems = None
     try:
-        dresp = requests.get(dl_url, headers=headers, auth=auth, timeout=120)
-    except requests.RequestException as e:
-        raise RuntimeError(f"Failed to download export: {e}")
-    if dresp.status_code in (401, 403):
-        raise RuntimeError(f"Export download unauthorized: {dresp.status_code} {dresp.text.strip()[:300]}")
-    if dresp.status_code == 404:
-        raise RuntimeError("Export download not found (404).")
-    dresp.raise_for_status()
-
-    # Response is typically gzipped CSV. Try to decompress; if not gzipped, treat as plain CSV bytes.
-    content = dresp.content
+        browsers = api_get(api_base, "stats/browsers", params)
+    except Exception:
+        pass
     try:
-        csv_bytes = gzip.decompress(content)
-    except (OSError, EOFError):
-        csv_bytes = content
+        systems = api_get(api_base, "stats/systems", params)
+    except Exception:
+        pass
 
-    # Load CSV into a DataFrame and convert to JSON-lines (so existing code using read_json(lines=True) works)
-    try:
-        csv_buf = io.BytesIO(csv_bytes)
-        df = pd.read_csv(csv_buf)
-    except Exception as e:
-        text = None
-        try:
-            text = csv_bytes.decode("utf-8", errors="replace")
-        except Exception:
-            text = str(csv_bytes[:1000])
-        raise RuntimeError(f"Failed to parse CSV export into DataFrame: {e}\nSample:\n{text[:1000]}")
+    return {
+        "total": total,
+        "hits": hits,
+        "browsers": browsers,
+        "systems": systems,
+    }
 
-    # Convert to JSON lines and return string
-    jsonl = df.to_json(orient="records", lines=True, date_format="iso")
-    return jsonl
 
+# ---------------------------------------------------------------------------
+# Period parsing
+# ---------------------------------------------------------------------------
 
 def parse_period(period):
     """Return (start_date_str, end_date_str) for friendly English period phrases.
@@ -161,7 +159,8 @@ def parse_period(period):
       this month, last month,
       this year, last year
 
-    Accepts explicit single date YYYY-MM-DD or explicit range YYYY-MM-DD:YYYY-MM-DD.
+    Also accepts explicit single date YYYY-MM-DD or explicit range
+    YYYY-MM-DD:YYYY-MM-DD.
     """
     if not period:
         return None
@@ -213,149 +212,99 @@ def parse_period(period):
         raise ValueError(f"Unrecognized period: '{period}'")
 
 
-def detect_ts_col(df):
-    for candidate in ("time", "timestamp", "ts", "created_at", "date"):
-        if candidate in df.columns:
-            return candidate
-    for c in df.columns:
-        if "time" in c.lower() or "date" in c.lower():
-            return c
-    raise RuntimeError("No timestamp column found in export; adjust mapping.")
+# ---------------------------------------------------------------------------
+# Report building from stats API response
+# ---------------------------------------------------------------------------
 
+def build_report(site, start, end, data):
+    """Transform raw stats API responses into a structured report dict."""
 
-def detect_visitor_col(df):
-    for candidate in ("visitor", "visitor_id", "vid", "client", "ip", "id"):
-        if candidate in df.columns:
-            return candidate
-    return None
+    total = data["total"]
+    hits_list = data["hits"].get("hits", [])
 
+    # Separate pageviews from events
+    pages = [h for h in hits_list if not h.get("event")]
+    events = [h for h in hits_list if h.get("event")]
 
-def detect_path_col(df):
-    for candidate in ("path", "url", "page", "p"):
-        if candidate in df.columns:
-            return candidate
-    return None
+    # Daily breakdown from stats/total
+    daily = []
+    for s in total.get("stats", []):
+        daily.append({
+            "day": s["day"],
+            "visitors": s.get("daily", 0),
+        })
 
+    # Map known event names
+    new_games = 0
+    wins = 0
+    top_events = []
+    for e in events:
+        path = e.get("path", "")
+        cnt = e.get("count", 0)
+        top_events.append({"event_type": path, "cnt": cnt})
+        if "new-game" in path:
+            new_games += cnt
+        if "game-won" in path:
+            wins += cnt
 
-def extract_event_from_path(path):
-    if not isinstance(path, str):
-        return None
-    m = re.search(r"[?&](?:e|event)=([^&/]+)", path)
-    if m:
-        return m.group(1)
-    m = re.search(r"/(?:e|event|track)/([^/?#]+)", path)
-    if m:
-        return m.group(1)
-    return None
+    top_events.sort(key=lambda x: x["cnt"], reverse=True)
 
+    # Top pages (non-event hits)
+    top_pages = [{"path": p.get("path", ""), "cnt": p.get("count", 0)} for p in pages]
+    top_pages.sort(key=lambda x: x["cnt"], reverse=True)
 
-def normalize_df(df):
-    ts_col = detect_ts_col(df)
-    visitor_col = detect_visitor_col(df)
-    path_col = detect_path_col(df)
+    # Win rate
+    win_rate = (wins / new_games) if new_games else None
 
-    df = df.copy()
-    df.rename(columns={ts_col: "event_time"}, inplace=True)
-    if visitor_col:
-        df.rename(columns={visitor_col: "visitor_id"}, inplace=True)
-    if path_col:
-        df.rename(columns={path_col: "path"}, inplace=True)
+    agg = {
+        "total_visitors": total.get("total", 0),
+        "total_events": total.get("total_events", 0),
+        "new_games": new_games,
+        "wins": wins,
+        "win_rate": round(win_rate, 4) if win_rate is not None else None,
+    }
 
-    df["event_time"] = pd.to_datetime(df["event_time"], utc=True, errors="coerce")
-
-    if "event" in df.columns:
-        df["event_type"] = df["event"].astype(str)
-    else:
-        df["event_type"] = df.get("path", "").apply(extract_event_from_path)
-
-    df["event_type"] = df["event_type"].fillna("pageview")
-
-    if "visitor_id" not in df.columns:
-        df["visitor_id"] = (df.get("ua", "") + df.get("user_agent", "") + df.get("referrer", "")).astype(str)
-        if df["visitor_id"].eq("").all():
-            df["visitor_id"] = df.index.astype(str)
-
-    if "ua" in df.columns:
-        df.rename(columns={"ua": "user_agent"}, inplace=True)
-    if "ref" in df.columns and "referrer" not in df.columns:
-        df.rename(columns={"ref": "referrer"}, inplace=True)
-
-    keep = ["event_time", "event_type", "visitor_id", "path", "referrer", "user_agent"]
-    present = [c for c in keep if c in df.columns]
-    out = df[present].copy()
-    return out
-
-
-def run_queries(df, start, end):
-    con = duckdb.connect(database=":memory:")
-    con.register("events", df)
-    daily_sql = f"""
-    SELECT DATE(event_time) AS day,
-           COUNT(DISTINCT visitor_id) AS dau,
-           SUM(CASE WHEN event_type='new-game' THEN 1 ELSE 0 END) AS new_games,
-           SUM(CASE WHEN event_type='game-won' THEN 1 ELSE 0 END) AS wins,
-           CASE WHEN SUM(CASE WHEN event_type='new-game' THEN 1 ELSE 0 END)=0 THEN NULL
-                ELSE (SUM(CASE WHEN event_type='game-won' THEN 1 ELSE 0 END))*1.0 / SUM(CASE WHEN event_type='new-game' THEN 1 ELSE 0 END)
-           END AS win_rate
-    FROM events
-    WHERE event_time >= TIMESTAMP '{start}' AND event_time < TIMESTAMP '{end}' + INTERVAL '1 day'
-    GROUP BY day
-    ORDER BY day
-    """
-    daily = con.execute(daily_sql).fetchdf()
-    agg_sql = f"""
-    SELECT COUNT(DISTINCT visitor_id) AS unique_users,
-           SUM(CASE WHEN event_type='new-game' THEN 1 ELSE 0 END) AS new_games,
-           SUM(CASE WHEN event_type='game-won' THEN 1 ELSE 0 END) AS wins,
-           CASE WHEN SUM(CASE WHEN event_type='new-game' THEN 1 ELSE 0 END)=0 THEN NULL
-                ELSE (SUM(CASE WHEN event_type='game-won' THEN 1 ELSE 0 END))*1.0 / SUM(CASE WHEN event_type='new-game' THEN 1 ELSE 0 END)
-           END AS win_rate
-    FROM events
-    WHERE event_time >= TIMESTAMP '{start}' AND event_time < TIMESTAMP '{end}' + INTERVAL '1 day'
-    """
-    agg = con.execute(agg_sql).fetchdf().to_dict(orient="records")[0]
-    refs_sql = f"""
-    SELECT COALESCE(referrer,'(direct)') AS referrer, COUNT(*) AS cnt
-    FROM events
-    WHERE event_time >= TIMESTAMP '{start}' AND event_time < TIMESTAMP '{end}' + INTERVAL '1 day'
-    GROUP BY referrer
-    ORDER BY cnt DESC
-    LIMIT 10
-    """
-    refs = con.execute(refs_sql).fetchdf().to_dict(orient="records")
-    top_events_sql = f"""
-    SELECT event_type, COUNT(*) AS cnt
-    FROM events
-    WHERE event_time >= TIMESTAMP '{start}' AND event_time < TIMESTAMP '{end}' + INTERVAL '1 day'
-    GROUP BY event_type
-    ORDER BY cnt DESC
-    LIMIT 20
-    """
-    top_events = con.execute(top_events_sql).fetchdf().to_dict(orient="records")
-    return {"daily": daily.to_dict(orient="records"), "aggregate": agg, "top_referrers": refs, "top_events": top_events}
-
-
-def make_report(site, start, end, df):
-    results = run_queries(df, start, end)
     report = {
         "site": site,
         "period": {"start": start, "end": end},
         "generated_at": dt.datetime.utcnow().isoformat() + "Z",
-        "metrics": results["aggregate"],
-        "daily": results["daily"],
-        "top_referrers": results["top_referrers"],
-        "top_events": results["top_events"]
+        "metrics": agg,
+        "daily": daily,
+        "top_events": top_events,
+        "top_pages": top_pages,
+        "top_referrers": [],  # Not available via stats API without per-path detail calls
     }
+
+    # Attach optional browser/system stats
+    if data.get("browsers"):
+        report["browsers"] = data["browsers"].get("stats", [])
+    if data.get("systems"):
+        report["systems"] = data["systems"].get("stats", [])
+
     return report
 
 
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+
 def short_summary(report):
     m = report["metrics"]
-    s = f"Period {report['period']['start']} → {report['period']['end']}: users={m.get('unique_users')}, new_games={m.get('new_games')}, wins={m.get('wins')}, win_rate={m.get('win_rate')}"
-    return s
+    wr = f"{m.get('win_rate'):.2%}" if m.get("win_rate") is not None else "N/A"
+    return (
+        f"Period {report['period']['start']} → {report['period']['end']}: "
+        f"visitors={m.get('total_visitors')}, "
+        f"events={m.get('total_events')}, "
+        f"new_games={m.get('new_games')}, "
+        f"wins={m.get('wins')}, "
+        f"win_rate={wr}"
+    )
 
 
+# ---------------------------------------------------------------------------
 # Chart helpers
+# ---------------------------------------------------------------------------
+
 def fig_to_base64(fig):
     buf = io.BytesIO()
     fig.savefig(buf, format="png", bbox_inches="tight", dpi=150)
@@ -364,128 +313,281 @@ def fig_to_base64(fig):
     return base64.b64encode(buf.read()).decode("ascii")
 
 
-def generate_charts_and_html(report, out_prefix):
-    os.makedirs("charts", exist_ok=True)
+# ---------------------------------------------------------------------------
+# Charts + HTML generation
+# ---------------------------------------------------------------------------
+
+def generate_charts_and_html(report, out_dir):
+    charts_dir = os.path.join(out_dir, "charts")
+    os.makedirs(charts_dir, exist_ok=True)
     start = report["period"]["start"]
     end = report["period"]["end"]
 
-    # Daily series chart (line)
+    # --- Daily visitors chart (line) ---
     daily_df = pd.DataFrame(report["daily"])
-    if daily_df.empty:
-        daily_b64 = None
-    else:
+    daily_b64 = None
+    if not daily_df.empty:
         daily_df["day"] = pd.to_datetime(daily_df["day"])
         fig, ax = plt.subplots(figsize=(10, 4))
-        ax.plot(daily_df["day"], daily_df.get("dau", 0), marker="o", label="DAU")
-        ax.plot(daily_df["day"], daily_df.get("new_games", 0), marker="o", label="New games")
-        ax.set_title(f"Daily DAU & New Games ({start} → {end})")
+        ax.plot(daily_df["day"], daily_df.get("visitors", 0), marker="o", label="Visitors")
+        ax.set_title(f"Daily Visitors ({start} → {end})")
         ax.set_xlabel("Day")
-        ax.set_ylabel("Count")
+        ax.set_ylabel("Visitors")
         ax.legend()
         fig.tight_layout()
-        png_path = f"charts/daily-{start}-{end}.png"
+        png_path = os.path.join(charts_dir, "daily.png")
         fig.savefig(png_path, dpi=150, bbox_inches="tight")
         daily_b64 = fig_to_base64(fig)
 
-    # Top events pie (donut)
+    # --- Top events pie (donut) ---
     tev = pd.DataFrame(report["top_events"])
-    if tev.empty:
-        events_b64 = None
-    else:
+    events_b64 = None
+    if not tev.empty:
         labels = tev["event_type"].astype(str).tolist()
-        sizes = tev["cnt"].tolist()
-        N = 8
-        if len(sizes) > N:
-            top_labels = labels[:N]
-            top_sizes = sizes[:N]
-            other = sum(sizes[N:])
+        sizes = [int(x) for x in tev["cnt"].tolist()]
+        MAX_SLICES = 8
+        if len(sizes) > MAX_SLICES:
+            top_labels = labels[:MAX_SLICES]
+            top_sizes = sizes[:MAX_SLICES]
+            other = sum(sizes[MAX_SLICES:])
             top_labels.append("Other")
             top_sizes.append(other)
             labels, sizes = top_labels, top_sizes
         fig2, ax2 = plt.subplots(figsize=(6, 6))
-        wedges, texts = ax2.pie(sizes, startangle=140, wedgeprops=dict(width=0.4))
+        wedges, _ = ax2.pie(sizes, startangle=140, wedgeprops=dict(width=0.4))
         ax2.legend(wedges, labels, title="Events", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
         ax2.set_title("Top events (distribution)")
         fig2.tight_layout()
-        png_path2 = f"charts/top-events-{start}-{end}.png"
+        png_path2 = os.path.join(charts_dir, "top-events.png")
         fig2.savefig(png_path2, dpi=150, bbox_inches="tight")
         events_b64 = fig_to_base64(fig2)
 
-    # Top referrers horizontal bar
-    tref = pd.DataFrame(report["top_referrers"])
-    if tref.empty:
-        refs_b64 = None
-    else:
-        fig3, ax3 = plt.subplots(figsize=(8, max(3, 0.5 * len(tref))))
-        ax3.barh(tref["referrer"].astype(str), tref["cnt"])
-        ax3.set_title("Top referrers")
-        ax3.set_xlabel("Hits")
+    # --- Top pages horizontal bar ---
+    tpages = pd.DataFrame(report.get("top_pages", []))
+    pages_b64 = None
+    if not tpages.empty:
+        top10 = tpages.head(10)
+        fig3, ax3 = plt.subplots(figsize=(8, max(3, 0.5 * len(top10))))
+        ax3.barh(top10["path"].astype(str), top10["cnt"].astype(int))
+        ax3.set_title("Top pages")
+        ax3.set_xlabel("Visitors")
         ax3.invert_yaxis()
         fig3.tight_layout()
-        png_path3 = f"charts/top-referrers-{start}-{end}.png"
+        png_path3 = os.path.join(charts_dir, "top-pages.png")
         fig3.savefig(png_path3, dpi=150, bbox_inches="tight")
-        refs_b64 = fig_to_base64(fig3)
+        pages_b64 = fig_to_base64(fig3)
 
-    # Compose HTML (self-contained)
-    html_parts = []
-    html_parts.append(f"<h1>GoatCounter report for {report['site']}</h1>")
-    html_parts.append(f"<p>Period: {start} → {end}</p>")
-    html_parts.append(f"<p>Generated at: {report['generated_at']}</p>")
-    # Metrics summary table
-    metrics = report["metrics"]
-    html_parts.append("<h2>Top-line metrics</h2>")
-    html_parts.append("<ul>")
-    html_parts.append(f"<li>Unique users: {metrics.get('unique_users')}</li>")
-    html_parts.append(f"<li>New games: {metrics.get('new_games')}</li>")
-    html_parts.append(f"<li>Wins: {metrics.get('wins')}</li>")
-    html_parts.append(f"<li>Win rate: {metrics.get('win_rate')}</li>")
-    html_parts.append("</ul>")
+    # --- Compose self-contained styled HTML ---
+    html = """<html>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>GoatCounter report</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --text: #212529;
+    --muted: #6c757d;
+    --border: #dee2e6;
+    --accent: #0d6efd;
+    --accent-hover: #0b5ed7;
+    --radius: 8px;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0; padding: 0;
+    line-height: 1.6;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+  header {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 1.5rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+  header h1 { margin: 0 0 .25rem; font-size: 1.75rem; }
+  header p { margin: .25rem 0 0; color: var(--muted); font-size: .9rem; }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .metric-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    text-align: center;
+  }
+  .metric-card .value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.2;
+  }
+  .metric-card .label {
+    font-size: .8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-top: .25rem;
+  }
+  .section {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .section h2 {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: .5rem;
+  }
+  .section h3 {
+    margin: 1.5rem 0 .75rem;
+    font-size: 1.05rem;
+  }
+  .section img { max-width: 100%; height: auto; border-radius: 4px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .9rem;
+  }
+  th, td {
+    text-align: left;
+    padding: .5rem .75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  th { font-weight: 600; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  tr:hover td { background: rgba(13,110,253,.04); }
+  td:last-child, th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: .8rem;
+    padding: 1.5rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a2e;
+      --card-bg: #16213e;
+      --text: #e0e0e0;
+      --muted: #8892b0;
+      --border: #2a2a4a;
+      --accent: #64ffda;
+      --accent-hover: #45e0be;
+    }
+    tr:hover td { background: rgba(100,255,218,.06); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <h1>GoatCounter report &mdash; """ + report['site'] + """</h1>
+    <p>Period: """ + start + """ &#8594; """ + end + """ &middot; Generated: """ + report['generated_at'] + """</p>
+  </div>
+</header>
+<div class="container">
+"""
+    # Metrics as cards instead of a list
+    m = report['metrics']
+    wr_str = f"{m.get('win_rate'):.1%}" if m.get('win_rate') is not None else "N/A"
+    html += '<div class="metrics-grid">\n'
+    html += f'  <div class="metric-card"><div class="value">{m.get("total_visitors",0):,}</div><div class="label">Visitors</div></div>\n'
+    html += f'  <div class="metric-card"><div class="value">{m.get("total_events",0):,}</div><div class="label">Events</div></div>\n'
+    html += f'  <div class="metric-card"><div class="value">{m.get("new_games",0):,}</div><div class="label">New Games</div></div>\n'
+    html += f'  <div class="metric-card"><div class="value">{m.get("wins",0):,}</div><div class="label">Wins</div></div>\n'
+    html += f'  <div class="metric-card"><div class="value">{wr_str}</div><div class="label">Win Rate</div></div>\n'
+    html += '</div>\n'
 
+    # Charts in sections
     if daily_b64:
-        html_parts.append("<h2>Daily</h2>")
-        html_parts.append(f'<img src="data:image/png;base64,{daily_b64}" alt="daily chart" style="max-width:100%"/>')
-
+        html += '<div class="section">\n<h2>Daily Visitors</h2>\n'
+        html += f'<img src="data:image/png;base64,{daily_b64}" alt="daily chart">\n</div>\n'
     if events_b64:
-        html_parts.append("<h2>Event distribution</h2>")
-        html_parts.append(f'<img src="data:image/png;base64,{events_b64}" alt="events pie" style="max-width:100%"/>')
+        html += '<div class="section">\n<h2>Event Distribution</h2>\n'
+        html += f'<img src="data:image/png;base64,{events_b64}" alt="events pie">\n</div>\n'
+    if pages_b64:
+        html += '<div class="section">\n<h2>Top Pages</h2>\n'
+        html += f'<img src="data:image/png;base64,{pages_b64}" alt="top pages">\n</div>\n'
 
-    if refs_b64:
-        html_parts.append("<h2>Top referrers</h2>")
-        html_parts.append(f'<img src="data:image/png;base64,{refs_b64}" alt="referrers" style="max-width:100%"/>')
-
-    if len(report.get("top_events", [])) > 0:
-        html_parts.append("<h3>Top events (counts)</h3>")
-        html_parts.append("<table border='1' cellpadding='4'><tr><th>event</th><th>count</th></tr>")
+    # Data tables
+    if report.get("top_events"):
+        html += '<div class="section">\n<h3>Top Events</h3>\n<table>\n<tr><th>Event</th><th>Count</th></tr>\n'
         for e in report["top_events"]:
-            html_parts.append(f"<tr><td>{e['event_type']}</td><td>{e['cnt']}</td></tr>")
-        html_parts.append("</table>")
+            html += f'<tr><td>{e["event_type"]}</td><td>{e["cnt"]:,}</td></tr>\n'
+        html += '</table>\n</div>\n'
 
-    if len(report.get("top_referrers", [])) > 0:
-        html_parts.append("<h3>Top referrers (counts)</h3>")
-        html_parts.append("<table border='1' cellpadding='4'><tr><th>referrer</th><th>count</th></tr>")
-        for r in report["top_referrers"]:
-            html_parts.append(f"<tr><td>{r['referrer']}</td><td>{r['cnt']}</td></tr>")
-        html_parts.append("</table>")
+    if report.get("top_pages"):
+        html += '<div class="section">\n<h3>Top Pages</h3>\n<table>\n<tr><th>Path</th><th>Count</th></tr>\n'
+        for p in report["top_pages"][:20]:
+            html += f'<tr><td>{p["path"]}</td><td>{p["cnt"]:,}</td></tr>\n'
+        html += '</table>\n</div>\n'
 
-    html = "<html><head><meta charset='utf-8'><title>GoatCounter report</title></head><body>"
-    html += "\n".join(html_parts)
-    html += "</body></html>"
+    # Browsers + Systems side by side
+    if report.get("browsers") or report.get("systems"):
+        html += '<div class="section">\n<h2>Audience</h2>\n'
+        html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem;">\n'
+        if report.get("browsers"):
+            html += '<div>\n<h3>Browsers</h3>\n<table>\n<tr><th>Browser</th><th>Count</th></tr>\n'
+            for b in report["browsers"]:
+                html += f'<tr><td>{b.get("name", b.get("id", "?"))}</td><td>{b["count"]:,}</td></tr>\n'
+            html += '</table>\n</div>\n'
+        if report.get("systems"):
+            html += '<div>\n<h3>Systems</h3>\n<table>\n<tr><th>System</th><th>Count</th></tr>\n'
+            for s in report["systems"]:
+                html += f'<tr><td>{s.get("name", s.get("id", "?"))}</td><td>{s["count"]:,}</td></tr>\n'
+            html += '</table>\n</div>\n'
+        html += '</div>\n</div>\n'
 
-    out_html = f"{out_prefix}.html"
+    html += '</div>\n<footer>Generated by <code>report/goatcounter-report.py</code></footer>\n</body>\n</html>'
+
+    out_html = os.path.join(out_dir, "index.html")
     with open(out_html, "w", encoding="utf-8") as f:
         f.write(html)
 
-    return {"daily_png": daily_b64 is not None, "events_png": events_b64 is not None, "refs_png": refs_b64 is not None, "html_file": out_html}
+    return {
+        "daily_png": daily_b64 is not None,
+        "events_png": events_b64 is not None,
+        "pages_png": pages_b64 is not None,
+        "html_file": out_html,
+    }
 
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--site", help="GoatCounter site (e.g. foighne)", default=os.getenv("GOAT_SITE", "foighne"))
-    parser.add_argument("--start", help="Start date YYYY-MM-DD", default=os.getenv("GOAT_START"))
-    parser.add_argument("--end", help="End date YYYY-MM-DD", default=os.getenv("GOAT_END"))
-    parser.add_argument("--period", help="Human period (today, this month, last month, this year, last year, etc). Overrides start/end if set.")
-    parser.add_argument("--user", help="GoatCounter basic auth user (optional)", default=os.getenv("GOAT_USER"))
-    parser.add_argument("--pass", dest="passwd", help="GoatCounter basic auth pass (optional)", default=os.getenv("GOAT_PASS"))
+    # Auto-load .env.sh before parsing args (so env vars are available)
+    load_dotenv_sh()
+
+    parser = argparse.ArgumentParser(
+        description="Generate a GoatCounter stats report with charts."
+    )
+    parser.add_argument(
+        "--site",
+        help="GoatCounter site code (e.g. foighne) or full URL",
+        default=os.getenv("GOAT_SITE", "foighne"),
+    )
+    parser.add_argument("--start", help="Start date YYYY-MM-DD")
+    parser.add_argument("--end", help="End date YYYY-MM-DD")
+    parser.add_argument(
+        "--period",
+        help=(
+            "Human-friendly period: today, yesterday, this week, last week, "
+            "this month, last month, this year, last year. "
+            "Overrides --start/--end."
+        ),
+    )
     args = parser.parse_args()
 
     # Determine start/end from --period if given
@@ -496,31 +598,45 @@ def main():
                 raise ValueError("Unable to parse period")
             args.start, args.end = se
         except Exception as e:
-            print("Error parsing --period:", e, file=sys.stderr)
+            print(f"Error parsing --period: {e}", file=sys.stderr)
             sys.exit(2)
 
+    # Fall back to env vars for start/end
+    if not args.start:
+        args.start = os.getenv("GOAT_START")
+    if not args.end:
+        args.end = os.getenv("GOAT_END")
+
     if not args.start or not args.end:
-        print("site, start, and end are required (env GOAT_SITE, GOAT_START, GOAT_END are supported), or pass --period.", file=sys.stderr)
+        print(
+            "start and end dates are required. Use --period (e.g. 'this month') "
+            "or set --start/--end or GOAT_START/GOAT_END env vars.",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
-    raw = fetch_export(args.site, args.start, args.end, args.user, args.passwd)
-    try:
-        df = pd.read_json(io.StringIO(raw), lines=True)
-    except Exception as e:
-        print("Failed to parse export JSON; inspect raw output.", file=sys.stderr)
-        raise
+    print(f"Fetching stats for {args.site}: {args.start} → {args.end} ...")
+    data = fetch_stats_data(args.site, args.start, args.end)
 
-    dfn = normalize_df(df)
-    report = make_report(args.site, args.start, args.end, dfn)
-    out_name = f"report-{args.start}-{args.end}.json"
-    with open(out_name, "w", encoding="utf-8") as f:
+    report = build_report(args.site, args.start, args.end, data)
+
+    # Create timestamped output directory (relative to project root)
+    timestamp = dt.datetime.now().strftime("%Y-%m-%dT%H%M%S")
+    out_dir = os.path.join(PROJECT_ROOT, "reports", f"{timestamp}_{args.start}_{args.end}")
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Save JSON data
+    json_path = os.path.join(out_dir, "data.json")
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
 
     print(short_summary(report))
-    html_out_prefix = f"report-{args.start}-{args.end}"
-    gen = generate_charts_and_html(report, html_out_prefix)
-    print(f"Generated HTML report: {gen['html_file']}")
-    print(f"Saved PNGs to charts/ (if present)")
+
+    gen = generate_charts_and_html(report, out_dir)
+    print(f"Report saved to: {out_dir}/")
+    print(f"  index.html  (self-contained)")
+    print(f"  data.json   (raw data)")
+    print(f"  charts/     (PNG files)")
 
 
 if __name__ == "__main__":
