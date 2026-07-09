@@ -1,6 +1,0 @@
-.DS_Store
-.env.sh
-.venv/
-__pycache__/
-reports/
-public/
