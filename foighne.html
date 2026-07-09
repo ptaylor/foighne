@@ -1272,24 +1272,47 @@ function updateDrawButtons() {
 // ── Hint system ──
 
 function getNextMove() {
-  // 1. Move to foundation (waste first, then tableau tops)
+  // Helper: is it safe to move this card to foundation? (won't block cards that need it)
+  function isSafeFoundation(card, f) {
+    if (card.rank <= 1) return true; // Aces and 2s are always safe — minimal blocking risk
+    // For 3+, check both opposite-colour suits: their rank-1 card must already be on its foundation
+    for (let os = 0; os < 4; os++) {
+      if (cardColor(os) !== cardColor(card.suit)) {
+        if (foundations[os].length <= card.rank - 1) return false;
+      }
+    }
+    return true;
+  }
+
+  // 1. Move to foundation (waste first, then tableau tops) — only if safe
   for (let f = 0; f < 4; f++) {
     if (waste.length > 0) {
       const w = waste[waste.length - 1];
-      if (canPlaceOnFoundation(w, foundations[f], f)) {
+      if (canPlaceOnFoundation(w, foundations[f], f) && isSafeFoundation(w, f)) {
         return { type: 'foundation', from: 'waste', to: f, card: w };
       }
     }
     for (let t = 0; t < 7; t++) {
       if (tableau[t].length > 0) {
         const card = tableau[t][tableau[t].length - 1];
-        if (canPlaceOnFoundation(card, foundations[f], f)) {
+        if (canPlaceOnFoundation(card, foundations[f], f) && isSafeFoundation(card, f)) {
           return { type: 'foundation', from: 'tableau', idx: t, to: f, card: card };
         }
       }
     }
   }
-  // 2. Tableau move (try moving a card between piles)
+
+  // 2. Waste → tableau
+  if (waste.length > 0) {
+    const w = waste[waste.length - 1];
+    for (let t = 0; t < 7; t++) {
+      if (canPlaceOnTableau(w, tableau[t])) {
+        return { type: 'tableau', from: 'waste', to: t, card: w };
+      }
+    }
+  }
+
+  // 3. Tableau move (try moving a card between piles)
   for (let src = 0; src < 7; src++) {
     if (tableau[src].length === 0) continue;
     // Try moving the top face-up card (or a run of face-up cards)
@@ -1308,7 +1331,7 @@ function getNextMove() {
       }
     }
   }
-  // 3. Draw from stock
+  // 4. Draw from stock
   return { type: 'draw' };
 }
 
@@ -1318,10 +1341,12 @@ function showHint() {
   if (hint.type === 'foundation') {
     const suitSym = SUITS[hint.to];
     const rank = RANKS[hint.card.rank];
-    msg = '💡 Move ' + rank + suitSym + ' to foundation';
+    const from = hint.from === 'waste' ? 'waste' : 'tableau';
+    msg = '💡 Move ' + rank + suitSym + ' from ' + from + ' to foundation';
   } else if (hint.type === 'tableau') {
     const rank = RANKS[hint.card.rank];
-    msg = '💡 Move ' + rank + ' to another tableau pile';
+    const from = hint.from === 'waste' ? 'waste' : 'pile ' + (hint.from + 1);
+    msg = '💡 Move ' + rank + ' from ' + from + ' to tableau pile ' + (hint.to + 1);
   } else {
     msg = '💡 Draw from the stock';
   }
