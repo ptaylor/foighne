@@ -3646,8 +3646,23 @@ function playBump(ctx, th) {
 }
 
 function playWin(ctx, th) {
+  // Phase 1: the arpeggio
   th.win.forEach(({f, t}) => {
     tone(ctx, th, f, t, th.winDur, 0.42);
+  });
+
+  // Phase 2: octave repeat — overlaps tail of phase 1 for smooth transition
+  const lastT = th.win.length ? th.win[th.win.length - 1].t : 0;
+  const octaveNotes = th.win.map(n => ({ f: n.f * 2, t: n.t + lastT + th.winDur * 0.6 }));
+  octaveNotes.forEach(({f, t}) => {
+    tone(ctx, th, f, t, th.winDur * 1.8, 0.22);
+  });
+
+  // Phase 3: final sustained chord
+  const rootFreq = th.win[0].f * 2;
+  const chordStart = octaveNotes.length ? octaveNotes[octaveNotes.length - 1].t + th.winDur * 0.7 : lastT + 0.5;
+  [rootFreq, rootFreq * 1.25, rootFreq * 1.5].forEach((f, i) => {
+    tone(ctx, th, f, chordStart + i * 0.06, 2.2, 0.16);
   });
 }
 
