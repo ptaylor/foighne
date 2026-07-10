@@ -3606,7 +3606,7 @@ function tone(ctx, th, freq, startTime, duration, vol) {
   const d = duration || 0.12;
   const settings = loadSettings();
   const step = settings.volume || 0;
-  const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 10 : 1;
+  const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 20 : 1;
   const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10) * mobile;
   gain.gain.setValueAtTime((vol || 0.12) * th.gain * masterVol, t);
   gain.gain.exponentialRampToValueAtTime(0.005, t + d);
@@ -3635,7 +3635,7 @@ function playBump(ctx, th) {
   const gain = ctx.createGain();
   const settings = loadSettings();
   const step = settings.volume || 0;
-  const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 10 : 1;
+  const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 20 : 1;
   const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10) * mobile;
   osc.type = th.wave;
   osc.frequency.setValueAtTime(th.bump, ctx.currentTime);
