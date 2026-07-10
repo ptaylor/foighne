@@ -1501,46 +1501,41 @@ function dealBoard() {
 // Randomised nearly-complete game state for testing.
 // Each foundation nearly full, one undealt card in stock that completes the game.
 function setupNearlyComplete() {
-  // 1. Pick a random "final card" for the stock — rank 8..12 (9..K) so foundations feel nearly done
-  const finalSuit = Math.floor(Math.random() * 4);
-  const finalRank = 8 + Math.floor(Math.random() * 5); // 8–12
-  const finalCard = { suit: finalSuit, rank: finalRank, faceUp: false };
+  // Full 52-card deterministic layout testing waste→tableau auto-complete path.
+  // Waste: 3♥ on top blocks 2♥ and 2♠ underneath from reaching foundation.
+  // Auto-complete must move 3♥ to tableau first, then 2♥/2♠ reach foundation.
+  // All remaining cards placed face-up on tableau in valid descending sequences.
 
-  // Track used cards
-  const used = new Set();
-  used.add(cardId(finalCard));
-
-  // 2. Build foundations — finalCard's suit fills up to rank-1; others random 8–12
   foundations = [[], [], [], []];
   for (let s = 0; s < 4; s++) {
-    const max = (s === finalSuit) ? finalRank - 1 : (8 + Math.floor(Math.random() * 5));
-    for (let r = 0; r <= max; r++) {
-      foundations[s].push({ suit: s, rank: r, faceUp: true });
-      used.add(rankStr(r) + suitSymbol(s));
-    }
+    foundations[s].push({ suit: s, rank: 0, faceUp: true }); // Aces
   }
 
-  // 3. Gather remaining cards (not in foundations, not the final stock card)
+  // Reserve the 3 test cards for waste
+  const test2S = { suit: 0, rank: 1, faceUp: true };  // 2♠
+  const test2H = { suit: 1, rank: 1, faceUp: true };  // 2♥
+  const test3H = { suit: 1, rank: 2, faceUp: true };  // 3♥ (blocker, sits on top)
+  waste = [test2S, test2H, test3H];
+
+  // Build remaining 45 cards (ranks 1-12, minus the 3 test cards)
+  const used = new Set(['2♠','2♥','3♥']);
   const remaining = [];
   for (let s = 0; s < 4; s++) {
-    for (let r = 0; r < 13; r++) {
-      if (!used.has(rankStr(r) + suitSymbol(s))) {
+    for (let r = 1; r < 13; r++) {
+      if (!used.has(RANKS[r] + SUITS[s])) {
         remaining.push({ suit: s, rank: r, faceUp: true });
       }
     }
   }
 
-  // 4. Place remaining cards on tableau as valid descending alt-colour sequences
+  // Place remaining on tableau — high ranks first, valid descending alt-colour
+  remaining.sort((a, b) => b.rank - a.rank);
   tableau = [[], [], [], [], [], [], []];
-  waste = [];
-  remaining.sort((a, b) => b.rank - a.rank); // high ranks first
 
-  // Process cards one at a time, pulling from remaining as needed for face-downs
   while (remaining.length > 0) {
     const card = remaining.shift();
     let placed = false;
-
-    // Try existing piles
+    // Try existing piles with a valid placement
     for (let t = 0; t < 7; t++) {
       if (canPlaceOnTableau(card, tableau[t])) {
         tableau[t].push(card);
@@ -1549,54 +1544,29 @@ function setupNearlyComplete() {
       }
     }
     if (placed) continue;
-
-    // King on empty pile — need a face-down underneath
+    // King on empty pile
     if (card.rank === 12) {
       for (let t = 0; t < 7; t++) {
-        if (tableau[t].length === 0) {
-          // Grab any remaining card as face-down bottom
-          const down = remaining.pop();
-          if (down) {
-            down.faceUp = false;
-            tableau[t].push(down);
-          }
-          tableau[t].push(card);
-          placed = true;
-          break;
-        }
+        if (tableau[t].length === 0) { tableau[t].push(card); placed = true; break; }
       }
     }
     if (placed) continue;
-
-    // Non-King — start new pile with a face-down underneath
+    // Non-King — start a new pile (all face-up, valid)
     for (let t = 0; t < 7; t++) {
-      if (tableau[t].length === 0) {
-        const down = remaining.pop();
-        if (down) {
-          down.faceUp = false;
-          tableau[t].push(down);
-          tableau[t].push(card);
-          placed = true;
-          break;
-        }
-      }
+      if (tableau[t].length === 0) { tableau[t].push(card); placed = true; break; }
     }
-    if (placed) continue;
-
-    // Last resort: make it face-down in waste
-    card.faceUp = false;
-    waste.push(card);
+    if (!placed) waste.unshift(card); // safety valve
   }
 
-  // 5. Stock
-  stock = [finalCard];
+  stock = [];
   selectedCards = null;
   undoStack = [];
+  gameWon = false;
+  debugGame = true;
 
   clearSavedGame();
   render();
   saveGame();
-  debugGame = true;
 }
 
 // ---- DEBUG MODE ----
@@ -3269,8 +3239,8 @@ async function runAutoComplete() {
   document.getElementById('message').innerHTML = '';
   updateUndoButton();
 
-  const FLY_MS = 200;  // flight duration
-  const GAP_MS  = 80;  // pause between flights
+  const FLY_MS = 130;  // flight duration
+  const GAP_MS  = 50;  // pause between flights
 
   while (true) {
     if (foundations.every(f => f.length === 13)) break;
