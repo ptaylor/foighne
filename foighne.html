@@ -926,7 +926,7 @@
       </div>
     </div>
     <div class="draw-row">
-      <span>Auto-move Waste</span>
+      <span>Auto-move on click</span>
       <div class="draw-btns">
         <button class="draw-btn" id="auto-move-on" onclick="toggleAutoMoveWaste(true)">On</button>
         <button class="draw-btn" id="auto-move-off" onclick="toggleAutoMoveWaste(false)">Off</button>
@@ -2641,8 +2641,8 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
   }
   
   if (pileType === 'tableau') {
-    // Check if it's a single card going to foundation
-    if (cardIdx === pile.length - 1) {
+    // Check if it's a single card going to foundation (only if auto-move enabled)
+    if (loadSettings().autoMoveWaste && cardIdx === pile.length - 1) {
       for (let f = 0; f < 4; f++) {
         if (canPlaceOnFoundation(card, foundations[f], f)) {
           pushUndo();
