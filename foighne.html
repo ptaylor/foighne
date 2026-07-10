@@ -737,7 +737,11 @@
     font-style: italic;
     letter-spacing: 0.15em;
     margin-bottom: 10px;
-    pointer-events: none;
+    user-select: none;
+    transition: color 0.3s;
+  }
+  #game-title.holding {
+    color: rgba(255,215,0,0.6);
   }
 
   /* ── Tablet (≤900px) ── */
@@ -859,7 +863,7 @@
 <body>
 <noscript><div style="background:#0d4f7c;color:#fff;text-align:center;padding:40px 20px;font-family:sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;font-size:18px">Foighne requires JavaScript to play.</div></noscript>
 <div id="game">
-  <div id="game-title">foighne</div>
+  <div id="game-title" onmousedown="startTitleHold(event)" onmouseup="cancelTitleHold()" onmouseleave="cancelTitleHold()" ontouchstart="startTitleHold(event)" ontouchend="cancelTitleHold()" ontouchcancel="cancelTitleHold()">foighne</div>
   <div id="stats-bar">
     <span>Games: <b id="statGames">0</b></span>
     <span class="sep">|</span>
@@ -2555,6 +2559,7 @@ function deactivateEgg() {
 }
 
 let debugHoldTimer = null;
+let titleHoldTimer = null;
 
 function startDebugHold(e) {
   if (e && e.type === 'touchstart') e.preventDefault();
@@ -2574,6 +2579,58 @@ function cancelDebugHold() {
   }
   const btn = document.getElementById('debug-btn');
   if (btn) btn.classList.remove('holding');
+}
+
+function startTitleHold(e) {
+  if (e && e.type === 'touchstart') e.preventDefault();
+  const title = document.getElementById('game-title');
+  if (!title) return;
+  title.classList.add('holding');
+  titleHoldTimer = setTimeout(() => {
+    title.classList.remove('holding');
+    revealVersion();
+  }, 1000);
+}
+
+function cancelTitleHold() {
+  if (titleHoldTimer) {
+    clearTimeout(titleHoldTimer);
+    titleHoldTimer = null;
+  }
+  const title = document.getElementById('game-title');
+  if (title) title.classList.remove('holding');
+}
+
+function revealVersion() {
+  const versionMeta = document.querySelector('meta[name="version"]');
+  const commitMeta = document.querySelector('meta[name="commit"]');
+  const v = versionMeta ? versionMeta.content : '?';
+  const c = commitMeta ? commitMeta.content : '?????';
+  showMessage('foighne ' + v + ' · ' + c);
+  playDiscoverySound();
+}
+
+function playDiscoverySound() {
+  try {
+    const ctx = getAudioCtx();
+    const settings = loadSettings();
+    const step = settings.volume || 0;
+    const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 20 : 1;
+    const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10) * mobile;
+    // Soft ascending chime
+    [523, 659, 784, 1047].forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const t = ctx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(0.15 * masterVol, t);
+      gain.gain.exponentialRampToValueAtTime(0.005, t + 0.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.55);
+    });
+  } catch (e) {}
 }
 
 function toggleDebug() {
