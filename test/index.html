@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.35-test">
-<meta name="commit" content="c53051a">
+<meta name="version" content="v1.36-test">
+<meta name="commit" content="a2c7ce2">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -3606,7 +3606,8 @@ function tone(ctx, th, freq, startTime, duration, vol) {
   const d = duration || 0.12;
   const settings = loadSettings();
   const step = settings.volume || 0;
-  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10);
+  const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 10 : 1;
+  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10) * mobile;
   gain.gain.setValueAtTime((vol || 0.12) * th.gain * masterVol, t);
   gain.gain.exponentialRampToValueAtTime(0.005, t + d);
   osc.connect(gain).connect(ctx.destination);
@@ -3634,7 +3635,8 @@ function playBump(ctx, th) {
   const gain = ctx.createGain();
   const settings = loadSettings();
   const step = settings.volume || 0;
-  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10);
+  const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 10 : 1;
+  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10) * mobile;
   osc.type = th.wave;
   osc.frequency.setValueAtTime(th.bump, ctx.currentTime);
   osc.frequency.setValueAtTime(th.bump * 0.65, ctx.currentTime + th.bumpDur * 0.5);
