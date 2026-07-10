@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.34">
-<meta name="commit" content="5048427">
+<meta name="version" content="v1.35">
+<meta name="commit" content="014ce4a">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -925,6 +925,13 @@
         <button class="draw-btn" data-draw="3r" onclick="selectDrawCount('3r')">3R</button>
       </div>
     </div>
+    <div class="draw-row">
+      <span>Auto-move on click</span>
+      <div class="draw-btns">
+        <button class="draw-btn" id="auto-move-on" onclick="toggleAutoMoveWaste(true)">On</button>
+        <button class="draw-btn" id="auto-move-off" onclick="toggleAutoMoveWaste(false)">Off</button>
+      </div>
+    </div>
     <div class="setting-group">
       <h3>Color Theme</h3>
       <div class="tile-grid" id="theme-grid"></div>
@@ -1060,7 +1067,8 @@ const DEFAULT_SETTINGS = {
   dealOrder: 'standard',
   volume: 5,
   soundTheme: 'zen',
-  undoDepth: 10
+  undoDepth: 10,
+  autoMoveWaste: false
 };
 
 function loadSettings() {
@@ -1219,6 +1227,7 @@ function openSettings() {
   populateSettings();
   updateVolumeSlider();
   updateDrawButtons();
+  updateAutoMoveButtons();
   document.getElementById('settings-overlay').classList.add('show');
 }
 
@@ -1255,7 +1264,7 @@ function selectDrawCount(v) {
 
 function updateDrawButtons() {
   const settings = loadSettings();
-  document.querySelectorAll('.draw-btn').forEach(btn => {
+  document.querySelectorAll('.draw-btn[data-draw]').forEach(btn => {
     const dv = btn.dataset.draw;
     let match = false;
     if (dv === '1') {
@@ -1267,6 +1276,19 @@ function updateDrawButtons() {
     }
     btn.classList.toggle('selected', match);
   });
+}
+
+function toggleAutoMoveWaste(on) {
+  updateSetting('autoMoveWaste', on);
+  updateAutoMoveButtons();
+}
+
+function updateAutoMoveButtons() {
+  const on = loadSettings().autoMoveWaste;
+  const btnOn = document.getElementById('auto-move-on');
+  const btnOff = document.getElementById('auto-move-off');
+  if (btnOn) btnOn.classList.toggle('selected', on);
+  if (btnOff) btnOff.classList.toggle('selected', !on);
 }
 
 // ── Hint system ──
@@ -1501,46 +1523,41 @@ function dealBoard() {
 // Randomised nearly-complete game state for testing.
 // Each foundation nearly full, one undealt card in stock that completes the game.
 function setupNearlyComplete() {
-  // 1. Pick a random "final card" for the stock — rank 8..12 (9..K) so foundations feel nearly done
-  const finalSuit = Math.floor(Math.random() * 4);
-  const finalRank = 8 + Math.floor(Math.random() * 5); // 8–12
-  const finalCard = { suit: finalSuit, rank: finalRank, faceUp: false };
+  // Full 52-card deterministic layout testing waste→tableau auto-complete path.
+  // Waste: 3♥ on top blocks 2♥ and 2♠ underneath from reaching foundation.
+  // Auto-complete must move 3♥ to tableau first, then 2♥/2♠ reach foundation.
+  // All remaining cards placed face-up on tableau in valid descending sequences.
 
-  // Track used cards
-  const used = new Set();
-  used.add(cardId(finalCard));
-
-  // 2. Build foundations — finalCard's suit fills up to rank-1; others random 8–12
   foundations = [[], [], [], []];
   for (let s = 0; s < 4; s++) {
-    const max = (s === finalSuit) ? finalRank - 1 : (8 + Math.floor(Math.random() * 5));
-    for (let r = 0; r <= max; r++) {
-      foundations[s].push({ suit: s, rank: r, faceUp: true });
-      used.add(rankStr(r) + suitSymbol(s));
-    }
+    foundations[s].push({ suit: s, rank: 0, faceUp: true }); // Aces
   }
 
-  // 3. Gather remaining cards (not in foundations, not the final stock card)
+  // Reserve the 3 test cards for waste
+  const test2S = { suit: 0, rank: 1, faceUp: true };  // 2♠
+  const test2H = { suit: 1, rank: 1, faceUp: true };  // 2♥
+  const test3H = { suit: 1, rank: 2, faceUp: true };  // 3♥ (blocker, sits on top)
+  waste = [test2S, test2H, test3H];
+
+  // Build remaining 45 cards (ranks 1-12, minus the 3 test cards)
+  const used = new Set(['2♠','2♥','3♥']);
   const remaining = [];
   for (let s = 0; s < 4; s++) {
-    for (let r = 0; r < 13; r++) {
-      if (!used.has(rankStr(r) + suitSymbol(s))) {
+    for (let r = 1; r < 13; r++) {
+      if (!used.has(RANKS[r] + SUITS[s])) {
         remaining.push({ suit: s, rank: r, faceUp: true });
       }
     }
   }
 
-  // 4. Place remaining cards on tableau as valid descending alt-colour sequences
+  // Place remaining on tableau — high ranks first, valid descending alt-colour
+  remaining.sort((a, b) => b.rank - a.rank);
   tableau = [[], [], [], [], [], [], []];
-  waste = [];
-  remaining.sort((a, b) => b.rank - a.rank); // high ranks first
 
-  // Process cards one at a time, pulling from remaining as needed for face-downs
   while (remaining.length > 0) {
     const card = remaining.shift();
     let placed = false;
-
-    // Try existing piles
+    // Try existing piles with a valid placement
     for (let t = 0; t < 7; t++) {
       if (canPlaceOnTableau(card, tableau[t])) {
         tableau[t].push(card);
@@ -1549,54 +1566,29 @@ function setupNearlyComplete() {
       }
     }
     if (placed) continue;
-
-    // King on empty pile — need a face-down underneath
+    // King on empty pile
     if (card.rank === 12) {
       for (let t = 0; t < 7; t++) {
-        if (tableau[t].length === 0) {
-          // Grab any remaining card as face-down bottom
-          const down = remaining.pop();
-          if (down) {
-            down.faceUp = false;
-            tableau[t].push(down);
-          }
-          tableau[t].push(card);
-          placed = true;
-          break;
-        }
+        if (tableau[t].length === 0) { tableau[t].push(card); placed = true; break; }
       }
     }
     if (placed) continue;
-
-    // Non-King — start new pile with a face-down underneath
+    // Non-King — start a new pile (all face-up, valid)
     for (let t = 0; t < 7; t++) {
-      if (tableau[t].length === 0) {
-        const down = remaining.pop();
-        if (down) {
-          down.faceUp = false;
-          tableau[t].push(down);
-          tableau[t].push(card);
-          placed = true;
-          break;
-        }
-      }
+      if (tableau[t].length === 0) { tableau[t].push(card); placed = true; break; }
     }
-    if (placed) continue;
-
-    // Last resort: make it face-down in waste
-    card.faceUp = false;
-    waste.push(card);
+    if (!placed) waste.unshift(card); // safety valve
   }
 
-  // 5. Stock
-  stock = [finalCard];
+  stock = [];
   selectedCards = null;
   undoStack = [];
+  gameWon = false;
+  debugGame = true;
 
   clearSavedGame();
   render();
   saveGame();
-  debugGame = true;
 }
 
 // ---- DEBUG MODE ----
@@ -2608,6 +2600,11 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
   if (pileType === 'waste') {
     // Only the top waste card is playable
     if (cardIdx !== pile.length - 1) return;
+    // Auto-move only if setting enabled
+    if (!loadSettings().autoMoveWaste) {
+      playSound('invalid');
+      return;
+    }
     // Try foundations first, then tableau
     let moved = false;
     for (let f = 0; f < 4; f++) {
@@ -2644,8 +2641,8 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
   }
   
   if (pileType === 'tableau') {
-    // Check if it's a single card going to foundation
-    if (cardIdx === pile.length - 1) {
+    // Check if it's a single card going to foundation (only if auto-move enabled)
+    if (loadSettings().autoMoveWaste && cardIdx === pile.length - 1) {
       for (let f = 0; f < 4; f++) {
         if (canPlaceOnFoundation(card, foundations[f], f)) {
           pushUndo();
@@ -3269,13 +3266,14 @@ async function runAutoComplete() {
   document.getElementById('message').innerHTML = '';
   updateUndoButton();
 
-  const FLY_MS = 200;  // flight duration
-  const GAP_MS  = 80;  // pause between flights
+  const FLY_MS = 130;  // flight duration
+  const GAP_MS  = 50;  // pause between flights
 
   while (true) {
     if (foundations.every(f => f.length === 13)) break;
 
     let srcType = null, srcIdx = -1, destF = -1;
+    let isFoundationMove = true;
 
     // 1. Waste top → foundation
     if (waste.length > 0) {
@@ -3301,9 +3299,29 @@ async function runAutoComplete() {
       }
     }
 
+    // 3. Waste → tableau (unblock waste so next card can reach foundation)
+    if (!srcType && waste.length > 0) {
+      const w = waste[waste.length - 1];
+      for (let t = 0; t < 7; t++) {
+        if (canPlaceOnTableau(w, tableau[t])) {
+          isFoundationMove = false;
+          waste.pop();
+          tableau[t].push(w);
+          render();
+          saveGame();
+          playSound('place');
+          break;
+        }
+      }
+      if (!isFoundationMove) {
+        await new Promise(r => setTimeout(r, GAP_MS));
+        continue;
+      }
+    }
+
     if (!srcType) break; // nothing to move
 
-    // --- Fly the card from source to foundation ---
+    // --- Fly the card to foundation ---
     const srcEl = findCardElement(srcType, srcIdx);
     const destEl = document.querySelector(`.foundation[data-suit="${destF}"]`);
     if (srcEl && destEl) {
@@ -3615,7 +3633,8 @@ function tone(ctx, th, freq, startTime, duration, vol) {
   const d = duration || 0.12;
   const settings = loadSettings();
   const step = settings.volume || 0;
-  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10);
+  const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 20 : 1;
+  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10) * mobile;
   gain.gain.setValueAtTime((vol || 0.12) * th.gain * masterVol, t);
   gain.gain.exponentialRampToValueAtTime(0.005, t + d);
   osc.connect(gain).connect(ctx.destination);
@@ -3643,7 +3662,8 @@ function playBump(ctx, th) {
   const gain = ctx.createGain();
   const settings = loadSettings();
   const step = settings.volume || 0;
-  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10);
+  const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 20 : 1;
+  const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10) * mobile;
   osc.type = th.wave;
   osc.frequency.setValueAtTime(th.bump, ctx.currentTime);
   osc.frequency.setValueAtTime(th.bump * 0.65, ctx.currentTime + th.bumpDur * 0.5);
@@ -3655,8 +3675,23 @@ function playBump(ctx, th) {
 }
 
 function playWin(ctx, th) {
+  // Phase 1: the arpeggio
   th.win.forEach(({f, t}) => {
     tone(ctx, th, f, t, th.winDur, 0.42);
+  });
+
+  // Phase 2: octave repeat — overlaps tail of phase 1 for smooth transition
+  const lastT = th.win.length ? th.win[th.win.length - 1].t : 0;
+  const octaveNotes = th.win.map(n => ({ f: n.f * 2, t: n.t + lastT + th.winDur * 0.6 }));
+  octaveNotes.forEach(({f, t}) => {
+    tone(ctx, th, f, t, th.winDur * 1.8, 0.22);
+  });
+
+  // Phase 3: final sustained chord
+  const rootFreq = th.win[0].f * 2;
+  const chordStart = octaveNotes.length ? octaveNotes[octaveNotes.length - 1].t + th.winDur * 0.7 : lastT + 0.5;
+  [rootFreq, rootFreq * 1.25, rootFreq * 1.5].forEach((f, i) => {
+    tone(ctx, th, f, chordStart + i * 0.06, 2.2, 0.16);
   });
 }
 
