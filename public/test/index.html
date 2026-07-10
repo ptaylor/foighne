@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
 <meta name="version" content="v1.36-test">
-<meta name="commit" content="6048948">
+<meta name="commit" content="2189773">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -925,6 +925,13 @@
         <button class="draw-btn" data-draw="3r" onclick="selectDrawCount('3r')">3R</button>
       </div>
     </div>
+    <div class="draw-row">
+      <span>Auto-move Waste</span>
+      <div class="draw-btns">
+        <button class="draw-btn" id="auto-move-on" onclick="toggleAutoMoveWaste(true)">On</button>
+        <button class="draw-btn" id="auto-move-off" onclick="toggleAutoMoveWaste(false)">Off</button>
+      </div>
+    </div>
     <div class="setting-group">
       <h3>Color Theme</h3>
       <div class="tile-grid" id="theme-grid"></div>
@@ -1060,7 +1067,8 @@ const DEFAULT_SETTINGS = {
   dealOrder: 'standard',
   volume: 5,
   soundTheme: 'zen',
-  undoDepth: 10
+  undoDepth: 10,
+  autoMoveWaste: false
 };
 
 function loadSettings() {
@@ -1219,6 +1227,7 @@ function openSettings() {
   populateSettings();
   updateVolumeSlider();
   updateDrawButtons();
+  updateAutoMoveButtons();
   document.getElementById('settings-overlay').classList.add('show');
 }
 
@@ -1255,7 +1264,7 @@ function selectDrawCount(v) {
 
 function updateDrawButtons() {
   const settings = loadSettings();
-  document.querySelectorAll('.draw-btn').forEach(btn => {
+  document.querySelectorAll('.draw-btn[data-draw]').forEach(btn => {
     const dv = btn.dataset.draw;
     let match = false;
     if (dv === '1') {
@@ -1267,6 +1276,19 @@ function updateDrawButtons() {
     }
     btn.classList.toggle('selected', match);
   });
+}
+
+function toggleAutoMoveWaste(on) {
+  updateSetting('autoMoveWaste', on);
+  updateAutoMoveButtons();
+}
+
+function updateAutoMoveButtons() {
+  const on = loadSettings().autoMoveWaste;
+  const btnOn = document.getElementById('auto-move-on');
+  const btnOff = document.getElementById('auto-move-off');
+  if (btnOn) btnOn.classList.toggle('selected', on);
+  if (btnOff) btnOff.classList.toggle('selected', !on);
 }
 
 // ── Hint system ──
@@ -2578,6 +2600,11 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
   if (pileType === 'waste') {
     // Only the top waste card is playable
     if (cardIdx !== pile.length - 1) return;
+    // Auto-move only if setting enabled
+    if (!loadSettings().autoMoveWaste) {
+      playSound('invalid');
+      return;
+    }
     // Try foundations first, then tableau
     let moved = false;
     for (let f = 0; f < 4; f++) {
