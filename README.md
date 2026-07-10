@@ -27,27 +27,7 @@ Open `foighne.html` in any modern browser. The goal is to build all four foundat
 - Responsive layout with mobile-optimised card design (simplified, larger rank+suit, tighter spacing)
 - PWA-ready with favicon, apple-touch-icon, and theme colour for home screen install
 - Privacy-friendly GoatCounter analytics (no cookies, no personal data) — tracks game events and anonymised settings usage
-- Debug panel (long-press top-right corner) with game state inspector, easter egg toggles, nearly-complete preset, and clear-saved-data option
-
-### 🥚 Easter Eggs
-
-The game has **11 date-based easter eggs** that trigger subtle themed background particles on specific days:
-
-| Date | Egg |
-|------|-----|
-| Jan 1 | 🎉 New Year's — stars & bursts |
-| Feb 1 | 🕯️ St Brigid's Day — woven reed crosses |
-| Feb 14 | 💕 Valentine's — floating hearts |
-| Mar 17 | ☘️ St Patrick's — shamrocks |
-| Apr 1 | 🤡 April Fools — jesters & bananas |
-| May 10 | 💍 Wedding Anniversary — hearts & stars |
-| Jun 21 | ☀️ Mid Summer — suns |
-| Jul 7 | 🎂 Birthday — balloons & sparkles |
-| Oct 31 | 🎃 Halloween — skulls & witches |
-| Dec 21–22 | ❄️ Mid Winter — falling snowflakes |
-| Dec 24 – Jan 6 | 🎄 Christmas — santas, trees & stars |
-
-Particles are rendered on a lightweight `<canvas>` layer behind the game with zero performance impact.
+- Debug panel (long-press top-right corner) with game state inspector, nearly-complete preset, and clear-saved-data option
 
 ## License
 
