@@ -1618,25 +1618,49 @@ const EASTER_EGGS = {
     name: '☘️ St Patrick\'s Day',
     particles: { shape:'shamrock', count:14, colors:['#6bcb77','#8fd99a','#3da55a','#b8e6c0'], size:[12,22], speed:[0.08,0.20], opacity:[0.15,0.26] }
   },
+  '03-28': {
+    name: '🎉 Party',
+    particles: { shape:['balloon','balloon','sparkle'], count:14, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff'], size:[14,26], speed:[0.08,0.20], opacity:[0.16,0.28] }
+  },
   '04-01': {
     name: '🤡 April Fools\' Day',
     particles: { shape:['jester','jester','jester','banana'], count:18, colors:['#ff00ff','#00ff00','#ff6600','#ffff00','#8b00ff','#00ffff'], size:[18,32], speed:[0.08,0.25], opacity:[0.18,0.32] }
   },
+  '05-01': {
+    name: '🔥 Bealtaine',
+    particles: { shape:'flame', count:20, colors:['#ff4500','#ff6347','#ffd700','#ff8c00','#ff0000'], size:[12,32], speed:[0.06,0.18], opacity:[0.22,0.42] }
+  },
+  '05-06': {
+    name: '🎉 Party',
+    particles: { shape:['balloon','balloon','sparkle'], count:14, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff'], size:[14,26], speed:[0.08,0.20], opacity:[0.16,0.28] }
+  },
   '05-10': {
-    name: '💍 Wedding Anniversary',
+    name: '💍 Celebration',
     particles: { shape:['heart','heart','star'], count:16, colors:['#ffd700','#ffec8b','#fff8dc','#ff6b9d','#ffffff'], size:[14,28], speed:[0.08,0.20], opacity:[0.18,0.30] }
+  },
+  '06-16': {
+    name: '📚 Bloomsday',
+    particles: { shape:['book','book','bloom','bloom','sparkle'], count:16, colors:['#e8873a','#f0a050','#d4752b','#2e8b57','#ffb347','#f5deb3'], size:[14,28], speed:[0.06,0.16], opacity:[0.18,0.32] }
   },
   '06-21': {
     name: '☀️ Mid Summer',
     particles: { shape:'sun', count:14, colors:['#ffd93d','#ffb347','#ffaa00','#ffec8b','#ffeaa7'], size:[16,30], speed:[0.05,0.15], opacity:[0.18,0.30] }
   },
   '07-07': {
-    name: '🎂 Birthday Celebration',
+    name: '🎂 Party',
     particles: { shape:['balloon','balloon','balloon','sparkle'], count:16, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff','#ffb347'], size:[16,30], speed:[0.08,0.20], opacity:[0.18,0.30] }
+  },
+  '08-01': {
+    name: '🌾 Lúnasa',
+    particles: { shape:['knot','knot','sickle','sickle'], count:14, colors:['#daa520','#b8860b','#d4a840','#f0e68c','#8fbc5e'], size:[14,28], speed:[0.05,0.15], opacity:[0.16,0.30] }
   },
   '10-31': {
     name: '🎃 Halloween',
     particles: { shape:['skull','skull','witch'], count:16, colors:['#f0ead6'], size:[18,34], speed:[0.07,0.18], opacity:[0.18,0.32] }
+  },
+  '11-29': {
+    name: '🎉 Party',
+    particles: { shape:['balloon','balloon','sparkle'], count:14, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff'], size:[14,26], speed:[0.08,0.20], opacity:[0.16,0.28] }
   },
   '12-21--12-22': {
     name: '❄️ Mid Winter',
@@ -1738,6 +1762,33 @@ function drawSparkle(ctx, p) {
   }
   ctx.closePath();
   ctx.fill();
+  ctx.restore();
+}
+
+function drawFlame(ctx, p) {
+  const s = p.size;
+  const lean = Math.sin(p.x * 0.03 + p.y * 0.02) * s * 0.3;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  // All teardrops share the same base at y = s, differ only in width & height
+  const flameLayer = (width, heightFrac, alpha, color) => {
+    ctx.globalAlpha = p.opacity * alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    const h = s * heightFrac;
+    const tipX = lean * (1 - heightFrac) * 0.6;
+    ctx.moveTo(tipX, -h);
+    ctx.bezierCurveTo(width + lean, -h * 0.35, width * 0.8, s * 0.2, 0, s);
+    ctx.bezierCurveTo(-width * 0.8, s * 0.2, -width + lean, -h * 0.35, tipX, -h);
+    ctx.closePath();
+    ctx.fill();
+  };
+  // Outer — full height, widest
+  flameLayer(s * 0.65, 1.0, 1.0, p.color);
+  // Middle — 80% height, narrower
+  flameLayer(s * 0.42, 0.8, 0.85, '#ffb347');
+  // Inner core — 55% height, narrowest, sits at base
+  flameLayer(s * 0.22, 0.55, 0.9, '#ffec8b');
   ctx.restore();
 }
 
@@ -2238,7 +2289,212 @@ function drawSnowflake(ctx, p) {
   ctx.restore();
 }
 
-const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, pumpkin: drawPumpkin, skull: drawSkull, witch: drawWitch, banana: drawBanana, jester: drawJester, cross: drawCross, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+function drawBook(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // Left page
+  ctx.fillStyle = '#fdfaf0';
+  ctx.globalAlpha = p.opacity * 0.95;
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.5, -s * 0.6);
+  ctx.lineTo(0, -s * 0.55);
+  ctx.lineTo(0, s * 0.55);
+  ctx.lineTo(-s * 0.5, s * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  // Right page
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.55);
+  ctx.lineTo(s * 0.5, -s * 0.6);
+  ctx.lineTo(s * 0.5, s * 0.6);
+  ctx.lineTo(0, s * 0.55);
+  ctx.closePath();
+  ctx.fill();
+  // Covers (peeking behind pages)
+  ctx.fillStyle = p.color;
+  ctx.globalAlpha = p.opacity * 0.6;
+  ctx.fillRect(-s * 0.54, -s * 0.63, s * 0.08, s * 1.26);
+  ctx.fillRect(s * 0.46, -s * 0.63, s * 0.08, s * 1.26);
+  // Spine shadow at centre
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = Math.max(1, s * 0.04);
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.55);
+  ctx.lineTo(0, s * 0.55);
+  ctx.stroke();
+  // Page text lines — left
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = Math.max(0.5, s * 0.015);
+  for (let i = 0; i < 4; i++) {
+    const ly = -s * 0.3 + i * s * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.35, ly);
+    ctx.lineTo(-s * 0.06, ly);
+    ctx.stroke();
+  }
+  // Page text lines — right
+  for (let i = 0; i < 4; i++) {
+    const ly = -s * 0.3 + i * s * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(s * 0.06, ly);
+    ctx.lineTo(s * 0.35, ly);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawBloom(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // Stalk
+  ctx.strokeStyle = '#5a8a3c';
+  ctx.lineWidth = Math.max(1, s * 0.1);
+  ctx.globalAlpha = p.opacity * 0.6;
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.15);
+  ctx.lineTo(0, s * 0.8);
+  ctx.stroke();
+  // 5 orange petals — bigger
+  ctx.globalAlpha = p.opacity * 0.7;
+  for (let i = 0; i < 5; i++) {
+    const a = (i * Math.PI * 2) / 5 - Math.PI / 2;
+    const px = Math.cos(a) * s * 0.38;
+    const py = Math.sin(a) * s * 0.3 - s * 0.08;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.ellipse(px, py, s * 0.28, s * 0.4, a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Centre
+  ctx.fillStyle = '#ffd700';
+  ctx.globalAlpha = p.opacity * 0.8;
+  ctx.beginPath();
+  ctx.arc(0, -s * 0.08, s * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawKnot(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.strokeStyle = p.color;
+  ctx.globalAlpha = p.opacity;
+  ctx.lineWidth = Math.max(1.5, s * 0.15);
+  ctx.lineCap = 'round';
+  // Triquetra — three interlocking arcs
+  for (let i = 0; i < 3; i++) {
+    const a = (i * Math.PI * 2) / 3 - Math.PI / 2;
+    const cx = Math.cos(a) * s * 0.2;
+    const cy = Math.sin(a) * s * 0.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, s * 0.45, a + Math.PI * 0.3, a + Math.PI * 1.7);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawRaven(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.globalAlpha = p.opacity * 0.85;
+  ctx.beginPath();
+  // Body
+  ctx.ellipse(0, 0, s * 0.25, s * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Head
+  ctx.beginPath();
+  ctx.arc(0, -s * 0.38, s * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  // Beak
+  ctx.beginPath();
+  ctx.moveTo(s * 0.08, -s * 0.42);
+  ctx.lineTo(s * 0.28, -s * 0.38);
+  ctx.lineTo(s * 0.08, -s * 0.33);
+  ctx.closePath();
+  ctx.fill();
+  // Left wing
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.15, -s * 0.05);
+  ctx.quadraticCurveTo(-s * 0.55, -s * 0.15, -s * 0.5, s * 0.1);
+  ctx.quadraticCurveTo(-s * 0.3, s * 0.05, -s * 0.1, s * 0.05);
+  ctx.fill();
+  // Right wing
+  ctx.beginPath();
+  ctx.moveTo(s * 0.15, -s * 0.05);
+  ctx.quadraticCurveTo(s * 0.55, -s * 0.15, s * 0.5, s * 0.1);
+  ctx.quadraticCurveTo(s * 0.3, s * 0.05, s * 0.1, s * 0.05);
+  ctx.fill();
+  // Tail
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.08, s * 0.4);
+  ctx.lineTo(s * 0.08, s * 0.4);
+  ctx.lineTo(0, s * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawSickle(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // Wooden handle — tapered
+  ctx.fillStyle = '#6b3a2a';
+  ctx.globalAlpha = p.opacity;
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.06, s * 0.5);
+  ctx.lineTo(s * 0.06, s * 0.5);
+  ctx.lineTo(s * 0.04, -s * 0.05);
+  ctx.lineTo(-s * 0.04, -s * 0.08);
+  ctx.closePath();
+  ctx.fill();
+  // Handle grip lines
+  ctx.strokeStyle = '#4a2518';
+  ctx.lineWidth = Math.max(0.5, s * 0.03);
+  for (let i = 0; i < 3; i++) {
+    const gy = s * 0.15 + i * s * 0.12;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.05, gy);
+    ctx.lineTo(s * 0.05, gy);
+    ctx.stroke();
+  }
+  // Blade — crescent curve from handle tip
+  ctx.fillStyle = '#d4a840';
+  ctx.globalAlpha = p.opacity * 0.9;
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.05);                          // base at handle top
+  ctx.quadraticCurveTo(s * 0.25, -s * 0.3, s * 0.4, -s * 0.55);   // outer curve up
+  ctx.quadraticCurveTo(s * 0.2, -s * 0.7, -s * 0.05, -s * 0.6);   // tip curling back
+  ctx.quadraticCurveTo(-s * 0.15, -s * 0.4, -s * 0.08, -s * 0.05); // inner curve down
+  ctx.closePath();
+  ctx.fill();
+  // Blade bevel highlight
+  ctx.strokeStyle = '#f0d878';
+  ctx.lineWidth = Math.max(0.5, s * 0.025);
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.05);
+  ctx.quadraticCurveTo(s * 0.2, -s * 0.28, s * 0.35, -s * 0.5);
+  ctx.stroke();
+  // Blade inner shadow
+  ctx.strokeStyle = '#b89030';
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.08, -s * 0.05);
+  ctx.quadraticCurveTo(-s * 0.12, -s * 0.35, -s * 0.05, -s * 0.55);
+  ctx.stroke();
+  ctx.restore();
+}
+
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, pumpkin: drawPumpkin, skull: drawSkull, witch: drawWitch, banana: drawBanana, jester: drawJester, cross: drawCross, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake, flame: drawFlame, book: drawBook, bloom: drawBloom, knot: drawKnot, raven: drawRaven, sickle: drawSickle };
 
 function animateEgg() {
   if (!eggCtx || !eggCanvas) return;
