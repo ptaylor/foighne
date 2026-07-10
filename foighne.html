@@ -3276,6 +3276,7 @@ async function runAutoComplete() {
     if (foundations.every(f => f.length === 13)) break;
 
     let srcType = null, srcIdx = -1, destF = -1;
+    let isFoundationMove = true;
 
     // 1. Waste top → foundation
     if (waste.length > 0) {
@@ -3301,9 +3302,29 @@ async function runAutoComplete() {
       }
     }
 
+    // 3. Waste → tableau (unblock waste so next card can reach foundation)
+    if (!srcType && waste.length > 0) {
+      const w = waste[waste.length - 1];
+      for (let t = 0; t < 7; t++) {
+        if (canPlaceOnTableau(w, tableau[t])) {
+          isFoundationMove = false;
+          waste.pop();
+          tableau[t].push(w);
+          render();
+          saveGame();
+          playSound('place');
+          break;
+        }
+      }
+      if (!isFoundationMove) {
+        await new Promise(r => setTimeout(r, GAP_MS));
+        continue;
+      }
+    }
+
     if (!srcType) break; // nothing to move
 
-    // --- Fly the card from source to foundation ---
+    // --- Fly the card to foundation ---
     const srcEl = findCardElement(srcType, srcIdx);
     const destEl = document.querySelector(`.foundation[data-suit="${destF}"]`);
     if (srcEl && destEl) {
