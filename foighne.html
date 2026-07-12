@@ -3223,6 +3223,8 @@ function isValidDrop(pileEl) {
   if (t === 'tableau') {
     return canPlaceOnTableau(sourceCard, tableau[i]);
   } else if (t === 'foundation' && draggedCards.cards.length === 1) {
+    // Aces are accepted on any foundation pile — they'll be redirected on drop
+    if (sourceCard.rank === 0) return true;
     return canPlaceOnFoundation(sourceCard, foundations[i], i);
   }
   return false;
@@ -3244,15 +3246,17 @@ function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
     flipTopTableau();
     playSound('place');
   } else if (destType === 'foundation' && cards.length === 1) {
-    if (!canPlaceOnFoundation(cards[0], foundations[destIdx], destIdx)) {
+    // Aces always go to the foundation matching their suit, regardless of drop target
+    const actualIdx = cards[0].rank === 0 ? cards[0].suit : destIdx;
+    if (!canPlaceOnFoundation(cards[0], foundations[actualIdx], actualIdx)) {
       srcPile.push(...cards);
       playSound('invalid');
       return;
     }
-    destPile.push(cards[0]);
+    foundations[actualIdx].push(cards[0]);
     flipTopTableau();
     playSound('foundation');
-    spawnFoundationParticle(destIdx);
+    spawnFoundationParticle(actualIdx);
   } else {
     srcPile.push(...cards);
     playSound('invalid');
