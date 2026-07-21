@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.37">
-<meta name="commit" content="5f81917">
+<meta name="version" content="v1.38">
+<meta name="commit" content="faf2776">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -518,6 +518,92 @@
     color: #6bcb77;
   }
   .btn-save:hover { background: rgba(100,200,150,0.5); }
+
+  /* Info overlay */
+  #info-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+  }
+  #info-overlay.show {
+    display: flex;
+  }
+  .info-panel {
+    background: #1e3a5f;
+    border-radius: 14px;
+    padding: 24px 22px;
+    max-width: 380px;
+    width: 90%;
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .info-panel h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 0.08em;
+    color: #ffd700;
+    margin: 0 0 6px;
+  }
+  .info-panel .info-version {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 6px;
+    font-family: monospace;
+  }
+  .info-panel .info-tagline {
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 18px;
+    font-style: italic;
+  }
+  .info-panel .info-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .info-panel .info-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-decoration: none;
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    transition: background 0.2s, transform 0.15s;
+    cursor: pointer;
+  }
+  .info-panel .info-link:hover {
+    background: rgba(255,255,255,0.18);
+    transform: translateY(-1px);
+  }
+  .info-panel .info-close {
+    padding: 8px 28px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .info-panel .info-close:hover {
+    background: rgba(255,255,255,0.22);
+  }
+
   .setting-group {
     margin-bottom: 12px;
   }
@@ -895,6 +981,7 @@
         <button class="btn btn-icon" id="undo-btn" onclick="performUndo()" title="Undo" disabled>&#8617;</button>
         <button class="btn" id="new-game-btn" onclick="newGame()">New Game</button>
         <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
+        <button class="btn btn-icon" onclick="openInfo()" title="About">&#8505;</button>
       </div>
     </div>
   </div>
@@ -957,6 +1044,19 @@
       <h3>Sound Theme</h3>
       <div class="tile-grid" id="sound-theme-grid"></div>
     </div>
+  </div>
+</div>
+<div id="info-overlay">
+  <div class="info-panel">
+    <h2>foighne</h2>
+    <div class="info-version" id="info-version"></div>
+    <div class="info-tagline">Irish for "patience" — a classic Klondike Solitaire</div>
+    <div class="info-links">
+      <a class="info-link" href="https://github.com/ptaylor/foighne/issues" target="_blank" rel="noopener">
+        <span>🐛</span> Report a Bug / Suggest a Feature
+      </a>
+    </div>
+    <button class="info-close" onclick="closeInfo()">Close</button>
   </div>
 </div>
 <script>
@@ -1246,6 +1346,24 @@ function cancelSettings() {
 function closeSettings() {
   document.getElementById('settings-overlay').classList.remove('show');
 }
+
+// ── Info overlay ──
+
+function openInfo() {
+  const versionMeta = document.querySelector('meta[name="version"]');
+  const v = versionMeta ? versionMeta.content : '?';
+  document.getElementById('info-version').textContent = 'v' + v;
+  document.getElementById('info-overlay').classList.add('show');
+}
+
+function closeInfo() {
+  document.getElementById('info-overlay').classList.remove('show');
+}
+
+// Close info overlay on backdrop click
+document.getElementById('info-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeInfo();
+});
 
 // ── Draw count ──
 
