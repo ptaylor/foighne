@@ -1354,6 +1354,7 @@ function openInfo() {
   const v = versionMeta ? versionMeta.content : '?';
   document.getElementById('info-version').textContent = 'v' + v;
   document.getElementById('info-overlay').classList.add('show');
+  playDiscoverySound();
 }
 
 function closeInfo() {
@@ -2720,12 +2721,7 @@ function cancelTitleHold() {
 }
 
 function revealVersion() {
-  const versionMeta = document.querySelector('meta[name="version"]');
-  const commitMeta = document.querySelector('meta[name="commit"]');
-  const v = versionMeta ? versionMeta.content : '?';
-  const c = commitMeta ? commitMeta.content : '?????';
-  showMessage('foighne ' + v + ' · ' + c);
-  playDiscoverySound();
+  openInfo();
 }
 
 function playDiscoverySound() {
