@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.38">
-<meta name="commit" content="faf2776">
+<meta name="version" content="v1.39">
+<meta name="commit" content="81687ed">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1354,6 +1354,7 @@ function openInfo() {
   const v = versionMeta ? versionMeta.content : '?';
   document.getElementById('info-version').textContent = 'v' + v;
   document.getElementById('info-overlay').classList.add('show');
+  playDiscoverySound();
 }
 
 function closeInfo() {
@@ -2720,12 +2721,7 @@ function cancelTitleHold() {
 }
 
 function revealVersion() {
-  const versionMeta = document.querySelector('meta[name="version"]');
-  const commitMeta = document.querySelector('meta[name="commit"]');
-  const v = versionMeta ? versionMeta.content : '?';
-  const c = commitMeta ? commitMeta.content : '?????';
-  showMessage('foighne ' + v + ' · ' + c);
-  playDiscoverySound();
+  openInfo();
 }
 
 function playDiscoverySound() {
