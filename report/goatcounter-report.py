@@ -633,8 +633,14 @@ def main():
         help="GoatCounter site code (e.g. foighne) or full URL",
         default=os.getenv("GOAT_SITE", "https://foighne.goatcounter.com/"),
     )
-    parser.add_argument("--start", help="Start date YYYY-MM-DD")
-    parser.add_argument("--end", help="End date YYYY-MM-DD")
+    parser.add_argument(
+        "--start",
+        help="Start date YYYY-MM-DD (default: today)",
+    )
+    parser.add_argument(
+        "--end",
+        help="End date YYYY-MM-DD (default: today)",
+    )
     parser.add_argument(
         "--period",
         help=(
@@ -656,19 +662,37 @@ def main():
             print(f"Error parsing --period: {e}", file=sys.stderr)
             sys.exit(2)
 
-    # Fall back to env vars for start/end
-    if not args.start:
-        args.start = os.getenv("GOAT_START")
-    if not args.end:
-        args.end = os.getenv("GOAT_END")
+    # Validate --start/--end format (must be YYYY-MM-DD) if provided
+    def _validate_date(label, val):
+        if not val:
+            return None
+        try:
+            return dt.datetime.strptime(val, "%Y-%m-%d").date()
+        except ValueError:
+            print(
+                f"Invalid --{label} date '{val}'. Expected YYYY-MM-DD format (e.g. 2026-07-25).",
+                file=sys.stderr,
+            )
+            sys.exit(2)
 
-    if not args.start or not args.end:
-        print(
-            "start and end dates are required. Use --period (e.g. 'this month') "
-            "or set --start/--end or GOAT_START/GOAT_END env vars.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
+    start_date = _validate_date("start", args.start)
+    end_date = _validate_date("end", args.end)
+
+    # Fall back to env vars for start/end
+    if not start_date:
+        start_date = _validate_date("start", os.getenv("GOAT_START"))
+    if not end_date:
+        end_date = _validate_date("end", os.getenv("GOAT_END"))
+
+    # Default to today when nothing provided
+    today = dt.date.today()
+    if not start_date:
+        start_date = today
+    if not end_date:
+        end_date = today
+
+    args.start = start_date.isoformat()
+    args.end = end_date.isoformat()
 
     print(f"Fetching stats for {args.site}: {args.start} → {args.end} ...")
     data = fetch_stats_data(args.site, args.start, args.end)
