@@ -99,7 +99,10 @@ def api_get(api_base, path, params=None, timeout=60):
             "GOATCOUNTER_API_TOKEN not set. "
             "Source .env.sh or set the env var before running."
         )
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+    }
     url = f"{api_base}/{path.lstrip('/')}"
     resp = requests.get(url, headers=headers, params=params, timeout=timeout)
     if resp.status_code in (401, 403):
@@ -107,7 +110,15 @@ def api_get(api_base, path, params=None, timeout=60):
             f"Auth error ({resp.status_code}) for {url}. "
             "Check GOATCOUNTER_API_TOKEN."
         )
-    resp.raise_for_status()
+    if not resp.ok:
+        detail = ""
+        try:
+            detail = resp.json()
+        except Exception:
+            detail = resp.text[:500]
+        raise RuntimeError(
+            f"API error ({resp.status_code}) for {url}: {detail}"
+        )
     return resp.json()
 
 
@@ -117,7 +128,18 @@ def fetch_stats_data(site, start, end):
     Returns a dict with keys: total, hits, browsers, systems.
     """
     api_base = get_api_base(site)
-    params = {"start": start, "end": end}
+
+    # GoatCounter API expects RFC 3339 date-time format (e.g. 2026-01-01T00:00:00Z).
+    # Append time + UTC zone if the caller only supplied YYYY-MM-DD.
+    def _to_datetime(d, default_time):
+        if "T" not in d:
+            return f"{d}T{default_time}Z"
+        return d
+
+    params = {
+        "start": _to_datetime(start, "00:00:00"),
+        "end": _to_datetime(end, "23:59:59"),
+    }
 
     # Total pageviews + events with daily breakdown
     total = api_get(api_base, "stats/total", params)
@@ -576,7 +598,7 @@ def main():
     parser.add_argument(
         "--site",
         help="GoatCounter site code (e.g. foighne) or full URL",
-        default=os.getenv("GOAT_SITE", "foighne"),
+        default=os.getenv("GOAT_SITE", "https://foighne.goatcounter.com/"),
     )
     parser.add_argument("--start", help="Start date YYYY-MM-DD")
     parser.add_argument("--end", help="End date YYYY-MM-DD")

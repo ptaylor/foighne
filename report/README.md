@@ -44,8 +44,9 @@ python goatcounter-report.py --start 2026-07-01 --end 2026-07-07
 # Single date
 python goatcounter-report.py --period 2026-07-04
 
-# Custom site
+# Custom site (defaults to https://foighne.goatcounter.com/)
 python goatcounter-report.py --site mysite --period "this month"
+python goatcounter-report.py --site https://example.goatcounter.com/ --period "this month"
 ```
 
 ## Authentication
