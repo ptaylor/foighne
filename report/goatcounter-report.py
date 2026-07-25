@@ -148,9 +148,10 @@ def fetch_stats_data(site, start, end):
     hits_params = {**params, "limit": 100}
     hits = api_get(api_base, "stats/hits", hits_params)
 
-    # Optional: browser and system stats (best-effort)
+    # Optional: browser, system, and location stats (best-effort)
     browsers = None
     systems = None
+    locations = None
     try:
         browsers = api_get(api_base, "stats/browsers", params)
     except Exception:
@@ -159,12 +160,17 @@ def fetch_stats_data(site, start, end):
         systems = api_get(api_base, "stats/systems", params)
     except Exception:
         pass
+    try:
+        locations = api_get(api_base, "stats/locations", params)
+    except Exception:
+        pass
 
     return {
         "total": total,
         "hits": hits,
         "browsers": browsers,
         "systems": systems,
+        "locations": locations,
     }
 
 
@@ -297,11 +303,13 @@ def build_report(site, start, end, data):
         "top_referrers": [],  # Not available via stats API without per-path detail calls
     }
 
-    # Attach optional browser/system stats
+    # Attach optional browser/system/location stats
     if data.get("browsers"):
         report["browsers"] = data["browsers"].get("stats", [])
     if data.get("systems"):
         report["systems"] = data["systems"].get("stats", [])
+    if data.get("locations"):
+        report["locations"] = data["locations"].get("stats", [])
 
     return report
 
@@ -398,6 +406,22 @@ def generate_charts_and_html(report, out_dir):
         png_path3 = os.path.join(charts_dir, "top-pages.png")
         fig3.savefig(png_path3, dpi=150, bbox_inches="tight")
         pages_b64 = fig_to_base64(fig3)
+
+    # --- Top locations horizontal bar ---
+    tlocs = pd.DataFrame(report.get("locations", []))
+    locations_b64 = None
+    if not tlocs.empty:
+        top_locs = tlocs.head(15)
+        loc_labels = [f'{r.get("name", r.get("id", "?"))} ({r.get("id", "?")})' for _, r in top_locs.iterrows()]
+        fig4, ax4 = plt.subplots(figsize=(8, max(3, 0.45 * len(top_locs))))
+        ax4.barh(loc_labels, top_locs["count"].astype(int))
+        ax4.set_title("Visitors by Country")
+        ax4.set_xlabel("Visitors")
+        ax4.invert_yaxis()
+        fig4.tight_layout()
+        png_path4 = os.path.join(charts_dir, "locations.png")
+        fig4.savefig(png_path4, dpi=150, bbox_inches="tight")
+        locations_b64 = fig_to_base64(fig4)
 
     # --- Compose self-contained styled HTML ---
     html = """<html>
@@ -540,6 +564,9 @@ def generate_charts_and_html(report, out_dir):
     if pages_b64:
         html += '<div class="section">\n<h2>Top Pages</h2>\n'
         html += f'<img src="data:image/png;base64,{pages_b64}" alt="top pages">\n</div>\n'
+    if locations_b64:
+        html += '<div class="section">\n<h2>Visitors by Country</h2>\n'
+        html += f'<img src="data:image/png;base64,{locations_b64}" alt="locations chart">\n</div>\n'
 
     # Data tables
     if report.get("top_events"):
@@ -554,8 +581,8 @@ def generate_charts_and_html(report, out_dir):
             html += f'<tr><td>{p["path"]}</td><td>{p["cnt"]:,}</td></tr>\n'
         html += '</table>\n</div>\n'
 
-    # Browsers + Systems side by side
-    if report.get("browsers") or report.get("systems"):
+    # Browsers + Systems + Locations
+    if report.get("browsers") or report.get("systems") or report.get("locations"):
         html += '<div class="section">\n<h2>Audience</h2>\n'
         html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem;">\n'
         if report.get("browsers"):
@@ -567,6 +594,11 @@ def generate_charts_and_html(report, out_dir):
             html += '<div>\n<h3>Systems</h3>\n<table>\n<tr><th>System</th><th>Count</th></tr>\n'
             for s in report["systems"]:
                 html += f'<tr><td>{s.get("name", s.get("id", "?"))}</td><td>{s["count"]:,}</td></tr>\n'
+            html += '</table>\n</div>\n'
+        if report.get("locations"):
+            html += '<div>\n<h3>Countries</h3>\n<table>\n<tr><th>Country</th><th>Count</th></tr>\n'
+            for loc in report["locations"]:
+                html += f'<tr><td>{loc.get("name", loc.get("id", "?"))}</td><td>{loc["count"]:,}</td></tr>\n'
             html += '</table>\n</div>\n'
         html += '</div>\n</div>\n'
 
@@ -580,6 +612,7 @@ def generate_charts_and_html(report, out_dir):
         "daily_png": daily_b64 is not None,
         "events_png": events_b64 is not None,
         "pages_png": pages_b64 is not None,
+        "locations_png": locations_b64 is not None,
         "html_file": out_html,
     }
 
