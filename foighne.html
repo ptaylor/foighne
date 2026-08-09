@@ -2805,10 +2805,23 @@ function renderDebugPanel() {
     }
   }
   
-  html += '<h3>🏆 Foundations</h3>';
-  for (let f = 0; f < 4; f++) {
-    const top = foundations[f].length > 0 ? rankStr(foundations[f][foundations[f].length - 1].rank) + suitSymbol(foundations[f][foundations[f].length - 1].suit) : '—';
-    html += '<div class="debug-card black"><span class="debug-idx">' + suitSymbol(f) + '</span>' + foundations[f].length + '/13 — ' + top + '</div>';
+  html += '<h3>🂠 Unseen Tableau</h3>';
+  const unseen = [];
+  for (let t = 0; t < 7; t++) {
+    for (let i = 0; i < tableau[t].length; i++) {
+      if (!tableau[t][i].faceUp) {
+        unseen.push({card: tableau[t][i], pile: t, idx: i});
+      }
+    }
+  }
+  if (unseen.length === 0) {
+    html += '<div class="debug-empty">none</div>';
+  } else {
+    unseen.sort((a, b) => a.card.suit !== b.card.suit ? a.card.suit - b.card.suit : a.card.rank - b.card.rank);
+    for (const {card, pile, idx} of unseen) {
+      const col = cardColor(card.suit);
+      html += '<div class="debug-card ' + col + '"><span class="debug-idx">T' + pile + '#' + idx + '</span>' + rankStr(card.rank) + suitSymbol(card.suit) + '</div>';
+    }
   }
   
   // Stalemate / auto-complete status
