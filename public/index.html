@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.39">
-<meta name="commit" content="81687ed">
+<meta name="version" content="v1.40">
+<meta name="commit" content="382373a">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -155,14 +155,6 @@
   }
   .card .center-suit svg {
     display: block;
-  }
-  .card.selected {
-    box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5);
-    animation: pulse-gold 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse-gold {
-    0%, 100% { box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5); }
-    50% { box-shadow: 0 0 0 4px #ffd700, 0 0 28px rgba(255,215,0,0.7); }
   }
   .card-flip {
     animation: card-reveal 0.35s ease-out;
@@ -1067,7 +1059,6 @@ let stock = [];
 let waste = [];
 let tableau = [[], [], [], [], [], [], []];
 let foundations = [[], [], [], []];
-let selectedCards = null; // { pile: 'waste'|'tableau', index: number, cardIndex: number }
 let draggedCards = null;
 let dragOffsetX = 0, dragOffsetY = 0;
 let dragStartEl = null;
@@ -1086,7 +1077,7 @@ function trackEvent(path) {
 
 function saveGame() {
   try {
-    const state = { stock, waste, tableau, foundations, selectedCards };
+    const state = { stock, waste, tableau, foundations };
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   } catch (e) { /* quota or other error */ }
 }
@@ -1100,7 +1091,6 @@ function loadGame() {
     waste = state.waste || [];
     tableau = state.tableau || [[], [], [], [], [], [], []];
     foundations = state.foundations || [[], [], [], []];
-    selectedCards = state.selectedCards || null;
     undoStack = [];
     // Validate loaded state; deal fresh if corrupted
     if (!validateGameState().valid) {
@@ -1513,7 +1503,7 @@ function updateSetting(key, value) {
 
 // ---- Undo System ----
 function snapshotState() {
-  return JSON.parse(JSON.stringify({ stock, waste, tableau, foundations, selectedCards, gameWon }));
+  return JSON.parse(JSON.stringify({ stock, waste, tableau, foundations, gameWon }));
 }
 
 function pushUndo() {
@@ -1534,7 +1524,6 @@ function performUndo() {
   waste = snapshot.waste;
   tableau = snapshot.tableau;
   foundations = snapshot.foundations;
-  selectedCards = snapshot.selectedCards;
   gameWon = snapshot.gameWon;
   if (!gameWon) {
     document.getElementById('win-overlay').classList.remove('show');
@@ -1626,7 +1615,6 @@ function dealBoard() {
   waste = [];
   tableau = [[], [], [], [], [], [], []];
   foundations = [[], [], [], []];
-  selectedCards = null;
   
   // Deal tableau by popping from end (top of deck)
   for (let i = 0; i < 7; i++) {
@@ -1704,7 +1692,6 @@ function setupNearlyComplete() {
   }
 
   stock = [];
-  selectedCards = null;
   undoStack = [];
   gameWon = false;
   debugGame = true;
@@ -1822,6 +1809,7 @@ function checkEasterEgg() {
       return;
     }
   }
+  deactivateEgg();
 }
 
 function initEggCanvas() {
@@ -2804,10 +2792,23 @@ function renderDebugPanel() {
     }
   }
   
-  html += '<h3>🏆 Foundations</h3>';
-  for (let f = 0; f < 4; f++) {
-    const top = foundations[f].length > 0 ? rankStr(foundations[f][foundations[f].length - 1].rank) + suitSymbol(foundations[f][foundations[f].length - 1].suit) : '—';
-    html += '<div class="debug-card black"><span class="debug-idx">' + suitSymbol(f) + '</span>' + foundations[f].length + '/13 — ' + top + '</div>';
+  html += '<h3>🂠 Unseen Tableau</h3>';
+  const unseen = [];
+  for (let t = 0; t < 7; t++) {
+    for (let i = 0; i < tableau[t].length; i++) {
+      if (!tableau[t][i].faceUp) {
+        unseen.push({card: tableau[t][i], pile: t, idx: i});
+      }
+    }
+  }
+  if (unseen.length === 0) {
+    html += '<div class="debug-empty">none</div>';
+  } else {
+    unseen.sort((a, b) => a.card.suit !== b.card.suit ? a.card.suit - b.card.suit : a.card.rank - b.card.rank);
+    for (const {card, pile, idx} of unseen) {
+      const col = cardColor(card.suit);
+      html += '<div class="debug-card ' + col + '"><span class="debug-idx">T' + pile + '#' + idx + '</span>' + rankStr(card.rank) + suitSymbol(card.suit) + '</div>';
+    }
   }
   
   // Stalemate / auto-complete status
@@ -2900,7 +2901,6 @@ function ensureValidState() {
     waste = [];
     tableau = [[], [], [], [], [], [], []];
     foundations = [[], [], [], []];
-    selectedCards = null;
   
     for (let i = 0; i < 7; i++) {
       for (let j = 0; j <= i; j++) {
@@ -2939,6 +2939,7 @@ function newGame() {
   saveGame();
   playSound('deal');
   trackEvent('new-game');
+  checkEasterEgg();
 }
 
 function suitSymbol(s) {
@@ -3007,7 +3008,6 @@ function drawStock() {
       waste.push(card);
     }
   }
-  selectedCards = null;
   render();
   playSound('draw');
 }
@@ -3084,23 +3084,6 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
         }
       }
     }
-    
-    // Toggle selection for tableau-to-tableau moves
-    if (selectedCards && selectedCards.pile === 'tableau' && 
-        selectedCards.index === pileIdx && selectedCards.cardIndex === cardIdx) {
-      // Deselect
-      selectedCards = null;
-      render();
-      return;
-    }
-    
-    // Can only select contiguous face-up cards from cardIdx onwards
-    for (let i = cardIdx; i < pile.length; i++) {
-      if (!pile[i].faceUp) return;
-    }
-    
-    selectedCards = { pile: 'tableau', index: pileIdx, cardIndex: cardIdx };
-    render();
   }
 }
 
@@ -3483,8 +3466,6 @@ function render() {
     // Game already won — keep overlay up during re-renders
     document.getElementById('win-overlay').classList.add('show');
   }
-  // Don't clear selectedCards here - preserve selection for highlight
-
   // Read responsive card dimensions from CSS
   const style = getComputedStyle(document.documentElement);
   const cardW = parseFloat(style.getPropertyValue('--card-width'));
@@ -3561,10 +3542,6 @@ function render() {
         cardEl.style.zIndex = ci;
         if (flippedCards.some(fc => fc.t === t && fc.ci === ci)) {
           cardEl.classList.add('card-flip');
-        }
-        if (selectedCards && selectedCards.pile === 'tableau' && 
-            selectedCards.index === t && ci >= selectedCards.cardIndex) {
-          cardEl.classList.add('selected');
         }
         pileEl.appendChild(cardEl);
       });
@@ -3902,63 +3879,6 @@ function spawnSparkles() {
   }
 }
 
-// Click on tableau empty space to place selected cards via click-to-move
-document.addEventListener('click', (e) => {
-  if (!selectedCards || isDragging) return;
-  
-  // Ignore if we clicked on a card (those are handled by clickCard)
-  if (e.target.closest('.card')) return;
-  
-  const pileEl = e.target.closest('.pile.tableau-pile');
-  if (!pileEl) return;
-  
-  const targetIdx = parseInt(pileEl.dataset.pileIndex);
-  if (selectedCards.pile !== 'tableau') return;
-  
-  const srcIdx = selectedCards.index;
-  const cardIdx = selectedCards.cardIndex;
-  
-  if (srcIdx === targetIdx) {
-    selectedCards = null;
-    render();
-    return;
-  }
-  
-  const srcPile = tableau[srcIdx];
-  const destPile = tableau[targetIdx];
-  const cards = srcPile.slice(cardIdx);
-  
-  if (destPile.length === 0) {
-    if (cards[0].rank === 12) { // King
-      pushUndo();
-      srcPile.splice(cardIdx);
-      destPile.push(...cards);
-      flipTopTableau();
-      selectedCards = null;
-      render();
-      checkWin();
-      playSound('place');
-    } else {
-      showMessage('Only a King can start an empty tableau pile');
-      playSound('invalid');
-    }
-  } else {
-    if (canPlaceOnTableau(cards[0], destPile)) {
-      pushUndo();
-      srcPile.splice(cardIdx);
-      destPile.push(...cards);
-      flipTopTableau();
-      selectedCards = null;
-      render();
-      checkWin();
-      playSound('place');
-    } else {
-      showMessage('Invalid move');
-      playSound('invalid');
-    }
-  }
-});
-
 // Click on stock to draw/recycle
 document.getElementById('stock').addEventListener('click', (e) => {
   drawStock();
@@ -3969,9 +3889,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (document.getElementById('settings-overlay').classList.contains('show')) {
       closeSettings();
-    } else {
-      selectedCards = null;
-      render();
     }
   }
 });
