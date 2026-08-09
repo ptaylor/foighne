@@ -1822,6 +1822,7 @@ function checkEasterEgg() {
       return;
     }
   }
+  deactivateEgg();
 }
 
 function initEggCanvas() {
@@ -2939,6 +2940,7 @@ function newGame() {
   saveGame();
   playSound('deal');
   trackEvent('new-game');
+  checkEasterEgg();
 }
 
 function suitSymbol(s) {
