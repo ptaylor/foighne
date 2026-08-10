@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
 <meta name="version" content="v1.42-test">
-<meta name="commit" content="08f7c28">
+<meta name="commit" content="d9abaa0">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -161,8 +161,8 @@
     animation: card-reveal 0.35s ease-out;
   }
   @keyframes card-reveal {
-    0% { transform: rotateY(90deg) scale(0.85); }
-    100% { transform: rotateY(0deg) scale(1); }
+    0% { transform: translateY(var(--flip-y, 0px)) rotateY(90deg) scale(0.85); }
+    100% { transform: translateY(var(--flip-y, 0px)) rotateY(0deg) scale(1); }
   }
   @keyframes pulse-gold-btn {
     0%, 100% { box-shadow: 0 0 0 1px #ffd700, 0 0 10px rgba(255,215,0,0.4); }
@@ -3606,6 +3606,9 @@ function render() {
         cardEl.style.transform = 'translateY(' + (ci * stackOffset) + 'px)';
         cardEl.style.zIndex = ci;
         if (flippedCards.some(fc => fc.t === t && fc.ci === ci)) {
+          // Pass the translateY offset into the flip animation so the card
+          // stays in position during the reveal instead of dropping from (0,0).
+          cardEl.style.setProperty('--flip-y', (ci * stackOffset) + 'px');
           cardEl.classList.add('card-flip');
         }
         pileEl.appendChild(cardEl);
