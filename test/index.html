@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.36-test">
-<meta name="commit" content="2189773">
+<meta name="version" content="v1.42-test">
+<meta name="commit" content="08f7c28">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -99,7 +99,8 @@
     position: absolute;
     cursor: pointer;
     box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-    transition: box-shadow 0.2s, transform 0.2s, top 0.2s ease, left 0.2s ease;
+    transition: box-shadow 0.2s, transform 0.2s;
+    will-change: transform;
     font-family: Georgia, 'Times New Roman', serif;
     font-size: var(--card-font);
     font-weight: 700;
@@ -155,14 +156,6 @@
   }
   .card .center-suit svg {
     display: block;
-  }
-  .card.selected {
-    box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5);
-    animation: pulse-gold 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse-gold {
-    0%, 100% { box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.5); }
-    50% { box-shadow: 0 0 0 4px #ffd700, 0 0 28px rgba(255,215,0,0.7); }
   }
   .card-flip {
     animation: card-reveal 0.35s ease-out;
@@ -306,6 +299,11 @@
     pointer-events: none;
     border-radius: 8px;
     box-shadow: 2px 4px 20px rgba(0,0,0,0.5);
+  }
+  /* Disable transitions on drag-ghost cards so they track the pointer instantly */
+  .drag-ghost .card {
+    transition: none;
+    will-change: auto;
   }
   #egg-canvas {
     position: fixed;
@@ -518,6 +516,92 @@
     color: #6bcb77;
   }
   .btn-save:hover { background: rgba(100,200,150,0.5); }
+
+  /* Info overlay */
+  #info-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+  }
+  #info-overlay.show {
+    display: flex;
+  }
+  .info-panel {
+    background: #1e3a5f;
+    border-radius: 14px;
+    padding: 24px 22px;
+    max-width: 380px;
+    width: 90%;
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .info-panel h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 0.08em;
+    color: #ffd700;
+    margin: 0 0 6px;
+  }
+  .info-panel .info-version {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 6px;
+    font-family: monospace;
+  }
+  .info-panel .info-tagline {
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 18px;
+    font-style: italic;
+  }
+  .info-panel .info-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .info-panel .info-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-decoration: none;
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    transition: background 0.2s, transform 0.15s;
+    cursor: pointer;
+  }
+  .info-panel .info-link:hover {
+    background: rgba(255,255,255,0.18);
+    transform: translateY(-1px);
+  }
+  .info-panel .info-close {
+    padding: 8px 28px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .info-panel .info-close:hover {
+    background: rgba(255,255,255,0.22);
+  }
+
   .setting-group {
     margin-bottom: 12px;
   }
@@ -737,7 +821,11 @@
     font-style: italic;
     letter-spacing: 0.15em;
     margin-bottom: 10px;
-    pointer-events: none;
+    user-select: none;
+    transition: color 0.3s;
+  }
+  #game-title.holding {
+    color: rgba(255,215,0,0.6);
   }
 
   /* ── Tablet (≤900px) ── */
@@ -859,7 +947,7 @@
 <body>
 <noscript><div style="background:#0d4f7c;color:#fff;text-align:center;padding:40px 20px;font-family:sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;font-size:18px">Foighne requires JavaScript to play.</div></noscript>
 <div id="game">
-  <div id="game-title">foighne</div>
+  <div id="game-title" onmousedown="startTitleHold(event)" onmouseup="cancelTitleHold()" onmouseleave="cancelTitleHold()" ontouchstart="startTitleHold(event)" ontouchend="cancelTitleHold()" ontouchcancel="cancelTitleHold()">foighne</div>
   <div id="stats-bar">
     <span>Games: <b id="statGames">0</b></span>
     <span class="sep">|</span>
@@ -891,6 +979,7 @@
         <button class="btn btn-icon" id="undo-btn" onclick="performUndo()" title="Undo" disabled>&#8617;</button>
         <button class="btn" id="new-game-btn" onclick="newGame()">New Game</button>
         <button class="btn btn-icon" onclick="openSettings()" title="Settings">&#9881;</button>
+        <button class="btn btn-icon" onclick="openInfo()" title="About">&#8505;</button>
       </div>
     </div>
   </div>
@@ -926,7 +1015,7 @@
       </div>
     </div>
     <div class="draw-row">
-      <span>Auto-move Waste</span>
+      <span>Auto-move on click</span>
       <div class="draw-btns">
         <button class="draw-btn" id="auto-move-on" onclick="toggleAutoMoveWaste(true)">On</button>
         <button class="draw-btn" id="auto-move-off" onclick="toggleAutoMoveWaste(false)">Off</button>
@@ -955,6 +1044,19 @@
     </div>
   </div>
 </div>
+<div id="info-overlay">
+  <div class="info-panel">
+    <h2>foighne</h2>
+    <div class="info-version" id="info-version"></div>
+    <div class="info-tagline">Irish for "patience" — a classic Klondike Solitaire</div>
+    <div class="info-links">
+      <a class="info-link" href="https://github.com/ptaylor/foighne/issues" target="_blank" rel="noopener">
+        <span>🐛</span> Report a Bug / Suggest a Feature
+      </a>
+    </div>
+    <button class="info-close" onclick="closeInfo()">Close</button>
+  </div>
+</div>
 <script>
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -963,7 +1065,6 @@ let stock = [];
 let waste = [];
 let tableau = [[], [], [], [], [], [], []];
 let foundations = [[], [], [], []];
-let selectedCards = null; // { pile: 'waste'|'tableau', index: number, cardIndex: number }
 let draggedCards = null;
 let dragOffsetX = 0, dragOffsetY = 0;
 let dragStartEl = null;
@@ -981,10 +1082,26 @@ function trackEvent(path) {
 }
 
 function saveGame() {
-  try {
-    const state = { stock, waste, tableau, foundations, selectedCards };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-  } catch (e) { /* quota or other error */ }
+  // Debounce: flush at most once per 400ms to avoid blocking the main thread
+  if (saveTimeout) return;
+  saveTimeout = setTimeout(() => {
+    saveTimeout = null;
+    try {
+      const state = { stock, waste, tableau, foundations };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) { /* quota or other error */ }
+  }, 400);
+}
+
+function flushSaveGame() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+    try {
+      const state = { stock, waste, tableau, foundations };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) { /* quota or other error */ }
+  }
 }
 
 function loadGame() {
@@ -996,7 +1113,6 @@ function loadGame() {
     waste = state.waste || [];
     tableau = state.tableau || [[], [], [], [], [], [], []];
     foundations = state.foundations || [[], [], [], []];
-    selectedCards = state.selectedCards || null;
     undoStack = [];
     // Validate loaded state; deal fresh if corrupted
     if (!validateGameState().valid) {
@@ -1012,6 +1128,7 @@ function loadGame() {
 }
 
 function clearSavedGame() {
+  if (saveTimeout) { clearTimeout(saveTimeout); saveTimeout = null; }
   localStorage.removeItem(SAVE_KEY);
 }
 
@@ -1243,6 +1360,25 @@ function closeSettings() {
   document.getElementById('settings-overlay').classList.remove('show');
 }
 
+// ── Info overlay ──
+
+function openInfo() {
+  const versionMeta = document.querySelector('meta[name="version"]');
+  const v = versionMeta ? versionMeta.content : '?';
+  document.getElementById('info-version').textContent = 'v' + v;
+  document.getElementById('info-overlay').classList.add('show');
+  playDiscoverySound();
+}
+
+function closeInfo() {
+  document.getElementById('info-overlay').classList.remove('show');
+}
+
+// Close info overlay on backdrop click
+document.getElementById('info-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeInfo();
+});
+
 // ── Draw count ──
 
 function selectDrawCount(v) {
@@ -1390,7 +1526,7 @@ function updateSetting(key, value) {
 
 // ---- Undo System ----
 function snapshotState() {
-  return JSON.parse(JSON.stringify({ stock, waste, tableau, foundations, selectedCards, gameWon }));
+  return JSON.parse(JSON.stringify({ stock, waste, tableau, foundations, gameWon }));
 }
 
 function pushUndo() {
@@ -1411,7 +1547,6 @@ function performUndo() {
   waste = snapshot.waste;
   tableau = snapshot.tableau;
   foundations = snapshot.foundations;
-  selectedCards = snapshot.selectedCards;
   gameWon = snapshot.gameWon;
   if (!gameWon) {
     document.getElementById('win-overlay').classList.remove('show');
@@ -1503,7 +1638,6 @@ function dealBoard() {
   waste = [];
   tableau = [[], [], [], [], [], [], []];
   foundations = [[], [], [], []];
-  selectedCards = null;
   
   // Deal tableau by popping from end (top of deck)
   for (let i = 0; i < 7; i++) {
@@ -1581,7 +1715,6 @@ function setupNearlyComplete() {
   }
 
   stock = [];
-  selectedCards = null;
   undoStack = [];
   gameWon = false;
   debugGame = true;
@@ -1600,6 +1733,8 @@ let eggParticles = [];
 let eggAnimId = null;
 let eggCanvas = null;
 let eggCtx = null;
+let isInteracting = false;  // true during card drag — egg canvas skips drawing
+let saveTimeout = null;      // debounce timer for saveGame()
 
 const EASTER_EGGS = {
   '01-01': {
@@ -1618,25 +1753,49 @@ const EASTER_EGGS = {
     name: '☘️ St Patrick\'s Day',
     particles: { shape:'shamrock', count:14, colors:['#6bcb77','#8fd99a','#3da55a','#b8e6c0'], size:[12,22], speed:[0.08,0.20], opacity:[0.15,0.26] }
   },
+  '03-28': {
+    name: '🎉 Party',
+    particles: { shape:['balloon','balloon','sparkle'], count:14, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff'], size:[14,26], speed:[0.08,0.20], opacity:[0.16,0.28] }
+  },
   '04-01': {
     name: '🤡 April Fools\' Day',
     particles: { shape:['jester','jester','jester','banana'], count:18, colors:['#ff00ff','#00ff00','#ff6600','#ffff00','#8b00ff','#00ffff'], size:[18,32], speed:[0.08,0.25], opacity:[0.18,0.32] }
   },
+  '05-01': {
+    name: '🔥 Bealtaine',
+    particles: { shape:'flame', count:20, colors:['#ff4500','#ff6347','#ffd700','#ff8c00','#ff0000'], size:[12,32], speed:[0.06,0.18], opacity:[0.22,0.42] }
+  },
+  '05-06': {
+    name: '🎉 Party',
+    particles: { shape:['balloon','balloon','sparkle'], count:14, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff'], size:[14,26], speed:[0.08,0.20], opacity:[0.16,0.28] }
+  },
   '05-10': {
-    name: '💍 Wedding Anniversary',
+    name: '💍 Celebration',
     particles: { shape:['heart','heart','star'], count:16, colors:['#ffd700','#ffec8b','#fff8dc','#ff6b9d','#ffffff'], size:[14,28], speed:[0.08,0.20], opacity:[0.18,0.30] }
+  },
+  '06-16': {
+    name: '📚 Bloomsday',
+    particles: { shape:['book','book','bloom','bloom','sparkle'], count:16, colors:['#e8873a','#f0a050','#d4752b','#2e8b57','#ffb347','#f5deb3'], size:[14,28], speed:[0.06,0.16], opacity:[0.18,0.32] }
   },
   '06-21': {
     name: '☀️ Mid Summer',
     particles: { shape:'sun', count:14, colors:['#ffd93d','#ffb347','#ffaa00','#ffec8b','#ffeaa7'], size:[16,30], speed:[0.05,0.15], opacity:[0.18,0.30] }
   },
   '07-07': {
-    name: '🎂 Birthday Celebration',
+    name: '🎂 Party',
     particles: { shape:['balloon','balloon','balloon','sparkle'], count:16, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff','#ffb347'], size:[16,30], speed:[0.08,0.20], opacity:[0.18,0.30] }
+  },
+  '08-01': {
+    name: '🌾 Lúnasa',
+    particles: { shape:['knot','knot','sickle','sickle'], count:14, colors:['#daa520','#b8860b','#d4a840','#f0e68c','#8fbc5e'], size:[14,28], speed:[0.05,0.15], opacity:[0.16,0.30] }
   },
   '10-31': {
     name: '🎃 Halloween',
     particles: { shape:['skull','skull','witch'], count:16, colors:['#f0ead6'], size:[18,34], speed:[0.07,0.18], opacity:[0.18,0.32] }
+  },
+  '11-29': {
+    name: '🎉 Party',
+    particles: { shape:['balloon','balloon','sparkle'], count:14, colors:['#ff6b9d','#ffd93d','#6bcb77','#4d96ff'], size:[14,26], speed:[0.08,0.20], opacity:[0.16,0.28] }
   },
   '12-21--12-22': {
     name: '❄️ Mid Winter',
@@ -1675,6 +1834,7 @@ function checkEasterEgg() {
       return;
     }
   }
+  deactivateEgg();
 }
 
 function initEggCanvas() {
@@ -1686,7 +1846,9 @@ function initEggCanvas() {
 
 function resizeEggCanvas() {
   if (!eggCanvas) return;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // Cap DPR to 1 on touch devices to reduce GPU fill-rate pressure
+  const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 2);
   const w = window.innerWidth;
   const h = window.innerHeight;
   eggCanvas.width = w * dpr;
@@ -1738,6 +1900,33 @@ function drawSparkle(ctx, p) {
   }
   ctx.closePath();
   ctx.fill();
+  ctx.restore();
+}
+
+function drawFlame(ctx, p) {
+  const s = p.size;
+  const lean = Math.sin(p.x * 0.03 + p.y * 0.02) * s * 0.3;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  // All teardrops share the same base at y = s, differ only in width & height
+  const flameLayer = (width, heightFrac, alpha, color) => {
+    ctx.globalAlpha = p.opacity * alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    const h = s * heightFrac;
+    const tipX = lean * (1 - heightFrac) * 0.6;
+    ctx.moveTo(tipX, -h);
+    ctx.bezierCurveTo(width + lean, -h * 0.35, width * 0.8, s * 0.2, 0, s);
+    ctx.bezierCurveTo(-width * 0.8, s * 0.2, -width + lean, -h * 0.35, tipX, -h);
+    ctx.closePath();
+    ctx.fill();
+  };
+  // Outer — full height, widest
+  flameLayer(s * 0.65, 1.0, 1.0, p.color);
+  // Middle — 80% height, narrower
+  flameLayer(s * 0.42, 0.8, 0.85, '#ffb347');
+  // Inner core — 55% height, narrowest, sits at base
+  flameLayer(s * 0.22, 0.55, 0.9, '#ffec8b');
   ctx.restore();
 }
 
@@ -2238,13 +2427,221 @@ function drawSnowflake(ctx, p) {
   ctx.restore();
 }
 
-const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, pumpkin: drawPumpkin, skull: drawSkull, witch: drawWitch, banana: drawBanana, jester: drawJester, cross: drawCross, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake };
+function drawBook(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // Left page
+  ctx.fillStyle = '#fdfaf0';
+  ctx.globalAlpha = p.opacity * 0.95;
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.5, -s * 0.6);
+  ctx.lineTo(0, -s * 0.55);
+  ctx.lineTo(0, s * 0.55);
+  ctx.lineTo(-s * 0.5, s * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  // Right page
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.55);
+  ctx.lineTo(s * 0.5, -s * 0.6);
+  ctx.lineTo(s * 0.5, s * 0.6);
+  ctx.lineTo(0, s * 0.55);
+  ctx.closePath();
+  ctx.fill();
+  // Covers (peeking behind pages)
+  ctx.fillStyle = p.color;
+  ctx.globalAlpha = p.opacity * 0.6;
+  ctx.fillRect(-s * 0.54, -s * 0.63, s * 0.08, s * 1.26);
+  ctx.fillRect(s * 0.46, -s * 0.63, s * 0.08, s * 1.26);
+  // Spine shadow at centre
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = Math.max(1, s * 0.04);
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.55);
+  ctx.lineTo(0, s * 0.55);
+  ctx.stroke();
+  // Page text lines — left
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = Math.max(0.5, s * 0.015);
+  for (let i = 0; i < 4; i++) {
+    const ly = -s * 0.3 + i * s * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.35, ly);
+    ctx.lineTo(-s * 0.06, ly);
+    ctx.stroke();
+  }
+  // Page text lines — right
+  for (let i = 0; i < 4; i++) {
+    const ly = -s * 0.3 + i * s * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(s * 0.06, ly);
+    ctx.lineTo(s * 0.35, ly);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawBloom(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // Stalk
+  ctx.strokeStyle = '#5a8a3c';
+  ctx.lineWidth = Math.max(1, s * 0.1);
+  ctx.globalAlpha = p.opacity * 0.6;
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.15);
+  ctx.lineTo(0, s * 0.8);
+  ctx.stroke();
+  // 5 orange petals — bigger
+  ctx.globalAlpha = p.opacity * 0.7;
+  for (let i = 0; i < 5; i++) {
+    const a = (i * Math.PI * 2) / 5 - Math.PI / 2;
+    const px = Math.cos(a) * s * 0.38;
+    const py = Math.sin(a) * s * 0.3 - s * 0.08;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.ellipse(px, py, s * 0.28, s * 0.4, a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Centre
+  ctx.fillStyle = '#ffd700';
+  ctx.globalAlpha = p.opacity * 0.8;
+  ctx.beginPath();
+  ctx.arc(0, -s * 0.08, s * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawKnot(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.strokeStyle = p.color;
+  ctx.globalAlpha = p.opacity;
+  ctx.lineWidth = Math.max(1.5, s * 0.15);
+  ctx.lineCap = 'round';
+  // Triquetra — three interlocking arcs
+  for (let i = 0; i < 3; i++) {
+    const a = (i * Math.PI * 2) / 3 - Math.PI / 2;
+    const cx = Math.cos(a) * s * 0.2;
+    const cy = Math.sin(a) * s * 0.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, s * 0.45, a + Math.PI * 0.3, a + Math.PI * 1.7);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawRaven(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.globalAlpha = p.opacity * 0.85;
+  ctx.beginPath();
+  // Body
+  ctx.ellipse(0, 0, s * 0.25, s * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Head
+  ctx.beginPath();
+  ctx.arc(0, -s * 0.38, s * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  // Beak
+  ctx.beginPath();
+  ctx.moveTo(s * 0.08, -s * 0.42);
+  ctx.lineTo(s * 0.28, -s * 0.38);
+  ctx.lineTo(s * 0.08, -s * 0.33);
+  ctx.closePath();
+  ctx.fill();
+  // Left wing
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.15, -s * 0.05);
+  ctx.quadraticCurveTo(-s * 0.55, -s * 0.15, -s * 0.5, s * 0.1);
+  ctx.quadraticCurveTo(-s * 0.3, s * 0.05, -s * 0.1, s * 0.05);
+  ctx.fill();
+  // Right wing
+  ctx.beginPath();
+  ctx.moveTo(s * 0.15, -s * 0.05);
+  ctx.quadraticCurveTo(s * 0.55, -s * 0.15, s * 0.5, s * 0.1);
+  ctx.quadraticCurveTo(s * 0.3, s * 0.05, s * 0.1, s * 0.05);
+  ctx.fill();
+  // Tail
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.08, s * 0.4);
+  ctx.lineTo(s * 0.08, s * 0.4);
+  ctx.lineTo(0, s * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawSickle(ctx, p) {
+  const s = p.size;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  // Wooden handle — tapered
+  ctx.fillStyle = '#6b3a2a';
+  ctx.globalAlpha = p.opacity;
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.06, s * 0.5);
+  ctx.lineTo(s * 0.06, s * 0.5);
+  ctx.lineTo(s * 0.04, -s * 0.05);
+  ctx.lineTo(-s * 0.04, -s * 0.08);
+  ctx.closePath();
+  ctx.fill();
+  // Handle grip lines
+  ctx.strokeStyle = '#4a2518';
+  ctx.lineWidth = Math.max(0.5, s * 0.03);
+  for (let i = 0; i < 3; i++) {
+    const gy = s * 0.15 + i * s * 0.12;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.05, gy);
+    ctx.lineTo(s * 0.05, gy);
+    ctx.stroke();
+  }
+  // Blade — crescent curve from handle tip
+  ctx.fillStyle = '#d4a840';
+  ctx.globalAlpha = p.opacity * 0.9;
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.05);                          // base at handle top
+  ctx.quadraticCurveTo(s * 0.25, -s * 0.3, s * 0.4, -s * 0.55);   // outer curve up
+  ctx.quadraticCurveTo(s * 0.2, -s * 0.7, -s * 0.05, -s * 0.6);   // tip curling back
+  ctx.quadraticCurveTo(-s * 0.15, -s * 0.4, -s * 0.08, -s * 0.05); // inner curve down
+  ctx.closePath();
+  ctx.fill();
+  // Blade bevel highlight
+  ctx.strokeStyle = '#f0d878';
+  ctx.lineWidth = Math.max(0.5, s * 0.025);
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.05);
+  ctx.quadraticCurveTo(s * 0.2, -s * 0.28, s * 0.35, -s * 0.5);
+  ctx.stroke();
+  // Blade inner shadow
+  ctx.strokeStyle = '#b89030';
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.08, -s * 0.05);
+  ctx.quadraticCurveTo(-s * 0.12, -s * 0.35, -s * 0.05, -s * 0.55);
+  ctx.stroke();
+  ctx.restore();
+}
+
+const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, burst: drawBurst, sun: drawSun, balloon: drawBalloon, pumpkin: drawPumpkin, skull: drawSkull, witch: drawWitch, banana: drawBanana, jester: drawJester, cross: drawCross, santa: drawSanta, tree: drawTree, heart: drawHeart, shamrock: drawShamrock, snowflake: drawSnowflake, flame: drawFlame, book: drawBook, bloom: drawBloom, knot: drawKnot, raven: drawRaven, sickle: drawSickle };
 
 function animateEgg() {
   if (!eggCtx || !eggCanvas) return;
+  if (document.hidden) { eggAnimId = requestAnimationFrame(animateEgg); return; }
+  // Skip heavy canvas drawing while the user is dragging a card —
+  // this prevents GPU contention that causes sluggish card movement.
+  if (isInteracting) { eggAnimId = requestAnimationFrame(animateEgg); return; }
   const w = window.innerWidth;
   const h = window.innerHeight;
-  if (document.hidden) { eggAnimId = requestAnimationFrame(animateEgg); return; }
   eggCtx.clearRect(0, 0, w, h);
   for (const p of eggParticles) {
     p.x += p.vx + Math.sin(p.phase + performance.now() * 0.0005) * 0.15;
@@ -2299,6 +2696,7 @@ function deactivateEgg() {
 }
 
 let debugHoldTimer = null;
+let titleHoldTimer = null;
 
 function startDebugHold(e) {
   if (e && e.type === 'touchstart') e.preventDefault();
@@ -2318,6 +2716,53 @@ function cancelDebugHold() {
   }
   const btn = document.getElementById('debug-btn');
   if (btn) btn.classList.remove('holding');
+}
+
+function startTitleHold(e) {
+  if (e && e.type === 'touchstart') e.preventDefault();
+  const title = document.getElementById('game-title');
+  if (!title) return;
+  title.classList.add('holding');
+  titleHoldTimer = setTimeout(() => {
+    title.classList.remove('holding');
+    revealVersion();
+  }, 1000);
+}
+
+function cancelTitleHold() {
+  if (titleHoldTimer) {
+    clearTimeout(titleHoldTimer);
+    titleHoldTimer = null;
+  }
+  const title = document.getElementById('game-title');
+  if (title) title.classList.remove('holding');
+}
+
+function revealVersion() {
+  openInfo();
+}
+
+function playDiscoverySound() {
+  try {
+    const ctx = getAudioCtx();
+    const settings = loadSettings();
+    const step = settings.volume || 0;
+    const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 20 : 1;
+    const masterVol = step === 0 ? 0 : Math.pow(10, (step - 3) * 0.10) * mobile;
+    // Soft ascending chime
+    [523, 659, 784, 1047].forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const t = ctx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(0.15 * masterVol, t);
+      gain.gain.exponentialRampToValueAtTime(0.005, t + 0.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.55);
+    });
+  } catch (e) {}
 }
 
 function toggleDebug() {
@@ -2377,10 +2822,23 @@ function renderDebugPanel() {
     }
   }
   
-  html += '<h3>🏆 Foundations</h3>';
-  for (let f = 0; f < 4; f++) {
-    const top = foundations[f].length > 0 ? rankStr(foundations[f][foundations[f].length - 1].rank) + suitSymbol(foundations[f][foundations[f].length - 1].suit) : '—';
-    html += '<div class="debug-card black"><span class="debug-idx">' + suitSymbol(f) + '</span>' + foundations[f].length + '/13 — ' + top + '</div>';
+  html += '<h3>🂠 Unseen Tableau</h3>';
+  const unseen = [];
+  for (let t = 0; t < 7; t++) {
+    for (let i = 0; i < tableau[t].length; i++) {
+      if (!tableau[t][i].faceUp) {
+        unseen.push({card: tableau[t][i], pile: t, idx: i});
+      }
+    }
+  }
+  if (unseen.length === 0) {
+    html += '<div class="debug-empty">none</div>';
+  } else {
+    unseen.sort((a, b) => a.card.suit !== b.card.suit ? a.card.suit - b.card.suit : a.card.rank - b.card.rank);
+    for (const {card, pile, idx} of unseen) {
+      const col = cardColor(card.suit);
+      html += '<div class="debug-card ' + col + '"><span class="debug-idx">T' + pile + '#' + idx + '</span>' + rankStr(card.rank) + suitSymbol(card.suit) + '</div>';
+    }
   }
   
   // Stalemate / auto-complete status
@@ -2473,7 +2931,6 @@ function ensureValidState() {
     waste = [];
     tableau = [[], [], [], [], [], [], []];
     foundations = [[], [], [], []];
-    selectedCards = null;
   
     for (let i = 0; i < 7; i++) {
       for (let j = 0; j <= i; j++) {
@@ -2512,6 +2969,7 @@ function newGame() {
   saveGame();
   playSound('deal');
   trackEvent('new-game');
+  checkEasterEgg();
 }
 
 function suitSymbol(s) {
@@ -2580,7 +3038,6 @@ function drawStock() {
       waste.push(card);
     }
   }
-  selectedCards = null;
   render();
   playSound('draw');
 }
@@ -2641,8 +3098,8 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
   }
   
   if (pileType === 'tableau') {
-    // Check if it's a single card going to foundation
-    if (cardIdx === pile.length - 1) {
+    // Check if it's a single card going to foundation (only if auto-move enabled)
+    if (loadSettings().autoMoveWaste && cardIdx === pile.length - 1) {
       for (let f = 0; f < 4; f++) {
         if (canPlaceOnFoundation(card, foundations[f], f)) {
           pushUndo();
@@ -2657,23 +3114,6 @@ function clickCard(e, pileType, pileIdx, cardIdx) {
         }
       }
     }
-    
-    // Toggle selection for tableau-to-tableau moves
-    if (selectedCards && selectedCards.pile === 'tableau' && 
-        selectedCards.index === pileIdx && selectedCards.cardIndex === cardIdx) {
-      // Deselect
-      selectedCards = null;
-      render();
-      return;
-    }
-    
-    // Can only select contiguous face-up cards from cardIdx onwards
-    for (let i = cardIdx; i < pile.length; i++) {
-      if (!pile[i].faceUp) return;
-    }
-    
-    selectedCards = { pile: 'tableau', index: pileIdx, cardIndex: cardIdx };
-    render();
   }
 }
 
@@ -2760,6 +3200,7 @@ function startDrag(e) {
     
     if (!isDragging) {
       isDragging = true;
+      isInteracting = true;  // pause egg canvas while dragging
       // Create drag ghost on first real movement
       ghost = document.createElement('div');
       ghost.className = 'drag-ghost';
@@ -2783,8 +3224,7 @@ function startDrag(e) {
       cardsToDrag.forEach((c, i) => {
         const mini = createCardElement(c, cardIdx + i);
         mini.style.position = 'absolute';
-        mini.style.top = (i * ghostStack) + 'px';
-        mini.style.left = '0';
+        mini.style.transform = 'translateY(' + (i * ghostStack) + 'px)';
         mini.style.pointerEvents = 'none';
         ghost.appendChild(mini);
       });
@@ -2813,7 +3253,9 @@ function startDrag(e) {
     document.removeEventListener('mouseup', upHandler);
     document.removeEventListener('touchmove', moveHandler);
     document.removeEventListener('touchend', upHandler);
+    document.removeEventListener('touchcancel', cancelHandler);
     if (ghost) ghost.remove();
+    isInteracting = false;  // resume egg canvas after drag ends
     
     document.querySelectorAll('.pile').forEach(el => el.classList.remove('drag-over'));
     
@@ -2853,10 +3295,19 @@ function startDrag(e) {
     checkWin();
   };
   
+  const cancelHandler = () => {
+    if (ghost) ghost.remove();
+    isInteracting = false;
+    document.querySelectorAll('.pile').forEach(el => el.classList.remove('drag-over'));
+    draggedCards = null;
+    isDragging = false;
+  };
+
   document.addEventListener('mousemove', moveHandler);
   document.addEventListener('mouseup', upHandler);
   document.addEventListener('touchmove', moveHandler, {passive: false});
   document.addEventListener('touchend', upHandler);
+  document.addEventListener('touchcancel', cancelHandler);
 }
 
 document.addEventListener('mousedown', startDrag);
@@ -2910,6 +3361,8 @@ function isValidDrop(pileEl) {
   if (t === 'tableau') {
     return canPlaceOnTableau(sourceCard, tableau[i]);
   } else if (t === 'foundation' && draggedCards.cards.length === 1) {
+    // Aces are accepted on any foundation pile — they'll be redirected on drop
+    if (sourceCard.rank === 0) return true;
     return canPlaceOnFoundation(sourceCard, foundations[i], i);
   }
   return false;
@@ -2931,15 +3384,17 @@ function performDrop(srcType, srcIdx, cardIdx, destType, destIdx) {
     flipTopTableau();
     playSound('place');
   } else if (destType === 'foundation' && cards.length === 1) {
-    if (!canPlaceOnFoundation(cards[0], foundations[destIdx], destIdx)) {
+    // Aces always go to the foundation matching their suit, regardless of drop target
+    const actualIdx = cards[0].rank === 0 ? cards[0].suit : destIdx;
+    if (!canPlaceOnFoundation(cards[0], foundations[actualIdx], actualIdx)) {
       srcPile.push(...cards);
       playSound('invalid');
       return;
     }
-    destPile.push(cards[0]);
+    foundations[actualIdx].push(cards[0]);
     flipTopTableau();
     playSound('foundation');
-    spawnFoundationParticle(destIdx);
+    spawnFoundationParticle(actualIdx);
   } else {
     srcPile.push(...cards);
     playSound('invalid');
@@ -3052,8 +3507,6 @@ function render() {
     // Game already won — keep overlay up during re-renders
     document.getElementById('win-overlay').classList.add('show');
   }
-  // Don't clear selectedCards here - preserve selection for highlight
-
   // Read responsive card dimensions from CSS
   const style = getComputedStyle(document.documentElement);
   const cardW = parseFloat(style.getPropertyValue('--card-width'));
@@ -3061,33 +3514,57 @@ function render() {
   const stackOffset = parseFloat(style.getPropertyValue('--stack-offset'));
   const fanOffset = parseFloat(style.getPropertyValue('--fan-offset'));
   
-  // Stock
+  // Stock — incremental: avoid innerHTML to reduce parse/layout cost
   const stockEl = document.getElementById('stock');
   stockEl.dataset.pileType = 'stock';
   stockEl.dataset.pileIndex = '0';
-  stockEl.innerHTML = '<div class="empty-placeholder"><svg viewBox="0 0 60 72" width="32" height="38" fill="none" stroke="currentColor"><circle cx="30" cy="63" r="48" stroke-width="2"/><path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="currentColor" stroke="none"/><circle cx="30" cy="24" r="3" fill="currentColor" stroke="none"/><path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="currentColor" stroke="none"/><path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="currentColor" stroke="none"/><ellipse cx="30" cy="42" rx="16" ry="18" fill="currentColor" stroke="none" opacity="0.4"/><ellipse cx="24" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><ellipse cx="36" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><path d="M27 48 Q30 44 33 48" stroke-width="1.2"/><path d="M16 54 L30 62 L44 54" stroke-width="2"/></svg></div>';
+  // Ensure empty-placeholder exists (create once)
+  let stockPH = stockEl.querySelector('.empty-placeholder');
+  if (!stockPH) {
+    stockPH = document.createElement('div');
+    stockPH.className = 'empty-placeholder';
+    stockPH.innerHTML = '<svg viewBox="0 0 60 72" width="32" height="38" fill="none" stroke="currentColor"><circle cx="30" cy="63" r="48" stroke-width="2"/><path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="currentColor" stroke="none"/><circle cx="30" cy="24" r="3" fill="currentColor" stroke="none"/><path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="currentColor" stroke="none"/><path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="currentColor" stroke="none"/><ellipse cx="30" cy="42" rx="16" ry="18" fill="currentColor" stroke="none" opacity="0.4"/><ellipse cx="24" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><ellipse cx="36" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><path d="M27 48 Q30 44 33 48" stroke-width="1.2"/><path d="M16 54 L30 62 L44 54" stroke-width="2"/></svg>';
+    stockEl.appendChild(stockPH);
+  }
+  // Remove any existing card, then add if stock has cards
+  const oldStockCard = stockEl.querySelector('.card');
+  if (oldStockCard) oldStockCard.remove();
   if (stock.length > 0) {
+    stockPH.style.display = 'none';
     const cardEl = createCardElement(stock[stock.length - 1], stock.length - 1);
     cardEl.style.position = 'relative';
     stockEl.appendChild(cardEl);
+  } else {
+    stockPH.style.display = '';
   }
   
-  // Waste
+  // Waste — incremental: avoid innerHTML, use transform for fanning
   const wasteEl = document.getElementById('waste');
   wasteEl.dataset.pileType = 'waste';
   wasteEl.dataset.pileIndex = '0';
-  wasteEl.innerHTML = '<div class="empty-placeholder"></div>';
+  let wastePH = wasteEl.querySelector('.empty-placeholder');
+  if (!wastePH) {
+    wastePH = document.createElement('div');
+    wastePH.className = 'empty-placeholder';
+    wasteEl.appendChild(wastePH);
+  }
+  // Remove old cards
+  wasteEl.querySelectorAll('.card').forEach(c => c.remove());
   if (waste.length > 0) {
+    wastePH.style.display = 'none';
     const drawCount = loadSettings().drawCount || 1;
     const showCount = Math.min(drawCount, waste.length);
     for (let w = waste.length - showCount; w < waste.length; w++) {
       const cardEl = createCardElement(waste[w], w);
       cardEl.style.position = 'absolute';
-      cardEl.style.left = ((w - (waste.length - showCount)) * fanOffset) + 'px';
+      cardEl.style.transform = 'translateX(' + ((w - (waste.length - showCount)) * fanOffset) + 'px)';
       cardEl.style.zIndex = w;
       wasteEl.appendChild(cardEl);
     }
     wasteEl.style.minWidth = (cardW + (showCount - 1) * fanOffset) + 'px';
+  } else {
+    wastePH.style.display = '';
+    wasteEl.style.minWidth = '';
   }
   
   // Foundations
@@ -3126,14 +3603,10 @@ function render() {
     } else {
       tableau[t].forEach((card, ci) => {
         const cardEl = createCardElement(card, ci);
-        cardEl.style.top = (ci * stackOffset) + 'px';
+        cardEl.style.transform = 'translateY(' + (ci * stackOffset) + 'px)';
         cardEl.style.zIndex = ci;
         if (flippedCards.some(fc => fc.t === t && fc.ci === ci)) {
           cardEl.classList.add('card-flip');
-        }
-        if (selectedCards && selectedCards.pile === 'tableau' && 
-            selectedCards.index === t && ci >= selectedCards.cardIndex) {
-          cardEl.classList.add('selected');
         }
         pileEl.appendChild(cardEl);
       });
@@ -3471,63 +3944,6 @@ function spawnSparkles() {
   }
 }
 
-// Click on tableau empty space to place selected cards via click-to-move
-document.addEventListener('click', (e) => {
-  if (!selectedCards || isDragging) return;
-  
-  // Ignore if we clicked on a card (those are handled by clickCard)
-  if (e.target.closest('.card')) return;
-  
-  const pileEl = e.target.closest('.pile.tableau-pile');
-  if (!pileEl) return;
-  
-  const targetIdx = parseInt(pileEl.dataset.pileIndex);
-  if (selectedCards.pile !== 'tableau') return;
-  
-  const srcIdx = selectedCards.index;
-  const cardIdx = selectedCards.cardIndex;
-  
-  if (srcIdx === targetIdx) {
-    selectedCards = null;
-    render();
-    return;
-  }
-  
-  const srcPile = tableau[srcIdx];
-  const destPile = tableau[targetIdx];
-  const cards = srcPile.slice(cardIdx);
-  
-  if (destPile.length === 0) {
-    if (cards[0].rank === 12) { // King
-      pushUndo();
-      srcPile.splice(cardIdx);
-      destPile.push(...cards);
-      flipTopTableau();
-      selectedCards = null;
-      render();
-      checkWin();
-      playSound('place');
-    } else {
-      showMessage('Only a King can start an empty tableau pile');
-      playSound('invalid');
-    }
-  } else {
-    if (canPlaceOnTableau(cards[0], destPile)) {
-      pushUndo();
-      srcPile.splice(cardIdx);
-      destPile.push(...cards);
-      flipTopTableau();
-      selectedCards = null;
-      render();
-      checkWin();
-      playSound('place');
-    } else {
-      showMessage('Invalid move');
-      playSound('invalid');
-    }
-  }
-});
-
 // Click on stock to draw/recycle
 document.getElementById('stock').addEventListener('click', (e) => {
   drawStock();
@@ -3538,9 +3954,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (document.getElementById('settings-overlay').classList.contains('show')) {
       closeSettings();
-    } else {
-      selectedCards = null;
-      render();
     }
   }
 });
@@ -3713,11 +4126,12 @@ if (foundations.every(f => f.length === 13)) {
 }
 
 // Persist game state when page is hidden/suspended (critical for mobile)
+// Use flushSaveGame() to skip the debounce — timeout won't fire on suspended pages
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) saveGame();
+  if (document.hidden) flushSaveGame();
 });
 window.addEventListener('pagehide', () => {
-  saveGame();
+  flushSaveGame();
 });
 </script>
 </body>
