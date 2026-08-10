@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.41">
-<meta name="commit" content="a9d4c64">
+<meta name="version" content="v1.42">
+<meta name="commit" content="4e1a680">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -99,7 +99,8 @@
     position: absolute;
     cursor: pointer;
     box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-    transition: box-shadow 0.2s, transform 0.2s, top 0.2s ease, left 0.2s ease;
+    transition: box-shadow 0.2s, transform 0.2s;
+    will-change: transform;
     font-family: Georgia, 'Times New Roman', serif;
     font-size: var(--card-font);
     font-weight: 700;
@@ -160,8 +161,8 @@
     animation: card-reveal 0.35s ease-out;
   }
   @keyframes card-reveal {
-    0% { transform: rotateY(90deg) scale(0.85); }
-    100% { transform: rotateY(0deg) scale(1); }
+    0% { transform: translateY(var(--flip-y, 0px)) rotateY(90deg) scale(0.85); }
+    100% { transform: translateY(var(--flip-y, 0px)) rotateY(0deg) scale(1); }
   }
   @keyframes pulse-gold-btn {
     0%, 100% { box-shadow: 0 0 0 1px #ffd700, 0 0 10px rgba(255,215,0,0.4); }
@@ -298,6 +299,11 @@
     pointer-events: none;
     border-radius: 8px;
     box-shadow: 2px 4px 20px rgba(0,0,0,0.5);
+  }
+  /* Disable transitions on drag-ghost cards so they track the pointer instantly */
+  .drag-ghost .card {
+    transition: none;
+    will-change: auto;
   }
   #egg-canvas {
     position: fixed;
@@ -1076,10 +1082,26 @@ function trackEvent(path) {
 }
 
 function saveGame() {
-  try {
-    const state = { stock, waste, tableau, foundations };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-  } catch (e) { /* quota or other error */ }
+  // Debounce: flush at most once per 400ms to avoid blocking the main thread
+  if (saveTimeout) return;
+  saveTimeout = setTimeout(() => {
+    saveTimeout = null;
+    try {
+      const state = { stock, waste, tableau, foundations };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) { /* quota or other error */ }
+  }, 400);
+}
+
+function flushSaveGame() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+    try {
+      const state = { stock, waste, tableau, foundations };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) { /* quota or other error */ }
+  }
 }
 
 function loadGame() {
@@ -1106,6 +1128,7 @@ function loadGame() {
 }
 
 function clearSavedGame() {
+  if (saveTimeout) { clearTimeout(saveTimeout); saveTimeout = null; }
   localStorage.removeItem(SAVE_KEY);
 }
 
@@ -1710,6 +1733,8 @@ let eggParticles = [];
 let eggAnimId = null;
 let eggCanvas = null;
 let eggCtx = null;
+let isInteracting = false;  // true during card drag — egg canvas skips drawing
+let saveTimeout = null;      // debounce timer for saveGame()
 
 const EASTER_EGGS = {
   '01-01': {
@@ -1821,7 +1846,9 @@ function initEggCanvas() {
 
 function resizeEggCanvas() {
   if (!eggCanvas) return;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // Cap DPR to 1 on touch devices to reduce GPU fill-rate pressure
+  const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 2);
   const w = window.innerWidth;
   const h = window.innerHeight;
   eggCanvas.width = w * dpr;
@@ -2609,9 +2636,12 @@ const DRAW_FNS = { circle: drawCircle, sparkle: drawSparkle, star: drawStar, bur
 
 function animateEgg() {
   if (!eggCtx || !eggCanvas) return;
+  if (document.hidden) { eggAnimId = requestAnimationFrame(animateEgg); return; }
+  // Skip heavy canvas drawing while the user is dragging a card —
+  // this prevents GPU contention that causes sluggish card movement.
+  if (isInteracting) { eggAnimId = requestAnimationFrame(animateEgg); return; }
   const w = window.innerWidth;
   const h = window.innerHeight;
-  if (document.hidden) { eggAnimId = requestAnimationFrame(animateEgg); return; }
   eggCtx.clearRect(0, 0, w, h);
   for (const p of eggParticles) {
     p.x += p.vx + Math.sin(p.phase + performance.now() * 0.0005) * 0.15;
@@ -3170,6 +3200,7 @@ function startDrag(e) {
     
     if (!isDragging) {
       isDragging = true;
+      isInteracting = true;  // pause egg canvas while dragging
       // Create drag ghost on first real movement
       ghost = document.createElement('div');
       ghost.className = 'drag-ghost';
@@ -3193,8 +3224,7 @@ function startDrag(e) {
       cardsToDrag.forEach((c, i) => {
         const mini = createCardElement(c, cardIdx + i);
         mini.style.position = 'absolute';
-        mini.style.top = (i * ghostStack) + 'px';
-        mini.style.left = '0';
+        mini.style.transform = 'translateY(' + (i * ghostStack) + 'px)';
         mini.style.pointerEvents = 'none';
         ghost.appendChild(mini);
       });
@@ -3223,7 +3253,9 @@ function startDrag(e) {
     document.removeEventListener('mouseup', upHandler);
     document.removeEventListener('touchmove', moveHandler);
     document.removeEventListener('touchend', upHandler);
+    document.removeEventListener('touchcancel', cancelHandler);
     if (ghost) ghost.remove();
+    isInteracting = false;  // resume egg canvas after drag ends
     
     document.querySelectorAll('.pile').forEach(el => el.classList.remove('drag-over'));
     
@@ -3263,10 +3295,19 @@ function startDrag(e) {
     checkWin();
   };
   
+  const cancelHandler = () => {
+    if (ghost) ghost.remove();
+    isInteracting = false;
+    document.querySelectorAll('.pile').forEach(el => el.classList.remove('drag-over'));
+    draggedCards = null;
+    isDragging = false;
+  };
+
   document.addEventListener('mousemove', moveHandler);
   document.addEventListener('mouseup', upHandler);
   document.addEventListener('touchmove', moveHandler, {passive: false});
   document.addEventListener('touchend', upHandler);
+  document.addEventListener('touchcancel', cancelHandler);
 }
 
 document.addEventListener('mousedown', startDrag);
@@ -3473,33 +3514,57 @@ function render() {
   const stackOffset = parseFloat(style.getPropertyValue('--stack-offset'));
   const fanOffset = parseFloat(style.getPropertyValue('--fan-offset'));
   
-  // Stock
+  // Stock — incremental: avoid innerHTML to reduce parse/layout cost
   const stockEl = document.getElementById('stock');
   stockEl.dataset.pileType = 'stock';
   stockEl.dataset.pileIndex = '0';
-  stockEl.innerHTML = '<div class="empty-placeholder"><svg viewBox="0 0 60 72" width="32" height="38" fill="none" stroke="currentColor"><circle cx="30" cy="63" r="48" stroke-width="2"/><path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="currentColor" stroke="none"/><circle cx="30" cy="24" r="3" fill="currentColor" stroke="none"/><path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="currentColor" stroke="none"/><path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="currentColor" stroke="none"/><ellipse cx="30" cy="42" rx="16" ry="18" fill="currentColor" stroke="none" opacity="0.4"/><ellipse cx="24" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><ellipse cx="36" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><path d="M27 48 Q30 44 33 48" stroke-width="1.2"/><path d="M16 54 L30 62 L44 54" stroke-width="2"/></svg></div>';
+  // Ensure empty-placeholder exists (create once)
+  let stockPH = stockEl.querySelector('.empty-placeholder');
+  if (!stockPH) {
+    stockPH = document.createElement('div');
+    stockPH.className = 'empty-placeholder';
+    stockPH.innerHTML = '<svg viewBox="0 0 60 72" width="32" height="38" fill="none" stroke="currentColor"><circle cx="30" cy="63" r="48" stroke-width="2"/><path d="M8 34 L14 22 L30 24 L46 22 L52 34 Q46 28 30 28 Q14 28 8 34Z" fill="currentColor" stroke="none"/><circle cx="30" cy="24" r="3" fill="currentColor" stroke="none"/><path d="M10 34 L10 42 L18 38 Q20 34 24 34" fill="currentColor" stroke="none"/><path d="M50 34 L50 42 L42 38 Q40 34 36 34" fill="currentColor" stroke="none"/><ellipse cx="30" cy="42" rx="16" ry="18" fill="currentColor" stroke="none" opacity="0.4"/><ellipse cx="24" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><ellipse cx="36" cy="40" rx="2.5" ry="3" fill="currentColor" stroke="none"/><path d="M27 48 Q30 44 33 48" stroke-width="1.2"/><path d="M16 54 L30 62 L44 54" stroke-width="2"/></svg>';
+    stockEl.appendChild(stockPH);
+  }
+  // Remove any existing card, then add if stock has cards
+  const oldStockCard = stockEl.querySelector('.card');
+  if (oldStockCard) oldStockCard.remove();
   if (stock.length > 0) {
+    stockPH.style.display = 'none';
     const cardEl = createCardElement(stock[stock.length - 1], stock.length - 1);
     cardEl.style.position = 'relative';
     stockEl.appendChild(cardEl);
+  } else {
+    stockPH.style.display = '';
   }
   
-  // Waste
+  // Waste — incremental: avoid innerHTML, use transform for fanning
   const wasteEl = document.getElementById('waste');
   wasteEl.dataset.pileType = 'waste';
   wasteEl.dataset.pileIndex = '0';
-  wasteEl.innerHTML = '<div class="empty-placeholder"></div>';
+  let wastePH = wasteEl.querySelector('.empty-placeholder');
+  if (!wastePH) {
+    wastePH = document.createElement('div');
+    wastePH.className = 'empty-placeholder';
+    wasteEl.appendChild(wastePH);
+  }
+  // Remove old cards
+  wasteEl.querySelectorAll('.card').forEach(c => c.remove());
   if (waste.length > 0) {
+    wastePH.style.display = 'none';
     const drawCount = loadSettings().drawCount || 1;
     const showCount = Math.min(drawCount, waste.length);
     for (let w = waste.length - showCount; w < waste.length; w++) {
       const cardEl = createCardElement(waste[w], w);
       cardEl.style.position = 'absolute';
-      cardEl.style.left = ((w - (waste.length - showCount)) * fanOffset) + 'px';
+      cardEl.style.transform = 'translateX(' + ((w - (waste.length - showCount)) * fanOffset) + 'px)';
       cardEl.style.zIndex = w;
       wasteEl.appendChild(cardEl);
     }
     wasteEl.style.minWidth = (cardW + (showCount - 1) * fanOffset) + 'px';
+  } else {
+    wastePH.style.display = '';
+    wasteEl.style.minWidth = '';
   }
   
   // Foundations
@@ -3538,9 +3603,12 @@ function render() {
     } else {
       tableau[t].forEach((card, ci) => {
         const cardEl = createCardElement(card, ci);
-        cardEl.style.top = (ci * stackOffset) + 'px';
+        cardEl.style.transform = 'translateY(' + (ci * stackOffset) + 'px)';
         cardEl.style.zIndex = ci;
         if (flippedCards.some(fc => fc.t === t && fc.ci === ci)) {
+          // Pass the translateY offset into the flip animation so the card
+          // stays in position during the reveal instead of dropping from (0,0).
+          cardEl.style.setProperty('--flip-y', (ci * stackOffset) + 'px');
           cardEl.classList.add('card-flip');
         }
         pileEl.appendChild(cardEl);
@@ -4061,11 +4129,12 @@ if (foundations.every(f => f.length === 13)) {
 }
 
 // Persist game state when page is hidden/suspended (critical for mobile)
+// Use flushSaveGame() to skip the debounce — timeout won't fire on suspended pages
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) saveGame();
+  if (document.hidden) flushSaveGame();
 });
 window.addEventListener('pagehide', () => {
-  saveGame();
+  flushSaveGame();
 });
 </script>
 </body>
