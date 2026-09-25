@@ -13,7 +13,11 @@ Usage:
 Notes:
   - Calls GoatCounter API v0 stats endpoints per https://www.goatcounter.com/api.html
   - API token is read from the GOATCOUNTER_API_TOKEN environment variable.
-    The script auto-loads .env.sh from the project root if present.
+    The script auto-loads .env.sh from the project root if present, but a value
+    already set in the environment wins over .env.sh (a warning is printed when
+    the two disagree — this is a common cause of confusing 401/404 responses).
+  - Transient API failures (connection errors, 429, 5xx, and non-JSON replies such
+    as GoatCounter's HTML error page) are retried with exponential backoff.
   - Produces a timestamped directory under reports/:
       reports/<timestamp>_<start>_<end>/
         index.html   (self-contained HTML report)
@@ -34,6 +38,7 @@ import argparse
 import requests
 import io
 import json
+import time
 import datetime as dt
 import pandas as pd
 import base64
@@ -57,10 +62,14 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 def load_dotenv_sh():
     """Load environment variables from .env.sh in the project root (if present).
     Only sets vars that aren't already in the environment.
+
+    Returns the names of variables that were defined in .env.sh but skipped
+    because the environment already had a different value (the environment wins).
     """
+    shadowed = []
     env_file = os.path.join(PROJECT_ROOT, ".env.sh")
     if not os.path.exists(env_file):
-        return
+        return shadowed
     with open(env_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -74,8 +83,13 @@ def load_dotenv_sh():
             key, _, val = line.partition("=")
             key = key.strip()
             val = val.strip().strip('"').strip("'")
-            if key and key not in os.environ:
+            if not key:
+                continue
+            if key not in os.environ:
                 os.environ[key] = val
+            elif os.environ[key] != val:
+                shadowed.append(key)
+    return shadowed
 
 
 # ---------------------------------------------------------------------------
@@ -89,9 +103,53 @@ def get_api_base(site):
     return f"https://{site}.goatcounter.com/api/v0"
 
 
-def api_get(api_base, path, params=None, timeout=60):
+API_ATTEMPTS = 3   # total attempts per request (1 = no retries)
+API_BACKOFF = 1.5  # seconds before the first retry; doubles each attempt
+
+
+def _is_json_response(resp):
+    """True if the response looks like JSON (per Content-Type or body)."""
+    ctype = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+    if ctype in ("application/json", "text/json") or ctype.endswith("+json"):
+        return True
+    body = (resp.text or "").lstrip()
+    return body.startswith("{") or body.startswith("[")
+
+
+def _body_snippet(resp, limit=200):
+    """Collapsed first `limit` characters of the response body."""
+    body = " ".join((resp.text or "").split())
+    return body[:limit] + ("…" if len(body) > limit else "")
+
+
+def _is_retryable(status):
+    """Transient HTTP statuses worth retrying."""
+    return status in (404, 408, 425, 429) or status >= 500
+
+
+def _describe_failure(url, resp):
+    """Explanatory message for a failed API call."""
+    ctype = resp.headers.get("Content-Type") or "unknown content type"
+    if not _is_json_response(resp):
+        return (
+            f"API error ({resp.status_code}) for {url}: GoatCounter returned {ctype} "
+            f"instead of JSON, so the request did not reach the API: {_body_snippet(resp)}"
+        )
+    try:
+        detail = json.dumps(resp.json())
+    except Exception:
+        detail = _body_snippet(resp)
+    return f"API error ({resp.status_code}) for {url}: {detail}"
+
+
+def api_get(api_base, path, params=None, timeout=60, attempts=API_ATTEMPTS):
     """Make an authenticated GET request to the GoatCounter API.
     Returns the parsed JSON response.
+
+    Auth failures (401/403) raise immediately. Transient failures — connection
+    errors, 404/408/425/429, 5xx, and non-JSON replies (the API always returns
+    JSON, so anything else means the request never reached the API handler) —
+    are retried with exponential backoff before giving up.
     """
     token = os.getenv("GOATCOUNTER_API_TOKEN")
     if not token:
@@ -104,22 +162,34 @@ def api_get(api_base, path, params=None, timeout=60):
         "Accept": "application/json",
     }
     url = f"{api_base}/{path.lstrip('/')}"
-    resp = requests.get(url, headers=headers, params=params, timeout=timeout)
-    if resp.status_code in (401, 403):
-        raise RuntimeError(
-            f"Auth error ({resp.status_code}) for {url}. "
-            "Check GOATCOUNTER_API_TOKEN."
-        )
-    if not resp.ok:
-        detail = ""
+
+    for attempt in range(1, attempts + 1):
+        error = None
+        retryable = True
         try:
-            detail = resp.json()
-        except Exception:
-            detail = resp.text[:500]
-        raise RuntimeError(
-            f"API error ({resp.status_code}) for {url}: {detail}"
-        )
-    return resp.json()
+            resp = requests.get(url, headers=headers, params=params, timeout=timeout)
+        except requests.RequestException as e:
+            error = f"{type(e).__name__} for {url}: {e}"
+        else:
+            if resp.status_code in (401, 403):
+                raise RuntimeError(
+                    f"Auth error ({resp.status_code}) for {url}. "
+                    "Check GOATCOUNTER_API_TOKEN."
+                )
+            if resp.ok and _is_json_response(resp):
+                return resp.json()
+            error = _describe_failure(url, resp)
+            retryable = _is_retryable(resp.status_code) or (
+                resp.ok and not _is_json_response(resp)
+            )
+
+        if not retryable or attempt == attempts:
+            raise RuntimeError(error)
+
+        delay = API_BACKOFF * (2 ** (attempt - 1))
+        print(f"  ⚠ {error}")
+        print(f"    retrying in {delay:.1f}s (attempt {attempt + 1} of {attempts}) ...")
+        time.sleep(delay)
 
 
 def fetch_stats_data(site, start, end):
@@ -623,7 +693,15 @@ def generate_charts_and_html(report, out_dir):
 
 def main():
     # Auto-load .env.sh before parsing args (so env vars are available)
-    load_dotenv_sh()
+    shadowed = load_dotenv_sh()
+    if shadowed:
+        print("⚠ Values already set in the environment override .env.sh; ignoring:")
+        for key in shadowed:
+            print(
+                f"    {key} (environment wins, {len(os.environ[key])} chars) — "
+                f"unset it or run with `env -u {key} ...` to use .env.sh"
+            )
+        print()
 
     parser = argparse.ArgumentParser(
         description="Generate a GoatCounter stats report with charts."
@@ -719,4 +797,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as e:
+        # Expected failures (API/auth/network) — show the message, not a traceback
+        print(f"error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        sys.exit(130)

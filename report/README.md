@@ -57,6 +57,10 @@ The script reads `GOATCOUNTER_API_TOKEN` from the environment. It auto-loads `.e
 export GOATCOUNTER_API_TOKEN=your-api-token-here
 ```
 
+**Precedence:** a value already set in the environment wins over `.env.sh`, and the script prints a warning when the two disagree (e.g. a token exported earlier in the same shell session for another site). If you see unexpected `401`/`404` responses, check that warning first — or run with `env -u GOATCOUNTER_API_TOKEN python goatcounter-report.py ...` to force `.env.sh`.
+
+**Retries:** the API always returns JSON (`401` for a bad/missing key, `403` for insufficient permission). Transient failures — connection errors, `404`/`408`/`425`/`429`, `5xx`, and non-JSON replies such as GoatCounter's HTML error page — are retried up to 3 times with exponential backoff before failing with a readable message instead of a traceback.
+
 ## Report contents
 
 The HTML report includes:
