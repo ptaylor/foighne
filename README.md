@@ -1,5 +1,7 @@
 # foighne
 
+<img src="images/icon.png" alt="Foighne logo" width="96" height="96">
+
 A classic **Klondike Solitaire** card game — playable right in the browser, no dependencies.
 
 *Foighne* means "patience" in Irish.
