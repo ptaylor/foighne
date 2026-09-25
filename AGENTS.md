@@ -23,7 +23,8 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 - `stock[]`, `waste[]`, `tableau[7][]`, `foundations[4][]` — game state (cards: `{suit, rank, faceUp}`)
 - `SUITS = ['♠','♥','♦','♣']`, `RANKS = ['A'..'K']` — suit 0=♠(black), 1=♥(red), 2=♦(red), 3=♣(black); rank 0=A .. 12=K
 - `selectedCards`, `debugMode`, `autoCompleting`
-- `SETTINGS_KEY`, `SAVE_KEY`, `STATS_KEY` — localStorage keys
+- `SETTINGS_KEY`, `SAVE_KEY`, `STATS_KEY`, `IN_PROGRESS_KEY` — localStorage keys
+  - `IN_PROGRESS_KEY` is set when a deal starts and cleared only when the game is won, so `gameInProgress()` at startup detects a game that was started but never completed (abandoned); `resetStreakForAbandonedGame()` then zeroes `currentStreak`
 - `activeEgg`, `eggParticles[]`, `eggAnimId`, `eggCanvas`, `eggCtx` — easter egg canvas system
 - `audioCtx` — Web Audio API context for sound engine
 
