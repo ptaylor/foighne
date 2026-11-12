@@ -57,7 +57,7 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 
 ### Handedness layout
 - `handedness` setting (`'right'` default, or `'left'`) is applied by `applySettings()` as `document.body.dataset.hand`
-- CSS does all the rearranging: `body[data-hand="right"]` rules reorder the three `.top-row` children with flex `order` on desktop (controls left, foundations + deck right) and explicit grid placement at ≤600px
+- CSS does all the rearranging: `body[data-hand="right"]` rules reorder the three `.top-row` children with flex `order` on desktop (controls left, foundations + deck right), reverse the control row so hint/undo sit nearest the deck, and use explicit grid placement at ≤600px
 - `selectHandedness(hand)` — updates the setting, applies the layout, refreshes the Left/Right buttons
 - Markup order never changes, so game logic and drag/drop coordinates are unaffected
 

@@ -91,6 +91,9 @@
     margin-right: calc(var(--pile-gap) * 3);
   }
   body[data-hand="right"] .top-row > .top-section:first-child { order: 2; }
+  /* Mirror the control row too: settings/info move to the outer edge and the
+     frequently used hint/undo sit nearest the deck, under the right thumb. */
+  body[data-hand="right"] .top-row > div:last-child > div { flex-direction: row-reverse; }
   .tableau-row {
     flex: 1;
     display: flex;
