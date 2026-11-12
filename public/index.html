@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.44">
-<meta name="commit" content="bbd3042">
+<meta name="version" content="v1.45">
+<meta name="commit" content="e292fa9">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -91,6 +91,9 @@
     margin-right: calc(var(--pile-gap) * 3);
   }
   body[data-hand="right"] .top-row > .top-section:first-child { order: 2; }
+  /* Mirror the control row too: settings/info move to the outer edge and the
+     frequently used hint/undo sit nearest the deck, under the right thumb. */
+  body[data-hand="right"] .top-row > div:last-child > div { flex-direction: row-reverse; }
   .tableau-row {
     flex: 1;
     display: flex;
