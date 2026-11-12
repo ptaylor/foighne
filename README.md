@@ -14,7 +14,7 @@ A classic **Klondike Solitaire** card game — playable right in the browser, no
 Open `foighne.html` in any modern browser. The goal is to build all four foundation piles up from Ace to King, one per suit.
 
 - **Tableau**: Build descending sequences in alternating colors. Drag cards or click to select, then click the destination.
-- **Stock & Waste**: Click the stock (top-left) to flip cards into the waste pile. Drag cards from the waste onto the tableau or foundations.
+- **Stock & Waste**: Click the stock to flip cards into the waste pile. It sits on the right by default (right-handed layout) and can be moved to the left in Settings. Drag cards from the waste onto the tableau or foundations.
 - **Foundations**: Start with an Ace, then stack same-suit cards in ascending order.
 - **Auto-complete**: When all cards are face-up, the New Game button becomes an auto-complete button to finish the game automatically.
 
@@ -30,9 +30,10 @@ Open `foighne.html` in any modern browser. The goal is to build all four foundat
 - 2 face card styles (Funny, Stupid)
 - Single or triple draw from stock
 - Responsive layout with mobile-optimised card design (simplified, larger rank+suit, tighter spacing)
+- Right- or left-handed layout (right-handed by default) — moves the deck and foundations to the right and the controls to the left; switch under Settings → Handedness
 - PWA-ready with favicon, apple-touch-icon, and theme colour for home screen install
 - Privacy-friendly GoatCounter analytics (no cookies, no personal data) — tracks game events and anonymised settings usage
-- Debug panel (long-press top-right corner) with game state inspector, nearly-complete preset, and clear-saved-data option
+- Debug panel (long-press top-right corner) with game state inspector, nearly-complete preset, clear-saved-data option, and a feature-flag reset for re-showing one-time prompts
 
 ## License
 

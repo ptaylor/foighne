@@ -49,11 +49,23 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 - Debug panel lists all eggs with date and active status; click to manually toggle any egg for testing
 
 ### Settings system
-- `DEFAULT_SETTINGS` — object with all setting defaults (`theme`, `cardBack`, `faceStyle`, `drawCount`, `volume`, `soundTheme`)
+- `DEFAULT_SETTINGS` — object with all setting defaults (`theme`, `cardBack`, `faceStyle`, `drawCount`, `volume`, `soundTheme`, `handedness`)
 - `loadSettings()` / `saveSettings(s)` — read/write to `localStorage` (key: `SETTINGS_KEY`). Includes migration logic for old key names
 - **`updateSetting(key, value)`** — reusable helper: loads settings, sets the key, saves, and fires `trackEvent('setting-' + key + '-' + value)`. Always use this when a user changes a setting — never call `saveSettings` directly for user-triggered changes
 - To **add a new setting**: (1) add default to `DEFAULT_SETTINGS`, (2) add UI control in the settings overlay HTML, (3) write a short handler that calls `updateSetting('newKey', val)` plus any side effects (re-render, apply theme, etc.). Tracking is automatic — no need to add a separate `trackEvent` call
 - Settings are tracked via GoatCounter as `setting-{key}-{value}` events (e.g. `setting-theme-azure`, `setting-volume-5`)
+
+### Handedness layout
+- `handedness` setting (`'right'` default, or `'left'`) is applied by `applySettings()` as `document.body.dataset.hand`
+- CSS does all the rearranging: `body[data-hand="right"]` rules reorder the three `.top-row` children with flex `order` on desktop (controls left, foundations + deck right) and explicit grid placement at ≤600px
+- `selectHandedness(hand)` — updates the setting, applies the layout, refreshes the Left/Right buttons
+- Markup order never changes, so game logic and drag/drop coordinates are unaffected
+
+### Feature flags
+- `FEATURE_FLAGS_KEY` (`solitaire_feature_flags`) — JSON object of one-time UI flags, kept separate from settings
+- `hasFeatureFlag(name)` / `setFeatureFlag(name)` / `resetFeatureFlags()` — read, set, and clear flags
+- `HANDEDNESS_INTRO_FLAG` (`handednessIntroSeen`) — set when the one-time right-handed intro is dismissed; `maybeShowHandednessIntro()` runs at startup
+- Debug panel's **🚩 Reset Feature Flags** button clears the flags and re-shows the intro without touching settings
 
 ### Card object shape
 ```js
@@ -69,7 +81,7 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 - Both shown in the debug panel (long-press top-right corner to open)
 
 ## Debug panel
-Long-press (hold ~1.5s) the invisible button in the **top-right corner** of the page — a gold ring expands as visual feedback. Shows stock/waste/foundations state, version/commit, easter eggs, a **🧪 Nearly Complete** button, and a **🗑 Clear Saved Data** button for testing.
+Long-press (hold ~1.5s) the invisible button in the **top-right corner** of the page — a gold ring expands as visual feedback. Shows stock/waste/foundations state, version/commit, easter eggs, a **🧪 Nearly Complete** button, a **🗑 Clear Saved Data** button, and a **🚩 Reset Feature Flags** button (re-arms one-time prompts) for testing.
 
 ## Publishing
 ```bash

@@ -76,6 +76,21 @@
     display: flex;
     gap: var(--pile-gap);
   }
+  /* Right-handed layout: controls on the left, foundations and deck grouped on
+     the right so both card groups sit under the right thumb. Markup order is
+     unchanged; `order` only rearranges the visual row. */
+  body[data-hand="right"] .top-row { justify-content: flex-start; }
+  body[data-hand="right"] .top-row > div:last-child { order: 0; }
+  body[data-hand="right"] .top-row > #foundations {
+    order: 1;
+    margin-left: auto;
+    /* The deck sits immediately to the right of the foundations. At pile-gap
+       the two groups read as one run of five piles, so leave a wider break
+       between them; the auto left margin moves the foundations, not the deck,
+       and nothing else in the row shifts. */
+    margin-right: calc(var(--pile-gap) * 3);
+  }
+  body[data-hand="right"] .top-row > .top-section:first-child { order: 2; }
   .tableau-row {
     flex: 1;
     display: flex;
@@ -602,6 +617,61 @@
     background: rgba(255,255,255,0.22);
   }
 
+  /* Right-handed layout explainer (shown once per browser) */
+  #handedness-intro-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  }
+  #handedness-intro-overlay.show {
+    display: flex;
+  }
+  .hand-intro-panel {
+    background: #1e3a5f;
+    border-radius: 14px;
+    padding: 24px 22px;
+    max-width: 400px;
+    width: 90%;
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+  .hand-intro-panel h2 {
+    font-size: 20px;
+    color: #ffd700;
+    margin: 0 0 10px;
+  }
+  .hand-intro-panel p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.8);
+    margin: 0 0 10px;
+  }
+  .hand-intro-panel p b { color: #fff; }
+  .hand-intro-panel .hand-intro-hint {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 0;
+  }
+  .hand-intro-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .hand-intro-actions .btn {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-top: 0;
+  }
+
   .setting-group {
     margin-bottom: 12px;
   }
@@ -911,6 +981,29 @@
       margin-top: 2px !important;
       margin-left: auto;
     }
+    /* Right-handed mobile: deck top-right, controls top-left, foundations on
+       their own row pushed right. The wider row gap keeps the deck and the
+       foundations from reading as one block; the desktop margin-right would
+       pull the full-width row off the right edge, so it is reset here. */
+    body[data-hand="right"] .top-row { row-gap: calc(var(--pile-gap) * 2); }
+    body[data-hand="right"] .top-row > .top-section:first-child {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+    body[data-hand="right"] .top-row > div:last-child {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+      margin-left: 0;
+    }
+    body[data-hand="right"] .top-row > #foundations {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      justify-content: flex-end;
+      margin-left: 0;
+      margin-right: 0;
+    }
     .card .center-suit svg {
       width: 22px;
       height: 25px;
@@ -1021,6 +1114,13 @@
         <button class="draw-btn" id="auto-move-off" onclick="toggleAutoMoveWaste(false)">Off</button>
       </div>
     </div>
+    <div class="draw-row">
+      <span>Handedness</span>
+      <div class="draw-btns">
+        <button class="draw-btn" id="hand-left" onclick="selectHandedness('left')" title="Deck and foundations on the left">Left</button>
+        <button class="draw-btn selected" id="hand-right" onclick="selectHandedness('right')" title="Deck and foundations on the right">Right</button>
+      </div>
+    </div>
     <div class="setting-group">
       <h3>Color Theme</h3>
       <div class="tile-grid" id="theme-grid"></div>
@@ -1055,6 +1155,18 @@
       </a>
     </div>
     <button class="info-close" onclick="closeInfo()">Close</button>
+  </div>
+</div>
+<div id="handedness-intro-overlay">
+  <div class="hand-intro-panel">
+    <h2>New: right-handed layout</h2>
+    <p>The deck and foundations now sit on the <b>right</b>, with the controls on the left, so you can deal and drag cards with your right thumb.</p>
+    <p>Prefer the old arrangement? Switch any time in <b>Settings &rarr; Handedness</b>.</p>
+    <p class="hand-intro-hint">This message appears once per device.</p>
+    <div class="hand-intro-actions">
+      <button class="btn" onclick="chooseHandednessFromIntro('left')">Switch to left-handed</button>
+      <button class="btn" onclick="chooseHandednessFromIntro('right')">Keep right-handed</button>
+    </div>
   </div>
 </div>
 <script>
@@ -1169,6 +1281,7 @@ function clearSavedData() {
   localStorage.removeItem(STATS_KEY);
   localStorage.removeItem(IN_PROGRESS_KEY);
   localStorage.removeItem(SETTINGS_KEY);
+  localStorage.removeItem(FEATURE_FLAGS_KEY);
   trackEvent('clear-saved-data');
   location.reload();
 }
@@ -1194,6 +1307,8 @@ function updateStatsDisplay(s) {
 
 // Settings
 const SETTINGS_KEY = 'solitaire_settings';
+const FEATURE_FLAGS_KEY = 'solitaire_feature_flags';
+const HANDEDNESS_INTRO_FLAG = 'handednessIntroSeen';
 
 const THEMES = {
   azure:   { name: 'Azure',        bg: '#0d4f7c', cardBg: '#f7f2e8', red: '#c0392b', black: '#1a1a2e', cardBorder: '#d4c8b8' },
@@ -1216,7 +1331,8 @@ const DEFAULT_SETTINGS = {
   volume: 5,
   soundTheme: 'zen',
   undoDepth: 10,
-  autoMoveWaste: false
+  autoMoveWaste: false,
+  handedness: 'right'
 };
 
 function loadSettings() {
@@ -1262,6 +1378,49 @@ function applySettings() {
   
   // Card back pattern
   document.body.dataset.cardBack = settings.cardBack;
+
+  // Handedness layout — driven entirely by CSS via body[data-hand]
+  document.body.dataset.hand = settings.handedness === 'left' ? 'left' : 'right';
+}
+
+// ── Feature flags ──
+// Small persisted flags for one-time UI such as the handedness explainer.
+// Kept apart from settings so resetting a flag never touches preferences.
+
+function loadFeatureFlags() {
+  try {
+    const raw = localStorage.getItem(FEATURE_FLAGS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function hasFeatureFlag(name) {
+  return loadFeatureFlags()[name] === true;
+}
+
+function setFeatureFlag(name) {
+  const flags = loadFeatureFlags();
+  flags[name] = true;
+  try { localStorage.setItem(FEATURE_FLAGS_KEY, JSON.stringify(flags)); } catch (e) {}
+}
+
+function resetFeatureFlags() {
+  try { localStorage.removeItem(FEATURE_FLAGS_KEY); } catch (e) {}
+}
+
+function maybeShowHandednessIntro() {
+  if (hasFeatureFlag(HANDEDNESS_INTRO_FLAG)) return;
+  document.getElementById('handedness-intro-overlay').classList.add('show');
+  trackEvent('handedness-intro-shown');
+}
+
+function chooseHandednessFromIntro(hand) {
+  setFeatureFlag(HANDEDNESS_INTRO_FLAG);
+  selectHandedness(hand);
+  document.getElementById('handedness-intro-overlay').classList.remove('show');
+  trackEvent('handedness-intro-' + hand);
 }
 
 function populateSettings() {
@@ -1316,6 +1475,7 @@ function populateSettings() {
   
   // Undo depth slider
   updateUndoDepthSlider();
+  updateHandednessButtons();
 }
 
 function updateUndoDepthSlider() {
@@ -1456,6 +1616,22 @@ function updateAutoMoveButtons() {
   const btnOff = document.getElementById('auto-move-off');
   if (btnOn) btnOn.classList.toggle('selected', on);
   if (btnOff) btnOff.classList.toggle('selected', !on);
+}
+
+// ── Handedness ──
+
+function selectHandedness(hand) {
+  updateSetting('handedness', hand === 'left' ? 'left' : 'right');
+  applySettings();
+  updateHandednessButtons();
+}
+
+function updateHandednessButtons() {
+  const hand = loadSettings().handedness === 'left' ? 'left' : 'right';
+  const leftBtn = document.getElementById('hand-left');
+  const rightBtn = document.getElementById('hand-right');
+  if (leftBtn) leftBtn.classList.toggle('selected', hand === 'left');
+  if (rightBtn) rightBtn.classList.toggle('selected', hand === 'right');
 }
 
 // ── Hint system ──
@@ -2825,6 +3001,7 @@ function renderDebugPanel() {
   
   html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();setupNearlyComplete()" style="background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.3);color:#ffd700;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:bold">🧪 Nearly Complete</button></div>';
   html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();clearSavedData()" style="background:rgba(255,100,100,0.12);border:1px solid rgba(255,100,100,0.25);color:#ff6b6b;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px">🗑 Clear Saved Data</button></div>';
+  html += '<div style="text-align:center;margin-bottom:10px"><button onclick="event.stopPropagation();resetFeatureFlags();trackEvent(\'reset-feature-flags\');maybeShowHandednessIntro();" style="background:rgba(255,215,0,0.10);border:1px solid rgba(255,215,0,0.25);color:#ffd700;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px">🚩 Reset Feature Flags</button></div>';
   
   // Always show hints toggle
   const hintOn = alwaysShowHints;
@@ -4175,6 +4352,10 @@ if (foundations.every(f => f.length === 13)) {
   if (unfinishedGame && !resumed) resetStreakForAbandonedGame();
   markGameInProgress();
 }
+
+// Explain the right-handed layout once per browser. The debug panel's
+// "Reset Feature Flags" control re-arms this without touching settings.
+maybeShowHandednessIntro();
 
 // Persist game state when page is hidden/suspended (critical for mobile)
 // Use flushSaveGame() to skip the debounce — timeout won't fire on suspended pages
