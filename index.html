@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="A classic Klondike Solitaire card game — Foighne, Irish for patience. Play in your browser, no downloads.">
-<meta name="version" content="v1.45">
-<meta name="commit" content="e292fa9">
+<meta name="version" content="v1.46">
+<meta name="commit" content="54bb41b">
 <meta name="theme-color" content="#0d4f7c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -90,7 +90,15 @@
        and nothing else in the row shifts. */
     margin-right: calc(var(--pile-gap) * 3);
   }
-  body[data-hand="right"] .top-row > .top-section:first-child { order: 2; }
+  body[data-hand="right"] .top-row > .top-section:first-child {
+    order: 2;
+    /* Mirror the pair so the undealt stock sits on the outer right edge and
+       the waste is inboard; the waste fan is flipped in render(). */
+    flex-direction: row-reverse;
+  }
+  /* Anchor waste cards at the right so the fan grows leftwards into the gap
+     rather than under the stock. */
+  body[data-hand="right"] #waste .card { left: auto; right: 0; }
   /* Mirror the control row too: settings/info move to the outer edge and the
      frequently used hint/undo sit nearest the deck, under the right thumb. */
   body[data-hand="right"] .top-row > div:last-child > div { flex-direction: row-reverse; }
@@ -3764,12 +3772,16 @@ function render() {
   wasteEl.querySelectorAll('.card').forEach(c => c.remove());
   if (waste.length > 0) {
     wastePH.style.display = 'none';
-    const drawCount = loadSettings().drawCount || 1;
+    const settings = loadSettings();
+    const drawCount = settings.drawCount || 1;
     const showCount = Math.min(drawCount, waste.length);
+    // Right-handed mode mirrors the pair, so the waste fans leftwards (toward
+    // the foundations) instead of under the stock.
+    const fanDir = settings.handedness === 'left' ? 1 : -1;
     for (let w = waste.length - showCount; w < waste.length; w++) {
       const cardEl = createCardElement(waste[w], w);
       cardEl.style.position = 'absolute';
-      cardEl.style.transform = 'translateX(' + ((w - (waste.length - showCount)) * fanOffset) + 'px)';
+      cardEl.style.transform = 'translateX(' + (fanDir * (w - (waste.length - showCount)) * fanOffset) + 'px)';
       cardEl.style.zIndex = w;
       wasteEl.appendChild(cardEl);
     }
