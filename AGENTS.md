@@ -66,6 +66,7 @@ Foighne — a classic Klondike Solitaire game in a single HTML file.
 - `FEATURE_FLAGS_KEY` (`solitaire_feature_flags`) — JSON object of one-time UI flags, kept separate from settings
 - `hasFeatureFlag(name)` / `setFeatureFlag(name)` / `resetFeatureFlags()` — read, set, and clear flags
 - `HANDEDNESS_INTRO_FLAG` (`handednessIntroSeen`) — set when the one-time right-handed intro is dismissed; `maybeShowHandednessIntro()` runs at startup
+- `EXISTING_USER` — captured at script evaluation, before startup writes any save/stats/in-progress keys. True only if at least one Foighne localStorage key already exists, so first-time visitors never see upgrade explainers while returning users (and debug-panel flag resets) do. `maybeShowHandednessIntro()` marks the flag as seen for first-time visitors so the intro never appears on a later visit either
 - Debug panel's **🚩 Reset Feature Flags** button clears the flags and re-shows the intro without touching settings
 
 ### Card object shape

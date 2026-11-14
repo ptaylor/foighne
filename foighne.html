@@ -1321,6 +1321,19 @@ const SETTINGS_KEY = 'solitaire_settings';
 const FEATURE_FLAGS_KEY = 'solitaire_feature_flags';
 const HANDEDNESS_INTRO_FLAG = 'handednessIntroSeen';
 
+// Captured while the script is evaluated, before the startup code at the bottom
+// writes a save, stats or in-progress marker. A first-time visitor has no
+// Foighne keys at all; anyone with any of them has played before. One-time
+// explainers for new features are shown only to that second group.
+const EXISTING_USER = (() => {
+  try {
+    return [SETTINGS_KEY, FEATURE_FLAGS_KEY, SAVE_KEY, STATS_KEY, IN_PROGRESS_KEY]
+      .some(k => localStorage.getItem(k) !== null);
+  } catch (e) {
+    return false; // private mode or storage blocked — treat as new
+  }
+})();
+
 const THEMES = {
   azure:   { name: 'Azure',        bg: '#0d4f7c', cardBg: '#f7f2e8', red: '#c0392b', black: '#1a1a2e', cardBorder: '#d4c8b8' },
   midnight:{ name: 'Midnight',     bg: '#0f0f1a', cardBg: '#1e1e30', red: '#ff6b6b', black: '#d4d4e0', cardBorder: '#2a2a40' },
@@ -1422,6 +1435,13 @@ function resetFeatureFlags() {
 }
 
 function maybeShowHandednessIntro() {
+  if (!EXISTING_USER) {
+    // First-time visitor: they never knew the old layout, so there is nothing
+    // to explain. Mark it seen so it does not ambush them on a later visit
+    // once their own saves make them an existing user.
+    setFeatureFlag(HANDEDNESS_INTRO_FLAG);
+    return;
+  }
   if (hasFeatureFlag(HANDEDNESS_INTRO_FLAG)) return;
   document.getElementById('handedness-intro-overlay').classList.add('show');
   trackEvent('handedness-intro-shown');
@@ -4368,8 +4388,10 @@ if (foundations.every(f => f.length === 13)) {
   markGameInProgress();
 }
 
-// Explain the right-handed layout once per browser. The debug panel's
-// "Reset Feature Flags" control re-arms this without touching settings.
+// Explain the right-handed layout once per browser, but only to people who
+// already had local state — a first-time visitor never knew the old layout and
+// is simply marked as having seen it. The debug panel's "Reset Feature Flags"
+// control re-arms this without touching settings.
 maybeShowHandednessIntro();
 
 // Persist game state when page is hidden/suspended (critical for mobile)
